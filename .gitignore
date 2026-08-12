@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# test / coverage
+coverage/
+.vitest/
+
+# env & secrets  (rule R7 - secrets never in the repo)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# logs
+*.log
+npm-debug.log*
+
+# local tooling
+.claude/

@@ -1,0 +1,17 @@
+# Normalise line endings to LF everywhere.
+# Prettier is configured with endOfLine: lf; without this, Git's autocrlf on
+# Windows rewrites working copies to CRLF and `npm run format:check` fails.
+* text=auto eol=lf
+
+# Binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+
+# Generated - collapse in diffs and reviews
+package-lock.json linguist-generated=true -diff
