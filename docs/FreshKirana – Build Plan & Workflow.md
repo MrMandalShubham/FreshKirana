@@ -349,7 +349,7 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 
 | Phase | Part | Title | Status | Confirmed | Notes |
 |---|---|---|---|---|---|
-| 0 | P0.1 | Monorepo, contracts, CI | ☐ | | |
+| 0 | P0.1 | Monorepo, contracts, CI | ✅ | 2026-08-12 | `e971274` · 23 tests · push pending `gh auth login` |
 | 0 | P0.2 | Database & module skeleton | ☐ | | |
 | 0 | P0.3 | Identity & auth | ☐ | | |
 | 0 | P0.4 | Observability & analytics ingest | ☐ | | |
