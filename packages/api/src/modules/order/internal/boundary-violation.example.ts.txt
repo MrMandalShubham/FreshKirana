@@ -1,0 +1,18 @@
+/**
+ * BOUNDARY VIOLATION FIXTURE — not compiled (.txt extension).
+ *
+ * Used by the P0.2 confirmation test to prove rule R2 is actually enforced
+ * rather than merely documented.
+ *
+ * To verify:
+ *   1. Rename this file to `boundary-violation.example.ts`
+ *   2. Run `npm run check:boundaries`  -> MUST FAIL with no-cross-module-internals
+ *   3. Rename it back to `.txt`        -> passes again
+ *
+ * The import below is illegal: the order module is reaching into the payment
+ * module's private schema instead of going through `payment/contracts`.
+ */
+
+import { paymentSchema } from '../../payment/schema';
+
+export const illegal = paymentSchema;

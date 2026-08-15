@@ -32,11 +32,69 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Module boundary enforcement - spec 2.1.1, standing rule R2.
+      - name: Check schema ownership
+        run: npm run check:schemas
+
       - name: Build
         run: npm run build
+
+      - name: Check module boundaries
+        run: npm run check:boundaries
 
       - name: Typecheck
         run: npm run typecheck
 
       - name: Test
         run: npm run test
+
+  migrations:
+    name: Migrations apply cleanly
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: freshkirana
+          POSTGRES_PASSWORD: freshkirana_local
+          POSTGRES_DB: freshkirana
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U freshkirana -d freshkirana"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://freshkirana:freshkirana_local@localhost:5432/freshkirana
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Apply migrations
+        run: npm run db:migrate
+
+      # Re-running must be a no-op: deploys apply migrations before the new
+      # version starts, and retries must be safe (2.15).
+      - name: Re-apply migrations (idempotency)
+        run: npm run db:migrate
+
+      - name: Verify committed migrations match the schema
+        run: |
+          npm run db:generate
+          if [ -n "$(git status --porcelain packages/api/drizzle)" ]; then
+            echo "::error::Schema changed without a committed migration. Run 'npm run db:generate'."
+            git status --porcelain packages/api/drizzle
+            exit 1
+          fi

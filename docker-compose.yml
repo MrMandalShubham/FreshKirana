@@ -1,0 +1,40 @@
+services:
+  postgres:
+    # PostGIS from the start: §2.8 serviceability needs polygon geofences, and
+    # adding the extension later means a migration on a live database.
+    image: postgis/postgis:16-3.4
+    container_name: freshkirana-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: freshkirana
+      POSTGRES_PASSWORD: freshkirana_local
+      POSTGRES_DB: freshkirana
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U freshkirana -d freshkirana']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    # One dependency serving four jobs (§2.3): cache, queue, locks, rate limits.
+    image: redis:7-alpine
+    container_name: freshkirana-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
+  redis-data:

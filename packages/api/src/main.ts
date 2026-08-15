@@ -1,6 +1,9 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { loadEnv } from './config/env';
+
+loadEnv();
 
 const DEFAULT_PORT = 3000;
 

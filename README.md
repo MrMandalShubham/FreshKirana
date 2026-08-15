@@ -28,34 +28,66 @@ packages/
 ## Prerequisites
 
 - Node.js ≥ 22 (see `.nvmrc`)
-- Docker (PostgreSQL and Redis, from P0.2)
+- Docker Desktop (PostgreSQL + PostGIS, Redis)
 
 ## Getting started
 
 ```bash
+cp .env.example .env
 npm install
+npm run db:up
 npm run build
-npm test
+npm run db:migrate
+npm run verify
 ```
 
 Run the API:
 
 ```bash
-npm run build
 node packages/api/dist/main.js
 # GET http://localhost:3000/health
 ```
 
 ## Scripts
 
-| Script              | Does                        |
-| ------------------- | --------------------------- |
-| `npm run build`     | Builds contracts, then api  |
-| `npm run typecheck` | Type-checks every workspace |
-| `npm test`          | Runs all tests              |
-| `npm run lint`      | ESLint                      |
-| `npm run format`    | Prettier write              |
-| `npm run verify`    | Everything CI runs, locally |
+| Script                      | Does                                       |
+| --------------------------- | ------------------------------------------ |
+| `npm run build`             | Builds contracts, then api                 |
+| `npm run typecheck`         | Type-checks every workspace                |
+| `npm test`                  | Runs all tests                             |
+| `npm run lint`              | ESLint                                     |
+| `npm run format`            | Prettier write                             |
+| `npm run verify`            | Everything CI runs, locally                |
+| `npm run db:up` / `db:down` | Start / stop Postgres + Redis              |
+| `npm run db:reset`          | Destroy volumes and restart clean          |
+| `npm run db:generate`       | Generate a migration from schema changes   |
+| `npm run db:migrate`        | Apply pending migrations                   |
+| `npm run check:boundaries`  | Module boundary rules (dependency-cruiser) |
+| `npm run check:schemas`     | Schema ownership per module                |
+
+## Module boundaries
+
+`packages/api/src/modules/` holds the 22 bounded contexts of spec §2.2. Each has the same shape:
+
+```
+<module>/
+  <module>.module.ts   NestJS module
+  contracts.ts         the ONLY file other modules may import from
+  schema.ts            tables in this module's own PG schema — private
+  internal/            everything else — private
+```
+
+Three checks enforce this in CI (spec §2.1.1, standing rule R2):
+
+| Check                       | Catches                                              |
+| --------------------------- | ---------------------------------------------------- |
+| `no-cross-module-internals` | reaching past another module's `contracts.ts`        |
+| `no-circular`               | circular dependencies between modules                |
+| `check:schemas`             | a module touching another module's PostgreSQL schema |
+
+These are what make the §2.1.2 extraction triggers cheap to act on later. **Do not disable one to unblock work** — fix the import instead.
+
+> `packages/api/src/modules/order/internal/boundary-violation.example.ts.txt` is a fixture proving the rule is live. Rename it to `.ts` and `npm run check:boundaries` must fail; rename it back and it must pass.
 
 ## Contributing
 
