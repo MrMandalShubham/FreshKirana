@@ -350,7 +350,7 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 | Phase | Part | Title | Status | Confirmed | Notes |
 |---|---|---|---|---|---|
 | 0 | P0.1 | Monorepo, contracts, CI | ✅ | 2026-08-12 | `e971274` · 23 tests · push pending `gh auth login` |
-| 0 | P0.2 | Database & module skeleton | ☐ | | |
+| 0 | P0.2 | Database & module skeleton | ⏳ | | Built, committed `e919f88`. Awaiting your confirmation test |
 | 0 | P0.3 | Identity & auth | ☐ | | |
 | 0 | P0.4 | Observability & analytics ingest | ☐ | | |
 | 0 | P0.5 | Deploy pipeline & staging | ☐ | | Needs A2 |
