@@ -11,4 +11,5 @@ export type { Paise } from './money';
 
 export * from './order-status';
 export * from './payment-status';
+export * from './roles';
 export * from './uom';

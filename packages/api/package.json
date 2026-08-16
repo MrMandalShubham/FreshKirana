@@ -19,7 +19,10 @@
     "@freshkirana/contracts": "*",
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
+    "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-express": "^11.0.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.38.2",
     "pg": "^8.13.1",
@@ -31,8 +34,10 @@
     "@swc/core": "^1.10.1",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",
+    "@types/supertest": "^7.2.1",
     "dependency-cruiser": "^16.7.0",
     "drizzle-kit": "^0.30.1",
+    "supertest": "^7.2.2",
     "unplugin-swc": "^1.5.1"
   }
 }

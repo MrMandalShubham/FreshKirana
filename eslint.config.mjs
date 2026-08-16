@@ -52,8 +52,21 @@ export default tseslint.config(
         'error',
         { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
       ],
+      '@typescript-eslint/no-extraneous-class': 'off',
       eqeqeq: ['error', 'always', { null: 'ignore' }],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
+    },
+  },
+  {
+    // NestJS resolves constructor dependencies from `emitDecoratorMetadata`,
+    // which only emits for *value* imports. `consistent-type-imports` cannot
+    // tell an injected class from a plain type, and its autofix silently
+    // rewrites injected classes to `import type` — breaking DI at runtime with
+    // "Nest can't resolve dependencies". The rule is incompatible with DI, so
+    // it is off wherever decorators are used.
+    files: ['packages/api/**/*.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-imports': 'off',
     },
   },
   prettier,

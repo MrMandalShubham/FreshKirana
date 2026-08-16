@@ -15,6 +15,26 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    # The e2e suites skip themselves when no database is reachable, so CI must
+    # provide one - otherwise they would silently never run.
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: freshkirana
+          POSTGRES_PASSWORD: freshkirana_local
+          POSTGRES_DB: freshkirana
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U freshkirana -d freshkirana"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://freshkirana:freshkirana_local@localhost:5432/freshkirana
+
     steps:
       - uses: actions/checkout@v4
 
@@ -45,8 +65,19 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Apply migrations (e2e suites need a migrated database)
+        run: npm run db:migrate
+
       - name: Test
         run: npm run test
+
+      # An e2e suite that silently skips is worse than none: it reads as green.
+      - name: Assert e2e suites actually ran
+        run: |
+          if npm run test 2>&1 | grep -q "SKIPPED - no migrated database"; then
+            echo "::error::e2e suites skipped in CI - the database service is not reachable."
+            exit 1
+          fi
 
   migrations:
     name: Migrations apply cleanly
