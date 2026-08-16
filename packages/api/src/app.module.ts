@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { DbModule } from './db/db.module';
 import { HealthController } from './health/health.controller';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { IdentityModule } from './modules/identity/identity.module';
+import { ObservabilityModule } from './observability/observability.module';
 
 /**
  * Application root.
@@ -14,7 +16,7 @@ import { IdentityModule } from './modules/identity/identity.module';
  * implementing part lands.
  */
 @Module({
-  imports: [DbModule, IdentityModule],
+  imports: [DbModule, ObservabilityModule, IdentityModule, AnalyticsModule],
   controllers: [HealthController],
 })
 export class AppModule {}

@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { assertAuthModeIsSafe, isDevelopment, resolveAuthMode } from './config/auth-mode';
 import { loadEnv } from './config/env';
+import { logger } from './observability/logger';
 
 loadEnv();
 
@@ -29,10 +30,9 @@ async function bootstrap(): Promise<void> {
   const port = Number(process.env['PORT'] ?? DEFAULT_PORT);
   await app.listen(port);
 
-  // Replaced by structured logging in P0.4.
-  console.warn(`freshkirana-api listening on ${port} (auth: ${resolveAuthMode()})`);
+  logger.info({ port, authMode: resolveAuthMode() }, 'freshkirana-api listening');
   if (isDevelopment()) {
-    console.warn('dev auth enabled — POST /dev/login-as {"role":"CUSTOMER"}');
+    logger.warn('dev auth enabled — POST /dev/login-as {"role":"CUSTOMER"}');
   }
 }
 

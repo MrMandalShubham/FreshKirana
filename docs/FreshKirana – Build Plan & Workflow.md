@@ -366,7 +366,7 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 |---|---|---|---|---|---|
 | 0 | P0.1 | Monorepo, contracts, CI | ✅ | 2026-08-12 | `e971274` · 23 tests · push pending `gh auth login` |
 | 0 | P0.2 | Database & module skeleton | ✅ | 2026-08-15 | `e919f88` · CI green · boundary fixture verified both directions |
-| 0 | P0.3a | Identity model & plumbing | ⏳ | | `7250895` · CI green, 10 e2e ran. Dev login only — real auth is P8.6 |
+| 0 | P0.3a | Identity model & plumbing | ✅ | 2026-08-16 | `7250895` · CI green, 10 e2e ran. Dev login only — real auth is P8.6 |
 | 0 | P0.4 | Observability & analytics ingest | ☐ | | |
 | 0 | P0.5 | Deploy pipeline & staging | ☐ | | Needs A2 |
 | 1 | P1.1 | Master catalog | ☐ | | |
