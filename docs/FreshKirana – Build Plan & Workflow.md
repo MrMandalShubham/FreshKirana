@@ -121,10 +121,23 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 **Confirm:** Make one API call — find every log line for it by correlation ID. POST a test event — see it stored with its properties.
 **Est:** 1–2 · *Rule R1 depends on this existing first*
 
-### P0.5 — Deploy pipeline & staging
-**Builds:** Terraform · managed container platform · managed Postgres + Redis · staging environment · auto-deploy from main
-**Confirm:** Open the staging URL — health check responds. Push a visible change to main — it appears on staging without manual steps.
-**Est:** 2–3 · *Blocked by: A2 cloud provider decision*
+### P0.5a — Containerisation
+**Builds:** Multi-stage Dockerfile (non-root, tini for signal handling, migrations shipped in the image) · `.dockerignore` · CI job that builds the image, proves it **refuses to start in production** without real auth, then boots it against Postgres and smoke-tests `/health` and `/metrics`
+
+**Confirm:** `docker build -t freshkirana-api:local .` · `docker run --rm -e NODE_ENV=production freshkirana-api:local` **must exit non-zero** naming P8.6 · running it with `NODE_ENV=development` and a `DATABASE_URL` serves `/health`.
+
+**Est:** 1–2 · *Cloud-agnostic — no A2 dependency*
+
+### P0.5b — Cloud provisioning & staging
+> **Blocked on decision A2** (cloud provider). Nothing else in the build depends on this, so it can land any time before Phase 1 ends.
+
+**Builds:** Terraform for the chosen provider · managed container platform · managed PostgreSQL with PostGIS + Redis · secrets management · staging environment · auto-deploy from `main` with migrations applied before the new version starts
+
+**Confirm:** Open the staging URL — health check responds. Push a visible change to `main` — it appears on staging with no manual step. Restore staging from a backup.
+
+> **Consequence of the P0.3 split:** until P8.6 lands there is no real authentication, so staging must run with `NODE_ENV=development` and be network-restricted (IP allowlist or private ingress). It must not be publicly reachable.
+
+**Est:** 2–3
 
 ---
 
@@ -368,7 +381,8 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 | 0 | P0.2 | Database & module skeleton | ✅ | 2026-08-15 | `e919f88` · CI green · boundary fixture verified both directions |
 | 0 | P0.3a | Identity model & plumbing | ✅ | 2026-08-16 | `7250895` · CI green, 10 e2e ran. Dev login only — real auth is P8.6 |
 | 0 | P0.4 | Observability & analytics ingest | ⏳ | | `b1ecb93` · CI green · 81 tests · R1 ingest path live |
-| 0 | P0.5 | Deploy pipeline & staging | ☐ | | Needs A2 |
+| 0 | P0.5a | Containerisation | ⏳ | | Cloud-agnostic. Image builds, boots, refuses production |
+| 0 | P0.5b | Cloud provisioning & staging | ⏸ | | **Blocked on A2** (cloud provider). Staging must be network-restricted until P8.6 |
 | 1 | P1.1 | Master catalog | ☐ | | |
 | 1 | P1.2 | Vendors & offers | ☐ | | |
 | 1 | P1.3 | Catalog seeding tooling | ☐ | | |

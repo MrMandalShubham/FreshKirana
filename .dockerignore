@@ -1,0 +1,22 @@
+node_modules
+**/node_modules
+dist
+**/dist
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+.git
+.github
+docs
+coverage
+**/coverage
+
+.env
+.env.*
+!.env.example
+
+# Tests and tooling are not needed in the image
+**/*.spec.ts
+.vscode
+.idea
+*.log

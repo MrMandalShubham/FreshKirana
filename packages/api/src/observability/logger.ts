@@ -63,8 +63,25 @@ function baseOptions(): LoggerOptions {
   };
 }
 
+/**
+ * Is `pino-pretty` actually installed?
+ *
+ * It is a devDependency, so it is absent from the production image — but
+ * NODE_ENV is a *runtime* value, and a container started in development mode
+ * would otherwise crash on boot with "unable to determine transport target".
+ * Human-readable logs are a convenience; never a reason to fail to start.
+ */
+function prettyTransportAvailable(): boolean {
+  try {
+    require.resolve('pino-pretty');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function createLogger(): Logger {
-  if (isDevelopment()) {
+  if (isDevelopment() && prettyTransportAvailable()) {
     return pino({
       ...baseOptions(),
       transport: {
