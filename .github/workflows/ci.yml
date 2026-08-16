@@ -4,10 +4,15 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write # Workload Identity Federation
 
 jobs:
   verify:
@@ -203,3 +208,71 @@ jobs:
           docker logs fk-ci 2>&1 | grep -q '"msg":"request completed"'
 
           docker rm -f fk-ci
+
+  deploy-staging:
+    name: Deploy to staging
+    needs: [verify, migrations, container]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      github.event_name != 'pull_request' &&
+      vars.GCP_WORKLOAD_IDENTITY_PROVIDER != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: staging
+
+    env:
+      REGION: asia-south1
+      SERVICE: freshkirana-staging-api
+      MIGRATE_JOB: freshkirana-staging-migrate
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # No service-account key exists to leak: GitHub mints a short-lived OIDC
+      # token and GCP exchanges it, scoped to this repository only.
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push image
+        id: image
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/freshkirana/api:${GITHUB_SHA}"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      # Migrations run to completion BEFORE the new revision serves traffic,
+      # which is why they must stay backward-compatible for one release (2.15).
+      - name: Apply migrations
+        run: |
+          gcloud run jobs update "$MIGRATE_JOB" \
+            --region "$REGION" \
+            --image "${{ steps.image.outputs.image }}" \
+            --quiet
+          gcloud run jobs execute "$MIGRATE_JOB" \
+            --region "$REGION" \
+            --wait
+
+      - name: Deploy revision
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --region "$REGION" \
+            --image "${{ steps.image.outputs.image }}" \
+            --quiet
+
+      # The service is IAM-private, so the smoke test authenticates. A public
+      # curl would 403 - that is the point until P8.6 ships real auth.
+      - name: Smoke test the deployed revision
+        run: |
+          URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --format='value(status.url)')
+          TOKEN=$(gcloud auth print-identity-token)
+          curl -fsS -H "Authorization: Bearer $TOKEN" "$URL/health" | tee /dev/stderr | grep -q '"status":"ok"'
+          echo "Deployed: $URL"

@@ -1,0 +1,25 @@
+# Copy to terraform.tfvars and fill in. Do not commit terraform.tfvars.
+
+project_id = "freshkirana-staging"
+region     = "asia-south1"
+
+environment       = "staging"
+github_repository = "MrMandalShubham/FreshKirana"
+
+# Staging sizing. Production would use db-custom-2-4096 and REGIONAL.
+db_tier                = "db-f1-micro"
+db_availability_type   = "ZONAL"
+db_deletion_protection = false
+
+# Scale to zero: near-nil idle cost while building.
+min_instances = 0
+max_instances = 4
+
+# Leave off until P3.1 needs reservations. Turning it on also provisions a
+# Serverless VPC connector, which is billed hourly whether used or not.
+enable_redis = false
+
+# MUST stay "development" until P8.6 ships real authentication - the app
+# deliberately refuses to start with NODE_ENV=production while dev auth is the
+# only auth available.
+node_env = "development"

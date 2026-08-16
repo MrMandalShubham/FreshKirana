@@ -382,7 +382,7 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 | 0 | P0.3a | Identity model & plumbing | ✅ | 2026-08-16 | `7250895` · CI green, 10 e2e ran. Dev login only — real auth is P8.6 |
 | 0 | P0.4 | Observability & analytics ingest | ⏳ | | `b1ecb93` · CI green · 81 tests · R1 ingest path live |
 | 0 | P0.5a | Containerisation | ✅ | 2026-08-16 | `f4ea895` · CI green (3 jobs) · image builds, boots, refuses production |
-| 0 | P0.5b | Cloud provisioning & staging | ⏸ | | **Blocked on A2** (cloud provider). Staging must be network-restricted until P8.6 |
+| 0 | P0.5b | Cloud provisioning & staging | ⏳ | | A2 closed: **GCP**. Terraform written and validated; awaiting your `terraform apply` |
 | 1 | P1.1 | Master catalog | ☐ | | |
 | 1 | P1.2 | Vendors & offers | ☐ | | |
 | 1 | P1.3 | Catalog seeding tooling | ☐ | | |

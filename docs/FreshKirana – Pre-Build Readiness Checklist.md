@@ -39,9 +39,9 @@ Everything here is **program work, not spec work** — the things that must happ
 | # | Item | Effort | Owner | Due | Done |
 |---|---|---|---|---|---|
 | A1 | ~~Backend language~~ — **CLOSED: TypeScript / NestJS** | — | — | 2026-08-12 | ✅ |
-| A2 | **Cloud provider + region (OD-5)** — data-residency posture should inform the choice (§3.6) | 1 day | | | ☐ |
+| A2 | ~~Cloud provider + region (OD-5)~~ — **CLOSED 2026-08-16: GCP, `asia-south1` (Mumbai)** | — | Shubham | 2026-08-16 | ✅ |
 
-That is the entire list. Once A2 lands, Phase 0 can begin.
+Both closed. What remains is not a decision but an action: run the one-time GCP bootstrap in [`infra/README.md`](../infra/README.md) — create the project, link billing, create the state bucket, `terraform apply`, then set three repository variables.
 
 ---
 

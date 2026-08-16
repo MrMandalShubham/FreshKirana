@@ -1,0 +1,208 @@
+resource "google_artifact_registry_repository" "images" {
+  location      = var.region
+  repository_id = "freshkirana"
+  format        = "DOCKER"
+  description   = "FreshKirana container images"
+  labels        = local.common_labels
+
+  docker_config {
+    immutable_tags = false
+  }
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_service_account" "api" {
+  account_id   = "${local.name_prefix}-api"
+  display_name = "FreshKirana API (${var.environment})"
+}
+
+resource "google_project_iam_member" "api_sql_client" {
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${google_service_account.api.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "api_database_url" {
+  secret_id = google_secret_manager_secret.database_url.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.api.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "api_jwt_secret" {
+  secret_id = google_secret_manager_secret.jwt_secret.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.api.email}"
+}
+
+# ---------------------------------------------------------------------------
+# Migration job. Run to completion *before* a new revision serves traffic, so
+# migrations must stay backward-compatible for one release (spec 2.15).
+# ---------------------------------------------------------------------------
+
+resource "google_cloud_run_v2_job" "migrate" {
+  name     = "${local.name_prefix}-migrate"
+  location = var.region
+  labels   = local.common_labels
+
+  deletion_protection = false
+
+  template {
+    template {
+      service_account = google_service_account.api.email
+      max_retries     = 1
+
+      containers {
+        image   = var.image != "" ? var.image : "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.images.repository_id}/api:bootstrap"
+        command = ["node"]
+        args    = ["packages/api/dist/db/migrate.js"]
+
+        env {
+          name = "DATABASE_URL"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.database_url.secret_id
+              version = "latest"
+            }
+          }
+        }
+
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "512Mi"
+          }
+        }
+      }
+
+      volumes {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [google_sql_database_instance.main.connection_name]
+        }
+      }
+    }
+  }
+
+  lifecycle {
+    # The deploy workflow updates the image; Terraform must not revert it.
+    ignore_changes = [template[0].template[0].containers[0].image]
+  }
+}
+
+# ---------------------------------------------------------------------------
+# The API service.
+# ---------------------------------------------------------------------------
+
+resource "google_cloud_run_v2_service" "api" {
+  name     = "${local.name_prefix}-api"
+  location = var.region
+  labels   = local.common_labels
+
+  deletion_protection = false
+
+  # Private. No allUsers invoker binding exists, so the service is reachable
+  # only by identities granted run.invoker - see the note on var.node_env:
+  # until P8.6 there is no real authentication, so this must not be public.
+  ingress = "INGRESS_TRAFFIC_ALL"
+
+  template {
+    service_account = google_service_account.api.email
+
+    scaling {
+      min_instance_count = var.min_instances
+      max_instance_count = var.max_instances
+    }
+
+    containers {
+      image = var.image != "" ? var.image : "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.images.repository_id}/api:bootstrap"
+
+      ports {
+        container_port = 3000
+      }
+
+      env {
+        name  = "NODE_ENV"
+        value = var.node_env
+      }
+
+      env {
+        name  = "PORT"
+        value = "3000"
+      }
+
+      env {
+        name = "DATABASE_URL"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.database_url.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "JWT_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.jwt_secret.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "512Mi"
+        }
+        # Without this the instance is throttled between requests and the
+        # connection pool dies mid-idle.
+        cpu_idle = true
+      }
+
+      startup_probe {
+        http_get {
+          path = "/health"
+          port = 3000
+        }
+        initial_delay_seconds = 5
+        period_seconds        = 5
+        failure_threshold     = 6
+      }
+
+      liveness_probe {
+        http_get {
+          path = "/health"
+          port = 3000
+        }
+        period_seconds    = 30
+        failure_threshold = 3
+      }
+    }
+
+    volumes {
+      name = "cloudsql"
+      cloud_sql_instance {
+        instances = [google_sql_database_instance.main.connection_name]
+      }
+    }
+  }
+
+  traffic {
+    type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
+    percent = 100
+  }
+
+  lifecycle {
+    ignore_changes = [template[0].containers[0].image]
+  }
+
+  depends_on = [google_project_service.required]
+}
+
+variable "image" {
+  description = "Container image to deploy. Left empty on first apply; the deploy workflow sets it thereafter."
+  type        = string
+  default     = ""
+}
