@@ -84,8 +84,10 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 | **5** | Money Infrastructure | 4 | 12–16 | Books balance |
 | **6** | Fulfilment | 3 | 8–12 | Delivery tracked |
 | **7** | Vendor & Admin Depth | 3 | 10–14 | Self-service ops |
-| **8** | Hardening & Launch Readiness | 6 | 14–18 | 🎯 **MVP complete** |
-| | **Total** | **41** | **104–142** | |
+| **8** | Hardening & Launch Readiness | 7 | 17–22 | 🎯 **MVP complete** |
+| | **Total** | **42** | **107–146** | |
+
+> **Production gate:** P8.6 (auth hardening) was split out of P0.3 on 2026-08-12. Until it lands there is **no real authentication** — only a development login. The product cannot go to production without it, regardless of what else is finished.
 
 **Two exit points.** Phase 2 ends at **V0** — a genuinely usable product that can take real orders with COD and WhatsApp-based vendor ops. You could pilot there. Phase 8 ends at the full MVP as specified in §7.0.
 
@@ -105,9 +107,13 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 **Confirm:** Run migrations up, then down, then up — clean each time. Add an import from `order` into `payment`'s internals — **CI must fail.** Remove it — CI passes.
 **Est:** 2–3 · *Rule R2 starts here*
 
-### P0.3 — Identity & auth
-**Builds:** OTP send/verify (⚙ mock-first — OTP to console) · JWT access + rotating refresh in HttpOnly cookie · RBAC scaffolding, deny-by-default · the 9 roles of §3.2
-**Confirm:** Request an OTP, see it in the console, log in, receive tokens. Call a protected endpoint without a token → 401. With a customer token on an admin endpoint → 403. Refresh rotates and the old token is rejected.
+### P0.3a — Identity model & plumbing
+> **Split from the original P0.3 on 2026-08-12.** The authentication *ceremony* (OTP, SMS, refresh rotation) makes day-to-day development slow, so it moves to **P8.7**. The identity *model and scoping* cannot move: every table in Phases 1–2 keys off it, and §3.2 resource-level scoping has to be in the first query or every later query needs re-auditing.
+
+**Builds:** User / vendor-staff / role tables · the 9 roles of §3.2 · RBAC guards, **deny-by-default** · `@CurrentUser()` decorator · **resource-level scoping** (vendor staff → own store only) · **dev-only `POST /dev/login-as`** issuing a token for any role with no OTP · seeded users per role · `authAs(role)` test helper · long-lived dev tokens
+
+**Confirm:** `POST /dev/login-as {"role":"customer"}` returns a token instantly, no OTP. Protected endpoint without a token → 401. Customer token on an admin endpoint → 403. Vendor A's staff reading Vendor B's data → 403. Set `NODE_ENV=production` and `/dev/login-as` **does not exist** (404).
+
 **Est:** 2–3
 
 ### P0.4 — Observability & analytics ingest
@@ -331,7 +337,16 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 **Confirm:** Complete a full checkout using **keyboard only**. Complete one using TalkBack. Contrast passes on every screen. Status changes are announced. No meaning conveyed by colour alone.
 **Est:** 2–3
 
-### P8.6 — Launch readiness review
+### P8.6 — Auth hardening *(deferred from P0.3 on 2026-08-12)*
+> **This part must not be skipped.** P0.3a deliberately shipped identity with a development-only login and no real authentication ceremony. Until this part lands, **the product cannot go to production** — there is no way for a real user to authenticate.
+
+**Builds:** Real OTP send and verify · SMS/WhatsApp delivery via the notification module · JWT access + **rotating refresh tokens in HttpOnly cookies with reuse detection** · session list and remote revoke · OTP rate limiting (5/hr, 15/day per phone; per-IP) with backoff and CAPTCHA escalation · **MFA (TOTP) for admin, finance and fleet-manager roles** (§3.1) · removal of the dev login path from all non-development builds
+
+**Confirm:** Register with a real phone, receive an OTP, log in. Refresh rotates and the old token is rejected. Reuse a revoked refresh token → the whole token family is revoked. Request 6 OTPs in an hour → blocked. Admin login without TOTP → denied. Build for production → `/dev/login-as` returns 404 and the handler is absent from the bundle.
+
+**Est:** 3–4 · *Pairs naturally with P8.1 abuse prevention*
+
+### P8.7 — Launch readiness review
 **Builds:** Runbooks for §6.2 exceptions · incident severity + on-call · **backup restore drill** · monitoring dashboards · seed data for production
 **Confirm:** **Restore staging from a backup and verify data integrity.** Walk each §6.2 exception through its runbook. Trigger a test alert — it reaches you.
 **Est:** 2–3
@@ -351,7 +366,7 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 |---|---|---|---|---|---|
 | 0 | P0.1 | Monorepo, contracts, CI | ✅ | 2026-08-12 | `e971274` · 23 tests · push pending `gh auth login` |
 | 0 | P0.2 | Database & module skeleton | ⏳ | | Built, committed `e919f88`. Awaiting your confirmation test |
-| 0 | P0.3 | Identity & auth | ☐ | | |
+| 0 | P0.3a | Identity model & plumbing | ☐ | | Dev login only — real auth is P8.6 |
 | 0 | P0.4 | Observability & analytics ingest | ☐ | | |
 | 0 | P0.5 | Deploy pipeline & staging | ☐ | | Needs A2 |
 | 1 | P1.1 | Master catalog | ☐ | | |
@@ -390,7 +405,8 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 | 8 | P8.3 | Notifications complete | ☐ | | Needs B1, B2 |
 | 8 | P8.4 | Load & chaos testing | ☐ | | |
 | 8 | P8.5 | Accessibility audit | ☐ | | |
-| 8 | P8.6 | Launch readiness | ☐ | | |
+| 8 | **P8.6** | **Auth hardening — deferred from P0.3** | ☐ | | 🔒 **BLOCKS PRODUCTION.** Real OTP, refresh rotation, rate limits, admin MFA |
+| 8 | P8.7 | Launch readiness | ☐ | | |
 | — | 🎯 | **MVP COMPLETE** | ☐ | | |
 
 ---
@@ -404,6 +420,10 @@ Record every decision made during the build that isn't already in the spec. This
 | 2026-08-12 | — | TypeScript / NestJS for the core (OD-1) | §2.3 |
 | 2026-08-12 | — | No AI in the MVP; seam held open (OD-11) | §2.17 |
 | 2026-08-12 | — | Build sequentially by part with a manual confirmation gate on each | This document |
+| 2026-08-12 | P0.1 | npm workspaces, Vitest (SWC transform), trunk-based on `main`, docs committed to the repo | Proposal approved; fewest tools, fastest feedback loop |
+| 2026-08-12 | P0.2 | One PostgreSQL schema per module; boundaries enforced by dependency-cruiser + a schema-ownership script | Makes "a module owns its tables" mechanically checkable and §2.1.2 extraction cheap |
+| 2026-08-12 | P0.2 | PostGIS image from day one | §2.8 needs polygons; adding the extension to a live database later is a migration |
+| 2026-08-12 | **P0.3** | **Split: identity model now (P0.3a), authentication ceremony deferred to P8.6** | OTP/login friction slows every subsequent part's testing. The model and §3.2 resource scoping cannot be deferred — every Phase 1–2 table keys off identity, and retrofitting scoping means re-auditing every query written in between |
 | | | | |
 
 ---
@@ -414,6 +434,7 @@ Anything consciously postponed during a part, so it resurfaces instead of being 
 
 | Date | Part | Deferred item | Revisit at |
 |---|---|---|---|
+| 2026-08-12 | P0.3 | 🔒 **Authentication ceremony** — real OTP send/verify, SMS/WhatsApp delivery, rotating refresh tokens with reuse detection, session revoke, OTP rate limiting, admin MFA, and removal of the dev-login path from non-development builds. **Until this ships there is no real authentication and the product cannot go to production.** | **P8.6** |
 | | | | |
 
 ---
