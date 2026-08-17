@@ -17,7 +17,18 @@ output "artifact_registry_repo" {
 }
 
 output "sql_connection_name" {
-  value = google_sql_database_instance.main.connection_name
+  description = "Pass to the Cloud SQL Auth Proxy for local development."
+  value       = google_sql_database_instance.main.connection_name
+}
+
+output "local_database_url" {
+  description = <<-EOT
+    DATABASE_URL for local development, assuming the Cloud SQL Auth Proxy is
+    listening on 127.0.0.1:5432. Read it with:
+      terraform output -raw local_database_url
+  EOT
+  value       = "postgresql://${google_sql_user.app.name}:${urlencode(random_password.db.result)}@127.0.0.1:5432/${google_sql_database.app.name}"
+  sensitive   = true
 }
 
 # ---------------------------------------------------------------------------

@@ -13,7 +13,10 @@ resource "google_sql_database_instance" "main" {
   deletion_protection = var.db_deletion_protection
 
   settings {
-    tier              = var.db_tier
+    tier = var.db_tier
+    # Explicit: new instances default to ENTERPRISE_PLUS, which rejects
+    # shared-core tiers like db-f1-micro outright.
+    edition           = var.db_edition
     availability_type = var.db_availability_type
     disk_type         = "PD_SSD"
     disk_size         = 10
@@ -40,11 +43,20 @@ resource "google_sql_database_instance" "main" {
     }
 
     ip_configuration {
-      # No public IP. Cloud Run reaches the instance over the built-in Cloud SQL
-      # connector via a unix socket, which needs no VPC connector and leaves the
-      # database unreachable from the internet.
-      ipv4_enabled    = false
+      # Cloud Run always reaches the instance over the *private* IP, using the
+      # built-in Cloud SQL connector via a unix socket.
+      #
+      # The public IP exists only so developer machines can connect through the
+      # Cloud SQL Auth Proxy. Crucially, `authorized_networks` is left empty:
+      # nothing can connect by IP address alone. The proxy authenticates with
+      # IAM, so access is granted per-identity and revoked centrally.
+      ipv4_enabled    = var.db_public_ip
       private_network = google_compute_network.main.id
+
+      # Reject any unencrypted connection. Both paths - proxy and unix socket -
+      # are encrypted, so this costs nothing and closes the plaintext door that
+      # a public IP would otherwise leave ajar.
+      ssl_mode = "ENCRYPTED_ONLY"
     }
 
     database_flags {

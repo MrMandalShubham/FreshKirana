@@ -41,3 +41,7 @@ crash.log
 .terraform.lock.hcl
 override.tf
 override.tf.json
+
+# Saved plan files - contain generated secrets in cleartext
+tfplan
+*.tfplan

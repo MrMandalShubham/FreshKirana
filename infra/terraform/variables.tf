@@ -32,6 +32,26 @@ variable "db_tier" {
   default     = "db-f1-micro"
 }
 
+variable "db_edition" {
+  description = <<-EOT
+    Cloud SQL edition.
+
+    Must be ENTERPRISE for shared-core tiers such as db-f1-micro and
+    db-g1-small: Cloud SQL now defaults new instances to ENTERPRISE_PLUS, which
+    only accepts db-perf-optimized-* tiers and costs several times more.
+
+    ENTERPRISE_PLUS is worth revisiting for production if its read pool and
+    near-zero-downtime maintenance become worth the price.
+  EOT
+  type        = string
+  default     = "ENTERPRISE"
+
+  validation {
+    condition     = contains(["ENTERPRISE", "ENTERPRISE_PLUS"], var.db_edition)
+    error_message = "db_edition must be ENTERPRISE or ENTERPRISE_PLUS."
+  }
+}
+
 variable "db_availability_type" {
   description = "ZONAL for staging. Production uses REGIONAL for the multi-AZ requirement in spec 1.5."
   type        = string
@@ -42,6 +62,24 @@ variable "db_deletion_protection" {
   description = "Blocks accidental destruction. Leave true for production."
   type        = bool
   default     = false
+}
+
+variable "db_public_ip" {
+  description = <<-EOT
+    Give the instance a public IP so developer machines can connect through the
+    Cloud SQL Auth Proxy.
+
+    This is what lets local work run against a real cloud database instead of a
+    local container. It is less exposed than it sounds: no authorized networks
+    are granted, so nothing can connect by IP alone - the proxy authenticates
+    with IAM and encrypts with TLS, and ssl_mode below rejects anything
+    unencrypted.
+
+    Cloud Run does not use this path; it reaches the instance over the private
+    IP via a unix socket. Set false for production.
+  EOT
+  type        = bool
+  default     = true
 }
 
 variable "enable_redis" {

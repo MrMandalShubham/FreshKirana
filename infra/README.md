@@ -104,6 +104,54 @@ docker push asia-south1-docker.pkg.dev/freshkirana-staging/freshkirana/api:boots
 
 ---
 
+## Local development against Cloud SQL
+
+Local work runs against the staging database rather than a container, so there
+is no Docker dependency and no divergence between "works locally" and "works
+deployed".
+
+The instance has a public IP, but **no authorized networks** — nothing connects
+by IP alone. Access goes through the Cloud SQL Auth Proxy, which authenticates
+per-identity with IAM and encrypts with TLS. `ssl_mode = ENCRYPTED_ONLY` rejects
+anything unencrypted.
+
+### One-time
+
+Install the proxy:
+
+```bash
+gcloud components install cloud-sql-proxy
+```
+
+### Each session
+
+Start the proxy (leave it running in its own terminal):
+
+```bash
+cloud-sql-proxy --port 5432 $(terraform -chdir=infra/terraform output -raw sql_connection_name)
+```
+
+Then point the application at it. Get the connection string:
+
+```bash
+terraform -chdir=infra/terraform output -raw local_database_url
+```
+
+Put that in `.env` as `DATABASE_URL`. Tests, migrations and the API all work
+exactly as before — they simply talk to Mumbai instead of localhost.
+
+> **One shared database.** Solo this is fine. If two people ever run the test
+> suite simultaneously the e2e suites will interfere, since they share tables.
+> At that point give each developer their own database on the same instance.
+
+### Falling back to Docker
+
+`docker-compose.yml` is still in the repo. If the network is unusable, or you
+want a throwaway database, `npm run db:up` still works — just point
+`DATABASE_URL` back at `localhost`.
+
+---
+
 ## Reaching the service
 
 It is private, so `curl` alone returns 403. That is correct.
@@ -141,6 +189,13 @@ gcloud run services add-iam-policy-binding freshkirana-staging-api --region=asia
 | Workload Identity pool            | GitHub OIDC, scoped to this repository                                     |
 | Service accounts                  | One for the app, one for deploys                                           |
 | Memorystore Redis                 | **Off by default** — see below                                             |
+
+### Cloud SQL edition
+
+`db_edition = "ENTERPRISE"` is set explicitly. New instances now default to
+**ENTERPRISE_PLUS**, which rejects shared-core tiers like `db-f1-micro`
+outright and costs several times more. The first apply failed on exactly this,
+so it is pinned rather than left to the provider default.
 
 ### PostGIS
 

@@ -8,6 +8,8 @@ locals {
     "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
     "servicenetworking.googleapis.com",
+    # Builds images without any local Docker dependency.
+    "cloudbuild.googleapis.com",
   ]
 
   redis_apis = var.enable_redis ? ["redis.googleapis.com", "vpcaccess.googleapis.com"] : []

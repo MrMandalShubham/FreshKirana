@@ -53,7 +53,7 @@ resource "google_cloud_run_v2_job" "migrate" {
       max_retries     = 1
 
       containers {
-        image   = var.image != "" ? var.image : "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.images.repository_id}/api:bootstrap"
+        image   = var.image != "" ? var.image : var.bootstrap_image
         command = ["node"]
         args    = ["packages/api/dist/db/migrate.js"]
 
@@ -115,7 +115,7 @@ resource "google_cloud_run_v2_service" "api" {
     }
 
     containers {
-      image = var.image != "" ? var.image : "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.images.repository_id}/api:bootstrap"
+      image = var.image != "" ? var.image : var.bootstrap_image
 
       ports {
         container_port = 3000
@@ -126,10 +126,9 @@ resource "google_cloud_run_v2_service" "api" {
         value = var.node_env
       }
 
-      env {
-        name  = "PORT"
-        value = "3000"
-      }
+      # PORT is deliberately absent: Cloud Run injects it automatically and
+      # rejects any attempt to set it. The application already reads
+      # process.env.PORT with a 3000 fallback.
 
       env {
         name = "DATABASE_URL"
@@ -205,4 +204,25 @@ variable "image" {
   description = "Container image to deploy. Left empty on first apply; the deploy workflow sets it thereafter."
   type        = string
   default     = ""
+}
+
+variable "bootstrap_image" {
+  description = <<-EOT
+    Image used on the very first apply, before CI has ever deployed.
+
+    Cloud Run validates that the image exists *and* that the revision passes its
+    startup probe, so this cannot be a placeholder: a stand-in like
+    gcr.io/cloudrun/hello does not serve /health and the revision never goes
+    healthy. It must be a real build of this application.
+
+    Build it without local Docker:
+
+      gcloud builds submit --region=asia-south1 \
+        --tag=asia-south1-docker.pkg.dev/PROJECT/freshkirana/api:bootstrap .
+
+    Both Cloud Run resources ignore later changes to `image`, so this value is
+    never reapplied once CI takes over.
+  EOT
+  type        = string
+  default     = "asia-south1-docker.pkg.dev/freshkirana-staging-mm/freshkirana/api:bootstrap"
 }
