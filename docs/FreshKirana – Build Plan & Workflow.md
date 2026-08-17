@@ -382,7 +382,8 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 | 0 | P0.3a | Identity model & plumbing | ✅ | 2026-08-16 | `7250895` · CI green, 10 e2e ran. Dev login only — real auth is P8.6 |
 | 0 | P0.4 | Observability & analytics ingest | ⏳ | | `b1ecb93` · CI green · 81 tests · R1 ingest path live |
 | 0 | P0.5a | Containerisation | ✅ | 2026-08-16 | `f4ea895` · CI green (3 jobs) · image builds, boots, refuses production |
-| 0 | P0.5b | Cloud provisioning & staging | ⏳ | | A2 closed: **GCP**. Terraform written and validated; awaiting your `terraform apply` |
+| 0 | P0.5b | Cloud provisioning & staging | ✅ | 2026-08-17 | Applied to `freshkirana-staging-mm`. Auto-deploy from `main` green end to end |
+| — | 🎯 | **PHASE 0 COMPLETE** | ✅ | 2026-08-17 | 5 parts · 81 tests · staging live and private |
 | 1 | P1.1 | Master catalog | ☐ | | |
 | 1 | P1.2 | Vendors & offers | ☐ | | |
 | 1 | P1.3 | Catalog seeding tooling | ☐ | | |
@@ -438,6 +439,10 @@ Record every decision made during the build that isn't already in the spec. This
 | 2026-08-12 | P0.2 | One PostgreSQL schema per module; boundaries enforced by dependency-cruiser + a schema-ownership script | Makes "a module owns its tables" mechanically checkable and §2.1.2 extraction cheap |
 | 2026-08-12 | P0.2 | PostGIS image from day one | §2.8 needs polygons; adding the extension to a live database later is a migration |
 | 2026-08-12 | **P0.3** | **Split: identity model now (P0.3a), authentication ceremony deferred to P8.6** | OTP/login friction slows every subsequent part's testing. The model and §3.2 resource scoping cannot be deferred — every Phase 1–2 table keys off identity, and retrofitting scoping means re-auditing every query written in between |
+| 2026-08-16 | P0.5 | Split into P0.5a (containerisation, cloud-agnostic) and P0.5b (provisioning) | Kept the build moving while decision A2 was open |
+| 2026-08-17 | **A2** | **GCP, `asia-south1` (Mumbai)** — Cloud Run + Cloud SQL | Scale-to-zero keeps idle cost near nil during the build; Mumbai is the simplest DPDP posture (§3.6) |
+| 2026-08-17 | P0.5b | **Local development runs against Cloud SQL, not a local container** | Removes the Docker Desktop dependency, which failed repeatedly, and eliminates "works locally / breaks deployed" drift. Staging takes a public IP with no authorized networks, reached only through the Cloud SQL Auth Proxy (IAM-authenticated, TLS, `ENCRYPTED_ONLY`). Production keeps `db_public_ip = false` |
+| 2026-08-17 | P0.5b | **Images are built by Cloud Build, not local Docker** | No local Docker dependency at all; also faster and closer to how CI builds |
 | | | | |
 
 ---
