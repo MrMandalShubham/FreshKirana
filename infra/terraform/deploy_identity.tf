@@ -48,6 +48,11 @@ locals {
   deployer_roles = [
     "roles/run.developer",           # deploy revisions and execute jobs
     "roles/artifactregistry.writer", # push images
+    # Lets the post-deploy smoke test actually call the service. The service is
+    # IAM-private, so without this the check gets a 403 and cannot distinguish
+    # "deployed but locked down" from "deployed and broken".
+    "roles/run.invoker",
+    "roles/cloudbuild.builds.editor", # build images without local Docker
   ]
 }
 

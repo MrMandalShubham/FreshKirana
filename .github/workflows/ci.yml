@@ -268,11 +268,32 @@ jobs:
             --image "${{ steps.image.outputs.image }}" \
             --quiet
 
-      # The service is IAM-private, so the smoke test authenticates. A public
+      - name: Resolve service URL
+        id: url
+        run: |
+          echo "url=$(gcloud run services describe "$SERVICE" --region "$REGION" --format='value(status.url)')" >> "$GITHUB_OUTPUT"
+
+      # A second auth, purely to mint an ID token for the service.
+      #
+      # `gcloud auth print-identity-token` cannot do this under Workload
+      # Identity Federation - there is no service-account key to sign with, so
+      # it fails with "No identity token can be obtained". The auth action
+      # exchanges the OIDC token for one scoped to this exact audience instead.
+      - id: idtoken
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ steps.url.outputs.url }}
+          # Cloud Run IAM matches on the caller's email, so it must be present.
+          id_token_include_email: true
+
+      # The service is IAM-private, so this authenticates. An unauthenticated
       # curl would 403 - that is the point until P8.6 ships real auth.
       - name: Smoke test the deployed revision
         run: |
-          URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --format='value(status.url)')
-          TOKEN=$(gcloud auth print-identity-token)
-          curl -fsS -H "Authorization: Bearer $TOKEN" "$URL/health" | tee /dev/stderr | grep -q '"status":"ok"'
-          echo "Deployed: $URL"
+          curl -fsS \
+            -H "Authorization: Bearer ${{ steps.idtoken.outputs.id_token }}" \
+            "${{ steps.url.outputs.url }}/health" | tee /dev/stderr | grep -q '"status":"ok"'
+          echo "Deployed: ${{ steps.url.outputs.url }}"
