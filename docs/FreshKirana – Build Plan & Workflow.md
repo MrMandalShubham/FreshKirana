@@ -453,6 +453,7 @@ Anything consciously postponed during a part, so it resurfaces instead of being 
 
 | Date | Part | Deferred item | Revisit at |
 |---|---|---|---|
+| 2026-08-17 | P0.5b | **Rotate the staging database password.** It was pasted into a chat transcript on 2026-08-17. Accepted risk for staging: the instance has no authorized networks, so the password alone cannot connect — every path goes through the IAM-authenticated Cloud SQL Auth Proxy. Rotate with `terraform apply -replace=random_password.db`. | **Before production** |
 | 2026-08-12 | P0.3 | 🔒 **Authentication ceremony** — real OTP send/verify, SMS/WhatsApp delivery, rotating refresh tokens with reuse detection, session revoke, OTP rate limiting, admin MFA, and removal of the dev-login path from non-development builds. **Until this ships there is no real authentication and the product cannot go to production.** | **P8.6** |
 | | | | |
 

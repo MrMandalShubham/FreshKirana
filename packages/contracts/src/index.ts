@@ -10,6 +10,7 @@ export * as Money from './money';
 export type { Paise } from './money';
 
 export * from './analytics';
+export * from './catalog';
 export * from './order-status';
 export * from './payment-status';
 export * from './roles';

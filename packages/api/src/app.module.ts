@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { DbModule } from './db/db.module';
 import { HealthController } from './health/health.controller';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { ObservabilityModule } from './observability/observability.module';
 
@@ -16,7 +17,13 @@ import { ObservabilityModule } from './observability/observability.module';
  * implementing part lands.
  */
 @Module({
-  imports: [DbModule, ObservabilityModule, IdentityModule, AnalyticsModule],
+  imports: [
+    DbModule,
+    ObservabilityModule,
+    IdentityModule,
+    AnalyticsModule,
+    CatalogModule,
+  ],
   controllers: [HealthController],
 })
 export class AppModule {}
