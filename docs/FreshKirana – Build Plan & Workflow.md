@@ -63,6 +63,7 @@ I'll read this file, the spec sections it points to, and the current code, then 
 | R5 | Ledger debits equal credits — asserted in tests and a nightly job | §2.4.4, G5 |
 | R6 | Nothing merges with a failing test or a skipped confirmation | — |
 | R7 | Secrets never in the repo | §3.3 |
+| **R8** | **Everything runs on GCP.** API, database, every frontend surface, jobs, images, secrets. Nothing in the delivered product depends on a local machine, and no component ships without a GCP home | Confirmed 2026-08-18 |
 
 ## 7. Effort notation
 
@@ -350,6 +351,35 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 **Confirm:** Complete a full checkout using **keyboard only**. Complete one using TalkBack. Contrast passes on every screen. Status changes are announced. No meaning conveyed by colour alone.
 **Est:** 2–3
 
+### P1.6 — Deploy the customer PWA to Cloud Run
+> **Standing rule R8: everything runs on GCP.** P0.5b provisioned Cloud Run for the API only. The PWA builds and is CI-verified, but has nowhere to run — so it is the one delivered component with no GCP home.
+
+**Builds:** Cloud Run service for `web-customer` · its own Dockerfile (Next.js standalone output) · `NEXT_PUBLIC_API_BASE` pointed at the API service · deploy job in CI alongside the API · Terraform for both
+
+**Confirm:** Push to `main` — the PWA deploys itself. Open the Cloud Run URL and browse a real product from the staging catalog.
+
+> Until P8.6 there is no real authentication, so this stays IAM-private like the API (§P0.5b). It becomes public with P8.6, not before.
+
+**Est:** 1–2
+
+### GCP surface checklist *(rule R8)*
+Every component, and where it lives. A row without a GCP home is not finished.
+
+| Component | GCP home | Status |
+|---|---|---|
+| API | Cloud Run | ✅ deployed |
+| Database | Cloud SQL (PostgreSQL 16 + PostGIS) | ✅ |
+| Migrations | Cloud Run job | ✅ |
+| Container images | Artifact Registry, built by Cloud Build | ✅ |
+| Secrets | Secret Manager | ✅ |
+| Deploy identity | Workload Identity Federation | ✅ |
+| **Customer PWA** | **Cloud Run** | ☐ **P1.6** |
+| Redis | Memorystore | ⏸ provisioned-but-off until P3.1 needs it |
+| Rider PWA | Cloud Run | ☐ with P6.2 |
+| Vendor PWA | Cloud Run | ☐ with P7.1 |
+| Admin SPA | Cloud Run | ☐ with P7.2 |
+| Object storage (product images) | Cloud Storage | ☐ when images land |
+
 ### P8.6 — Auth hardening *(deferred from P0.3 on 2026-08-12)*
 > **This part must not be skipped.** P0.3a deliberately shipped identity with a development-only login and no real authentication ceremony. Until this part lands, **the product cannot go to production** — there is no way for a real user to authenticate.
 
@@ -389,6 +419,7 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 | 1 | P1.3 | Catalog seeding tooling | ✅ | 2026-08-18 | `3a1bc32` · CI green, deployed · unblocks C1 |
 | 1 | P1.4 | Search | ✅ | 2026-08-18 | `95a3e28` · CI green, deployed · Postgres engine, Typesense on §2.1.2 trigger |
 | 1 | P1.5 | Customer PWA shell | ⏳ | | `40e0a07` · CI green · 182 tests · 103.9 KB of the 200 KB budget |
+| 1 | **P1.6** | **Deploy the customer PWA to Cloud Run** | ☐ | | 🌐 **Rule R8.** Built and CI-verified, but has no GCP home yet |
 | — | 🎯 | **PHASE 1 COMPLETE** | ⏳ | | 5 parts · browsable catalog, en + hi |
 | 2 | P2.1 | Cart | ☐ | | |
 | 2 | P2.2 | Serviceability & slots | ☐ | | |
@@ -446,6 +477,7 @@ Record every decision made during the build that isn't already in the spec. This
 | 2026-08-17 | P0.5b | **Images are built by Cloud Build, not local Docker** | No local Docker dependency at all; also faster and closer to how CI builds |
 | 2026-08-18 | P1.2 | **No cross-schema foreign keys** — modules validate references through each other's `contracts.ts` | An FK across schemas couples a module to another's internals (§2.1.1) and makes §2.1.2 extraction expensive. The trade is explicit: database-level referential integrity is given up in exchange for boundaries that hold |
 | 2026-08-18 | P1.3 | Cross-module workflows live in the **admin module** | Approving a product request touches catalog *and* offer, and offer already depends on catalog — catalog calling offer would close a cycle. This is what §2.2 means by admin as orchestration |
+| 2026-08-18 | — | **Everything runs on GCP — standing rule R8.** Backend, database, every frontend surface, jobs, images, secrets | Confirmed by Shubham. No delivered component may depend on a local machine, and none is finished until it has a GCP home. Tracked in the GCP surface checklist in §7.4 |
 | 2026-08-18 | **P1.4** | **Search engine is PostgreSQL + `pg_trgm`, not Typesense** — deviating from §2.7.1 | Tuning a dedicated engine against an empty catalog is premature, and the hard part (Indian-language expansion) is engine-independent. §2.1.2 already names the trigger to revisit: catalog > 200K offers, or search p95 > 200 ms. Built behind a projection table so the swap is an implementation, not a rewrite |
 | | | | |
 
