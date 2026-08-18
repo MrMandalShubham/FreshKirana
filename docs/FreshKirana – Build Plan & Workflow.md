@@ -386,8 +386,8 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 | — | 🎯 | **PHASE 0 COMPLETE** | ✅ | 2026-08-17 | 5 parts · 81 tests · staging live and private |
 | 1 | P1.1 | Master catalog | ✅ | 2026-08-17 | `6fe5eb4` · CI green, deployed · D1 master side |
 | 1 | P1.2 | Vendors & offers | ✅ | 2026-08-18 | `ade2a4f` · CI green, deployed · D1 offer side + §3.2 scoping live |
-| 1 | P1.3 | Catalog seeding tooling | ⏳ | | `3a1bc32` · CI green, deployed · 142 tests · unblocks C1 |
-| 1 | P1.4 | Search | ☐ | | |
+| 1 | P1.3 | Catalog seeding tooling | ✅ | 2026-08-18 | `3a1bc32` · CI green, deployed · unblocks C1 |
+| 1 | P1.4 | Search | ⏳ | | `95a3e28` · CI green, deployed · 168 tests · Postgres engine, Typesense on §2.1.2 trigger |
 | 1 | P1.5 | Customer PWA shell | ☐ | | |
 | 2 | P2.1 | Cart | ☐ | | |
 | 2 | P2.2 | Serviceability & slots | ☐ | | |
@@ -443,6 +443,9 @@ Record every decision made during the build that isn't already in the spec. This
 | 2026-08-17 | **A2** | **GCP, `asia-south1` (Mumbai)** — Cloud Run + Cloud SQL | Scale-to-zero keeps idle cost near nil during the build; Mumbai is the simplest DPDP posture (§3.6) |
 | 2026-08-17 | P0.5b | **Local development runs against Cloud SQL, not a local container** | Removes the Docker Desktop dependency, which failed repeatedly, and eliminates "works locally / breaks deployed" drift. Staging takes a public IP with no authorized networks, reached only through the Cloud SQL Auth Proxy (IAM-authenticated, TLS, `ENCRYPTED_ONLY`). Production keeps `db_public_ip = false` |
 | 2026-08-17 | P0.5b | **Images are built by Cloud Build, not local Docker** | No local Docker dependency at all; also faster and closer to how CI builds |
+| 2026-08-18 | P1.2 | **No cross-schema foreign keys** — modules validate references through each other's `contracts.ts` | An FK across schemas couples a module to another's internals (§2.1.1) and makes §2.1.2 extraction expensive. The trade is explicit: database-level referential integrity is given up in exchange for boundaries that hold |
+| 2026-08-18 | P1.3 | Cross-module workflows live in the **admin module** | Approving a product request touches catalog *and* offer, and offer already depends on catalog — catalog calling offer would close a cycle. This is what §2.2 means by admin as orchestration |
+| 2026-08-18 | **P1.4** | **Search engine is PostgreSQL + `pg_trgm`, not Typesense** — deviating from §2.7.1 | Tuning a dedicated engine against an empty catalog is premature, and the hard part (Indian-language expansion) is engine-independent. §2.1.2 already names the trigger to revisit: catalog > 200K offers, or search p95 > 200 ms. Built behind a projection table so the swap is an implementation, not a rewrite |
 | | | | |
 
 ---
