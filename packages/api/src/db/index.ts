@@ -6,6 +6,16 @@ export const schema = { ...platformSchema };
 
 export type Database = NodePgDatabase<typeof schema>;
 
+/**
+ * A database handle inside `db.transaction(...)`.
+ *
+ * Services that participate in someone else's transaction take
+ * `Transaction | Database`, so the same method works standalone and as one step
+ * of an atomic sequence. Checkout needs exactly this: the slot booking, the
+ * order and the cart's conversion either all happen or none do.
+ */
+export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
+
 let pool: Pool | undefined;
 
 export function getPool(connectionString = requireDatabaseUrl()): Pool {

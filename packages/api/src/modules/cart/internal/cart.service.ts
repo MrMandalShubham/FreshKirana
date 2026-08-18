@@ -16,7 +16,7 @@ import {
 } from '@freshkirana/contracts';
 import { and, eq, sql } from 'drizzle-orm';
 import { DATABASE } from '../../../db/db.module';
-import type { Database } from '../../../db';
+import type { Database, Transaction } from '../../../db';
 import { CatalogService } from '../../catalog/contracts';
 import { OfferService } from '../../offer/contracts';
 import { PricingService } from '../../pricing/contracts';
@@ -42,6 +42,10 @@ export interface CartLineView {
   isVariableWeight: boolean;
   quantityMode: QuantityMode;
   quantityStep: number;
+
+  /** Snapshotted onto the order for the invoice (§3.7.1). Already loaded here. */
+  hsnCode: string;
+  gstRateBp: number;
 
   quantity: number;
   unitPricePaise: number;
@@ -284,6 +288,24 @@ export class CartService {
     return this.render(claimed[0]!.id);
   }
 
+  /**
+   * Marks a basket as having become an order.
+   *
+   * Takes checkout's transaction: the cart must close in the same instant the
+   * order is written, or a shopper could place a second order from a basket
+   * they have already bought. Kept as CONVERTED rather than deleted, because
+   * the §5.2 funnel needs to know it converted.
+   */
+  async markConverted(
+    cartId: string,
+    tx: Transaction | Database = this.db,
+  ): Promise<void> {
+    await tx
+      .update(cart)
+      .set({ status: CartStatus.CONVERTED, updatedAt: new Date() })
+      .where(eq(cart.id, cartId));
+  }
+
   // -------------------------------------------------------------------------
 
   /**
@@ -361,6 +383,9 @@ export class CartService {
         isVariableWeight: product.isVariableWeight,
         quantityMode: quantityModeFor(shape),
         quantityStep: quantityStepFor(shape),
+
+        hsnCode: product.hsnCode,
+        gstRateBp: product.gstRateBp,
 
         quantity: line.quantity,
         unitPricePaise: offer.sellingPricePaise,

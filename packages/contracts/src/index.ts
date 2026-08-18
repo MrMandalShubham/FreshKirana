@@ -17,4 +17,5 @@ export * from './payment-status';
 export * from './roles';
 export * from './search';
 export * from './serviceability';
+export * from './tax';
 export * from './uom';

@@ -5,6 +5,8 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { CartModule } from './modules/cart/cart.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
+import { CheckoutModule } from './modules/checkout/checkout.module';
+import { OrderModule } from './modules/order/order.module';
 import { PricingModule } from './modules/pricing/pricing.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { OfferModule } from './modules/offer/offer.module';
@@ -38,6 +40,8 @@ import { ObservabilityModule } from './observability/observability.module';
     ServiceabilityModule,
     PricingModule,
     CartModule,
+    OrderModule,
+    CheckoutModule,
     AdminModule,
   ],
   controllers: [HealthController],

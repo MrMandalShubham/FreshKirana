@@ -40,12 +40,25 @@ if (!dbUp) {
   );
 }
 
-/** Bengaluru. The store sits here; everything else is measured from it. */
-const STORE = { latitude: 12.9716, longitude: 77.5946 };
+/**
+ * Every run gets its own patch of the map.
+ *
+ * The database is shared and accumulates test stores, all of which are real
+ * serviceable results. Pinning every suite to the same coordinates means a
+ * "nearest stores" list eventually fills with vendors from other suites and
+ * earlier runs, and an assertion that *this* store appears starts failing for
+ * reasons that have nothing to do with the code. Still inside the India
+ * bounding box the schema enforces.
+ */
+const STORE = {
+  latitude: 8 + Math.random() * 9,
+  longitude: 70 + Math.random() * 14,
+};
+
 /** ~1.5 km north — inside a 3 km radius and inside the test polygon. */
-const NEARBY = { latitude: 12.9856, longitude: 77.5946 };
-/** Mysuru, ~140 km away. Outside everything. */
-const FAR_AWAY = { latitude: 12.2958, longitude: 76.6394 };
+const NEARBY = { latitude: STORE.latitude + 0.014, longitude: STORE.longitude };
+/** ~110 km north. Outside everything in this suite. */
+const FAR_AWAY = { latitude: STORE.latitude + 1, longitude: STORE.longitude };
 
 /**
  * A square around the store, roughly 2.2 km on a side.
@@ -57,11 +70,11 @@ const SQUARE_AROUND_STORE = {
   type: 'Polygon' as const,
   coordinates: [
     [
-      [77.5846, 12.9616],
-      [77.6046, 12.9616],
-      [77.6046, 12.9916],
-      [77.5846, 12.9916],
-      [77.5846, 12.9616],
+      [STORE.longitude - 0.01, STORE.latitude - 0.01],
+      [STORE.longitude + 0.01, STORE.latitude - 0.01],
+      [STORE.longitude + 0.01, STORE.latitude + 0.02],
+      [STORE.longitude - 0.01, STORE.latitude + 0.02],
+      [STORE.longitude - 0.01, STORE.latitude - 0.01],
     ],
   ],
 };

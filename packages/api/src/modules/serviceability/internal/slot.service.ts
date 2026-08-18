@@ -12,7 +12,7 @@ import {
 } from '@freshkirana/contracts';
 import { and, asc, eq, gte, inArray, sql } from 'drizzle-orm';
 import { DATABASE } from '../../../db/db.module';
-import type { Database } from '../../../db';
+import type { Database, Transaction } from '../../../db';
 import { VendorService } from '../../vendor/contracts';
 import { slotDefinition, slotInstance } from '../schema';
 
@@ -171,11 +171,15 @@ export class SlotService {
    * §2.8.2 promise of "never a silent failure at checkout" would be exactly
    * what breaks: two shoppers told yes, one order the store cannot pack.
    *
-   * Checkout (P2.3) calls this inside its own transaction, alongside the stock
-   * reservation, so a failure either side releases both.
+   * Checkout (P2.3) passes its own transaction, so the booking and the order
+   * either both happen or neither does. A place held for an order that was
+   * never written is capacity nobody can use and nobody can find.
    */
-  async book(slotInstanceId: string): Promise<SlotView> {
-    const rows = await this.db
+  async book(
+    slotInstanceId: string,
+    tx: Transaction | Database = this.db,
+  ): Promise<SlotView> {
+    const rows = await tx
       .update(slotInstance)
       .set({ booked: sql`${slotInstance.booked} + 1`, updatedAt: new Date() })
       .where(
@@ -204,8 +208,11 @@ export class SlotService {
    * negative: an under-counted slot oversells, which is the failure this whole
    * model exists to prevent.
    */
-  async release(slotInstanceId: string): Promise<SlotView> {
-    const rows = await this.db
+  async release(
+    slotInstanceId: string,
+    tx: Transaction | Database = this.db,
+  ): Promise<SlotView> {
+    const rows = await tx
       .update(slotInstance)
       .set({
         booked: sql`greatest(0, ${slotInstance.booked} - 1)`,

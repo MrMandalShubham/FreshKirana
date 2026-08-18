@@ -135,13 +135,19 @@ export class ServiceAreaService {
             )`,
       )
       .orderBy(sql`ST_Distance(${here}, ${centre})`)
-      .limit(limit);
+      // Over-fetch, because the vendor-status filter below removes rows. Cutting
+      // to `limit` in SQL first would let a handful of suspended stores squeeze
+      // out open ones that are genuinely nearby — the shopper would be told the
+      // area is thin when it is not.
+      .limit(Math.min(limit * 5, 200));
 
     // A store that is suspended or still pending approval must not be offered,
     // however close it is. Checked through the vendor module's contract rather
     // than by joining its schema (§2.1.1).
     const serviceable: ServiceableStore[] = [];
     for (const row of rows) {
+      if (serviceable.length >= limit) break;
+
       const vendor = await this.vendors.findById(row.vendorId).catch(() => null);
       if (vendor?.status !== VendorStatus.ACTIVE) continue;
       serviceable.push({

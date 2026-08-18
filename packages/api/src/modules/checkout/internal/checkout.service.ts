@@ -1,0 +1,328 @@
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  PaymentMethod,
+  SubstitutionPreference,
+  type CartTotals,
+} from '@freshkirana/contracts';
+import { DATABASE } from '../../../db/db.module';
+import type { Database } from '../../../db';
+import { CartService, type CartView } from '../../cart/contracts';
+import { OrderService } from '../../order/contracts';
+import {
+  ServiceAreaService,
+  SlotService,
+  type SlotView,
+} from '../../serviceability/contracts';
+import { AddressService } from '../../user/contracts';
+
+export interface CheckoutPreview {
+  cart: CartView;
+  address: {
+    id: string;
+    recipientName: string;
+    line1: string;
+    city: string;
+    pincode: string;
+  } | null;
+  slot: SlotView | null;
+  totals: CartTotals;
+  /** Empty means the order can be placed. Each entry is a reason it cannot. */
+  blockers: CheckoutBlocker[];
+}
+
+export interface CheckoutBlocker {
+  code: string;
+  message: string;
+}
+
+export interface PlaceOrderInput {
+  addressId: string;
+  slotInstanceId: string;
+  substitutionPreference?: string;
+  paymentMethod?: string;
+}
+
+/**
+ * Turns a basket into an order (spec §2.2 `checkout`).
+ *
+ * Orchestration only — this module owns no tables. It validates through each
+ * other module's contracts, then writes through them inside one transaction.
+ */
+@Injectable()
+export class CheckoutService {
+  constructor(
+    @Inject(DATABASE) private readonly db: Database,
+    private readonly carts: CartService,
+    private readonly addresses: AddressService,
+    private readonly areas: ServiceAreaService,
+    private readonly slots: SlotService,
+    private readonly orders: OrderService,
+  ) {}
+
+  /**
+   * The review screen, and the honest answer to "can I place this?".
+   *
+   * Returns every blocker rather than the first one. A checkout that rejects
+   * one problem at a time makes the shopper discover the next only after fixing
+   * this one, which is how a two-minute fix becomes an abandoned basket.
+   */
+  async preview(
+    accountId: string,
+    input: Partial<PlaceOrderInput>,
+  ): Promise<CheckoutPreview> {
+    const cart = await this.carts.view({ accountId });
+    const blockers: CheckoutBlocker[] = [];
+
+    if (cart.lines.length === 0) {
+      blockers.push({ code: 'CART_EMPTY', message: 'Your basket is empty' });
+    }
+
+    if (cart.unavailableLineIds.length > 0) {
+      blockers.push({
+        code: 'LINES_UNAVAILABLE',
+        message: 'Some items are no longer available. Remove them to continue.',
+      });
+    }
+
+    const address = input.addressId
+      ? await this.addresses.get(accountId, input.addressId).catch(() => null)
+      : await this.addresses.findDefault(accountId);
+
+    if (input.addressId && !address) {
+      blockers.push({ code: 'ADDRESS_NOT_FOUND', message: 'That address is not yours' });
+    } else if (!address) {
+      blockers.push({ code: 'ADDRESS_REQUIRED', message: 'Choose a delivery address' });
+    }
+
+    // The cart is pinned to a vendor (D2), so the question is not "is this
+    // address serviceable by anyone" but "by *this* store". A shopper who
+    // filled a basket at one shop and then chose an address that shop cannot
+    // reach must be told here, not at the door.
+    if (address && cart.vendorId) {
+      const serviceable = await this.areas.resolveStores(address, 50);
+      if (!serviceable.some((store) => store.vendorId === cart.vendorId)) {
+        blockers.push({
+          code: 'ADDRESS_NOT_SERVICEABLE',
+          message: 'This store does not deliver to that address',
+        });
+      }
+    }
+
+    let slot: SlotView | null = null;
+    if (input.slotInstanceId) {
+      slot = await this.slots.findSlot(input.slotInstanceId).catch(() => null);
+
+      if (!slot) {
+        blockers.push({
+          code: 'SLOT_NOT_FOUND',
+          message: 'That delivery slot no longer exists',
+        });
+      } else if (cart.vendorId && slot.vendorId !== cart.vendorId) {
+        blockers.push({
+          code: 'SLOT_WRONG_VENDOR',
+          message: 'That slot belongs to a different store',
+        });
+      } else if (!slot.isBookable) {
+        blockers.push({
+          code: `SLOT_${slot.status}`,
+          message: 'That delivery slot can no longer be booked',
+        });
+      }
+    } else {
+      blockers.push({ code: 'SLOT_REQUIRED', message: 'Choose a delivery slot' });
+    }
+
+    return {
+      cart,
+      address: address
+        ? {
+            id: address.id,
+            recipientName: address.recipientName,
+            line1: address.line1,
+            city: address.city,
+            pincode: address.pincode,
+          }
+        : null,
+      slot,
+      totals: cart.totals,
+      blockers,
+    };
+  }
+
+  /**
+   * Places the order.
+   *
+   * ## One transaction
+   *
+   * Booking the slot, writing the order and closing the cart happen together or
+   * not at all. Each failure the other way round is a real support case: a slot
+   * held for an order nobody wrote is capacity nobody can use, and a cart still
+   * open after an order is placed is a second order the customer never meant.
+   *
+   * ## Priced here, not from the preview
+   *
+   * The totals are recomputed from the live cart at the moment of writing. A
+   * client that sends back the number it was shown is a client that can be
+   * asked to send a smaller one.
+   */
+  async place(accountId: string, input: PlaceOrderInput) {
+    const method = input.paymentMethod ?? PaymentMethod.COD;
+    if (method !== PaymentMethod.COD) {
+      // Prepaid arrives with the gateway in P3.2. Refusing plainly beats
+      // accepting an order nobody can pay for.
+      throw new BadRequestException('Only cash on delivery is available right now');
+    }
+
+    const activeCart = await this.carts.findActive({ accountId });
+    if (activeCart) {
+      // Cheap path: the order is already written and the cart has not been
+      // closed yet. Returns the first order rather than making a second.
+      const existing = await this.orders.findByCart(activeCart.id);
+      if (existing) return this.orders.findForAccount(accountId, existing.id);
+    }
+
+    const preview = await this.preview(accountId, input);
+    if (preview.blockers.length > 0) {
+      throw new ConflictException({
+        message: 'This order cannot be placed yet',
+        code: 'CHECKOUT_BLOCKED',
+        blockers: preview.blockers,
+      });
+    }
+
+    const cart = preview.cart;
+    const address = await this.addresses.get(accountId, preview.address!.id);
+    const slot = preview.slot!;
+
+    if (!activeCart) throw new NotFoundException('No active basket');
+
+    const substitutionPreference =
+      input.substitutionPreference ??
+      cart.substitutionPreference ??
+      SubstitutionPreference.AUTO_SUBSTITUTE;
+
+    const orderId = await this.writeOrder(accountId, {
+      cart,
+      cartId: activeCart.id,
+      address,
+      slot,
+      substitutionPreference,
+    });
+
+    return this.orders.findForAccount(accountId, orderId);
+  }
+
+  /**
+   * The atomic part: book, write, close.
+   *
+   * The unique index on `cart_id` is what actually prevents a duplicate order,
+   * not the check above it — two submissions in flight together both see an
+   * open cart and both get here. The loser's insert violates the index, its
+   * whole transaction rolls back (releasing the slot place it took), and it
+   * returns the winner's order. Without that, a double tap produces two orders
+   * and two places held in a slot that only ever needed one.
+   */
+  private async writeOrder(
+    accountId: string,
+    context: {
+      cart: CartView;
+      cartId: string;
+      address: Awaited<ReturnType<AddressService['get']>>;
+      slot: SlotView;
+      substitutionPreference: string;
+    },
+  ): Promise<string> {
+    const { cart, address, slot, substitutionPreference } = context;
+    const activeCart = { id: context.cartId };
+
+    try {
+      return await this.db.transaction(async (tx) => {
+        // Throws if the slot filled between the preview and now — which is
+        // exactly the race this ordering exists to lose safely, because nothing
+        // has been written yet.
+        await this.slots.book(slot.id, tx);
+
+        const created = await this.orders.create(
+          {
+            accountId,
+            vendorId: cart.vendorId!,
+            cartId: activeCart.id,
+            paymentMethod: PaymentMethod.COD,
+            substitutionPreference,
+
+            address: {
+              id: address.id,
+              recipientName: address.recipientName,
+              recipientPhone: address.recipientPhone,
+              line1: address.line1,
+              line2: address.line2,
+              landmark: address.landmark,
+              city: address.city,
+              state: address.state,
+              pincode: address.pincode,
+              latitude: address.latitude,
+              longitude: address.longitude,
+              deliveryNote: address.deliveryNote,
+            },
+
+            slot: {
+              id: slot.id,
+              serviceDate: slot.serviceDate,
+              startsAt: slot.startsAt,
+              endsAt: slot.endsAt,
+            },
+
+            totals: {
+              itemsSubtotalPaise: cart.totals.subtotalPaise,
+              savingsPaise: cart.totals.savingsPaise,
+              deliveryFeePaise: cart.totals.deliveryFeePaise,
+              smallBasketFeePaise: cart.totals.smallBasketFeePaise,
+              packagingFeePaise: cart.totals.packagingFeePaise,
+              grandTotalPaise: cart.totals.grandTotalPaise,
+            },
+
+            lines: cart.lines.map((line) => ({
+              masterProductId: line.masterProductId,
+              vendorOfferId: line.vendorOfferId,
+              name: line.name,
+              slug: line.slug,
+              netQuantity: line.netQuantity,
+              uom: line.uom,
+              isVariableWeight: line.isVariableWeight,
+              hsnCode: line.hsnCode,
+              gstRateBp: line.gstRateBp,
+              quantity: line.quantity,
+              unitPricePaise: line.unitPricePaise,
+              mrpPaise: line.mrpPaise,
+              lineTotalPaise: line.lineTotalPaise,
+              lineMrpTotalPaise: line.lineMrpTotalPaise,
+            })),
+          },
+          tx,
+        );
+
+        await this.carts.markConverted(activeCart.id, tx);
+
+        return created.id;
+      });
+    } catch (error) {
+      if (isDuplicateCartOrder(error)) {
+        const winner = await this.orders.findByCart(activeCart.id);
+        if (winner) return winner.id;
+      }
+      throw error;
+    }
+  }
+}
+
+/** Postgres unique violation on the one index that makes placing idempotent. */
+function isDuplicateCartOrder(error: unknown): boolean {
+  const candidate = error as { code?: string; constraint?: string } | null;
+  return candidate?.code === '23505' && candidate?.constraint === 'order_cart_key';
+}
