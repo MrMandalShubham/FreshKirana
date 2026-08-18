@@ -370,6 +370,7 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | API | Cloud Run | ✅ deployed |
 | Database | Cloud SQL (PostgreSQL 16 + PostGIS) | ✅ |
 | Migrations | Cloud Run job | ✅ |
+| **Scheduled work** (§1.9.4 SLA sweep) | **Cloud Run job + Cloud Scheduler** | ✅ P2.5a |
 | Container images | Artifact Registry, built by Cloud Build | ✅ |
 | Secrets | Secret Manager | ✅ |
 | Deploy identity | Workload Identity Federation | ✅ |
@@ -425,7 +426,8 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | 2 | P2.2 | Serviceability & slots | ⏳ | | `589b7bc` · CI green, deployed · 294 tests · PostGIS live · 20 racing bookings → exactly 5 · fixed a latent PATCH bug that blocked vendor approval and product publishing |
 | 2 | P2.3 | Checkout & order creation | ⏳ | | `486b445` · CI green, deployed · 333 tests · COD end to end · slot booking + order + cart conversion in one transaction · GST extracted per line |
 | 2 | P2.4 | Order state machine | ⏳ | | `6450350` · CI green, deployed · 372 tests · declarative table, guards, effects, §2.6.3 labels · audit trail per move |
-| 2 | P2.5 | Vendor WhatsApp flow ⚙ | ⏳ | | `4f6f77c` · CI green, deployed · 401 tests · mock channel + idempotent webhook · SLA reminder and auto-cancel |
+| 2 | P2.5 | Vendor WhatsApp flow ⚙ | ⏳ | | `4f6f77c` · CI green, deployed · mock channel + idempotent webhook · SLA reminder and auto-cancel |
+| 2 | P2.5a | **Scheduled SLA sweep** | ⏳ | | `1b1b4fa` · CI green · 403 tests · Cloud Run job + Cloud Scheduler, verified executing on GCP |
 | 2 | P2.6 | Order tracking | ☐ | | |
 | 2 | P2.7 | Reorder & Usual Basket | ☐ | | |
 | — | 🎯 | **V0 MILESTONE** | ☐ | | 5 real orders |
@@ -509,6 +511,7 @@ Record every decision made during the build that isn't already in the spec. This
 | 2026-08-18 | P2.5 | The webhook is **idempotent on the provider's message id** | Providers retry; that is documented behaviour, not an edge case. "Accept" applied twice looks harmless right up until the button is "cancel" |
 | 2026-08-18 | P2.5 | An SLA breach goes **`AWAITING_VENDOR → REASSIGNING → CANCELLED`**, not straight to cancelled | Keeps "the store ignored us" distinguishable from "the customer changed their mind" in the audit trail, which is what §6.4 vendor scoring reads |
 | 2026-08-18 | P2.5 | The WhatsApp flow lives in **`order`**, not `notification` | The obvious home closes a cycle — and not a lint one: the module that talks to a messaging provider would also have to know what an order status means. The dependency runs one way, `order → notification` |
+| 2026-08-18 | **P2.5a** | **Scheduled work is a Cloud Run job, not a timer and not a scheduled HTTP call** | A timer inside the API is wrong twice over on Cloud Run: the service scales to zero so it may never fire, and with several instances it fires several times. An HTTP trigger would mean a second authentication path through the guard protecting every other route — Cloud Scheduler presents a Google identity token, not one of ours — and that path becomes internet-reachable when P8.6 makes the API public. P3.1's reservation-expiry sweeper belongs beside this one |
 | 2026-08-18 | P2.5 | The connection pool sets **TCP keepalives** and an idle-client error handler | Every connection runs through the Cloud SQL Auth Proxy, and proxies drop idle TCP silently — the app then checks out a client that looks fine and 500s a request that did nothing wrong. Without the error handler, one dropped idle connection takes the process down |
 | | | | |
 
@@ -531,7 +534,7 @@ Anything consciously postponed during a part, so it resurfaces instead of being 
 | 2026-08-18 | **P2.4** | **Automatic transitions have no trigger yet.** `PENDING_PAYMENT → AWAITING_VENDOR`, `REASSIGNING → AWAITING_VENDOR` and `DELIVERED → COMPLETED` are in the table with no actor but ops, because the things that should fire them — the payment webhook, the reassignment job, the return-window timer — do not exist. Ops can drive them by hand meanwhile. | **P3.2** (payment), **P2.5** (reassignment), **P3.5** (return window) |
 | 2026-08-18 | P2.4 | **COD payment status stays `PENDING` after delivery.** §2.6.2 says a COD order moves to `COD_COLLECTED` when the rider takes the cash; that transition belongs to the cod module and its reconciliation. | **P3.4** |
 | 2026-08-18 | P2.4 | **Cancellation fee from `PACKED`.** §1.8.1 allows one (default none in V1). The guard exists and is named; the fee itself needs the refund path. | **P3.5** |
-| 2026-08-18 | **P2.5** | ⚠️ **Nothing fires the SLA sweep on a schedule yet.** `POST /internal/vendor-sla/sweep` exists and is idempotent, but Cloud Scheduler cannot call it: the endpoint is role-guarded by our own JWT, and Scheduler presents a Google OIDC token. Either the endpoint accepts an OIDC caller (Cloud Run IAM being the real gate while the service is private), or the sweep becomes a Cloud Run job like migrations. **In staging, unanswered orders sit in `AWAITING_VENDOR` indefinitely.** | **Before pilot** — decide the auth shape, then wire it in Terraform (rule R8) |
+| ~~2026-08-18~~ | ~~P2.5~~ | ~~Nothing fires the SLA sweep on a schedule.~~ **Closed by P2.5a** (`1b1b4fa`): a Cloud Run job executed by Cloud Scheduler every two minutes. Verified running on GCP. | ✅ Done |
 | 2026-08-18 | P2.5 | **Auto-reassign to the next-best store** (§1.9.4). The breach path routes through `REASSIGNING` so the record is right, then cancels, because re-offering an order needs vendor ranking and re-vendoring an existing order. | **P6.3** (vendor scores) or a dedicated part |
 | 2026-08-18 | P2.5 | **Webhook signature verification.** The mock has nothing to verify. The real channel must check the provider's signature before this route is reachable in production. | **With B1**, and gated by P8.6 |
 | 2026-08-18 | P2.5 | **The remaining §1.9.3 templates** — `ITEM_OOS_PROMPT`, `SUBSTITUTION_PROPOSE`, `ORDER_PACKED_CONFIRM`, `HANDOVER_CONFIRM`, `PAYOUT_STATEMENT`, `LOW_STOCK_DIGEST` — are declared in the catalogue but not yet sent by anything. | **P4.1** (substitutions), **P5.3** (payouts), **P7.1** (digests) |
