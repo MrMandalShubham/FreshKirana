@@ -385,8 +385,8 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 | 0 | P0.5b | Cloud provisioning & staging | ✅ | 2026-08-17 | Applied to `freshkirana-staging-mm`. Auto-deploy from `main` green end to end |
 | — | 🎯 | **PHASE 0 COMPLETE** | ✅ | 2026-08-17 | 5 parts · 81 tests · staging live and private |
 | 1 | P1.1 | Master catalog | ✅ | 2026-08-17 | `6fe5eb4` · CI green, deployed · D1 master side |
-| 1 | P1.2 | Vendors & offers | ⏳ | | `ade2a4f` · CI green, deployed · 127 tests · D1 offer side + §3.2 scoping live |
-| 1 | P1.3 | Catalog seeding tooling | ☐ | | |
+| 1 | P1.2 | Vendors & offers | ✅ | 2026-08-18 | `ade2a4f` · CI green, deployed · D1 offer side + §3.2 scoping live |
+| 1 | P1.3 | Catalog seeding tooling | ⏳ | | `3a1bc32` · CI green, deployed · 142 tests · unblocks C1 |
 | 1 | P1.4 | Search | ☐ | | |
 | 1 | P1.5 | Customer PWA shell | ☐ | | |
 | 2 | P2.1 | Cart | ☐ | | |
