@@ -9,6 +9,8 @@ import { PricingModule } from './modules/pricing/pricing.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { OfferModule } from './modules/offer/offer.module';
 import { SearchModule } from './modules/search/search.module';
+import { ServiceabilityModule } from './modules/serviceability/serviceability.module';
+import { UserModule } from './modules/user/user.module';
 import { VendorModule } from './modules/vendor/vendor.module';
 import { ObservabilityModule } from './observability/observability.module';
 
@@ -28,10 +30,12 @@ import { ObservabilityModule } from './observability/observability.module';
     ObservabilityModule,
     IdentityModule,
     AnalyticsModule,
+    UserModule,
     CatalogModule,
     VendorModule,
     OfferModule,
     SearchModule,
+    ServiceabilityModule,
     PricingModule,
     CartModule,
     AdminModule,

@@ -71,6 +71,13 @@
       "when": 1787044921784,
       "tag": "0009_loving_roughhouse",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787052414693,
+      "tag": "0010_glamorous_makkari",
+      "breakpoints": true
     }
   ]
 }

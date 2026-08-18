@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ScopeType } from '@freshkirana/contracts';
 import { and, asc, eq, type SQL } from 'drizzle-orm';
+import { applyPatch } from '../../../common/merge-patch';
 import { DATABASE } from '../../../db/db.module';
 import type { Database } from '../../../db';
 import { AccountRepository } from '../../identity/contracts';
@@ -89,7 +90,10 @@ export class VendorService {
     const existing = await this.findById(id);
 
     // Checked here for a clear message; the database CHECK is the guarantee.
-    const merged = { ...existing, ...dto };
+    // `applyPatch`, not a spread: an absent DTO field is still an own property
+    // holding undefined, and spreading it would erase the stored licence — see
+    // common/merge-patch.ts.
+    const merged = applyPatch(existing, dto);
     if (merged.status === VendorStatus.ACTIVE && !merged.fssaiLicenceNo?.trim()) {
       throw new BadRequestException(
         'A vendor cannot be ACTIVE without an FSSAI licence number (§3.7.3)',

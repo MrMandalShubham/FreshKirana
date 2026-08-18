@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ProductStatus, missingLegalMetrologyFields } from '@freshkirana/contracts';
 import { and, asc, count, desc, eq, ilike, or, type SQL } from 'drizzle-orm';
+import { applyPatch } from '../../../common/merge-patch';
 import { DATABASE } from '../../../db/db.module';
 import type { Database } from '../../../db';
 import { brand, category, masterProduct } from '../schema';
@@ -182,7 +183,10 @@ export class CatalogService {
   async updateProduct(id: string, dto: UpdateProductDto) {
     const existing = await this.getProduct(id);
 
-    const merged = { ...existing, ...dto };
+    // `applyPatch`, not a spread — see common/merge-patch.ts. Publishing an
+    // existing draft sends only `status`, and a spread would blank every Legal
+    // Metrology field it is about to check.
+    const merged = applyPatch(existing, dto);
     this.assertVariableWeightIsCoherent(merged.isVariableWeight, merged.pricingUom);
 
     if (merged.status === ProductStatus.ACTIVE) {

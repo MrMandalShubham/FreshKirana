@@ -14,6 +14,14 @@
 export const AnalyticsEvent = {
   // Discovery
   APP_OPENED: 'app_opened',
+  /**
+   * A visitor asked whether we deliver to a pin (§2.8.1). Named in the §5.2
+   * acquisition funnel, and the denominator for the one below — a waitlist
+   * count means nothing without the number of people who asked.
+   */
+  SERVICEABILITY_CHECKED: 'serviceability_checked',
+  /** Demand where there is no supply yet — the primary §1.11 expansion input. */
+  WAITLIST_JOINED: 'waitlist_joined',
   SEARCH_PERFORMED: 'search_performed',
   SEARCH_RESULT_CLICKED: 'search_result_clicked',
   CATEGORY_VIEWED: 'category_viewed',

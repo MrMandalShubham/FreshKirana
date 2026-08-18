@@ -265,6 +265,26 @@ describe.skipIf(!dbUp)('catalog (e2e)', () => {
         .expect(400);
     });
 
+    it('publishes a complete draft sent nothing but a status', async () => {
+      // The ordinary way a product goes live: everything was filled in when it
+      // was created, and publishing changes one field. Merging that patch with
+      // a spread blanked every declaration it was about to check, so this
+      // 400'd — see common/merge-patch.ts.
+      const created = await request(app.getHttpServer())
+        .post('/admin/catalog/products')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send(packagedProduct({ status: ProductStatus.DRAFT, eanBarcode: uniqueEan() }))
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .patch(`/admin/catalog/products/${(created.body as { id: string }).id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: ProductStatus.ACTIVE })
+        .expect(200);
+
+      expect((res.body as { status: string }).status).toBe(ProductStatus.ACTIVE);
+    });
+
     it('activates once the declarations are supplied', async () => {
       const created = await request(app.getHttpServer())
         .post('/admin/catalog/products')

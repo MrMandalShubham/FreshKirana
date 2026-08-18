@@ -180,6 +180,20 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
       expect(JSON.stringify(activation.body)).toContain('FSSAI');
     });
 
+    it('activates a vendor that has a licence', async () => {
+      // The positive case, which nothing covered until P2.2 needed an ACTIVE
+      // vendor: approval sends only `status`, and merging the patch with a
+      // spread blanked the licence it was about to check — so no vendor could
+      // ever be approved. See common/merge-patch.ts.
+      const res = await http()
+        .patch(`/admin/vendors/${vendorB}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'ACTIVE' })
+        .expect(200);
+
+      expect((res.body as { status: string }).status).toBe('ACTIVE');
+    });
+
     it('requires a GSTIN when the vendor claims GST registration (§3.7.1)', async () => {
       await http()
         .patch(`/admin/vendors/${vendorA}`)

@@ -16,4 +16,5 @@ export * from './order-status';
 export * from './payment-status';
 export * from './roles';
 export * from './search';
+export * from './serviceability';
 export * from './uom';
