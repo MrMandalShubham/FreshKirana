@@ -63,9 +63,19 @@ export function createDatabase(connectionString?: string): Database {
   return drizzle(getPool(connectionString), { schema });
 }
 
+/**
+ * Closes the pool. Safe to call twice, and safe to call twice at once.
+ *
+ * The module variable is cleared *before* the await, so a second caller finds
+ * nothing to close rather than calling `end()` on a pool that is already
+ * closing — which throws "Called end on pool more than once". Shutdown paths
+ * genuinely do run twice: a SIGTERM handler and an application close, or two
+ * test contexts tearing down together.
+ */
 export async function closeDatabase(): Promise<void> {
-  await pool?.end();
+  const closing = pool;
   pool = undefined;
+  await closing?.end();
 }
 
 export function requireDatabaseUrl(): string {

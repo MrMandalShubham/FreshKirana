@@ -1,0 +1,124 @@
+# ---------------------------------------------------------------------------
+# Scheduled background work (spec §1.9.4).
+#
+# Rule R8: every delivered component has a GCP home. The SLA sweep is a
+# component — without something firing it, an order a store ignores sits in
+# AWAITING_VENDOR for ever and the customer is told nothing.
+#
+# A Cloud Run *job* rather than a timer inside the API: the service scales to
+# zero, so an in-process schedule may never fire, and with several instances up
+# it fires several times. A job rather than a scheduled HTTP call: Cloud
+# Scheduler presents a Google identity token, not one of ours, so an HTTP
+# trigger would mean a second authentication path through the guard that
+# protects every other route — and one that becomes internet-reachable when
+# P8.6 makes the API public.
+# ---------------------------------------------------------------------------
+
+resource "google_cloud_run_v2_job" "sla_sweep" {
+  name     = "${local.name_prefix}-sla-sweep"
+  location = var.region
+  labels   = local.common_labels
+
+  deletion_protection = false
+
+  template {
+    template {
+      # The same identity as the API: it needs exactly the same database
+      # access and nothing more.
+      service_account = google_service_account.api.email
+      # No retries. The next run is two minutes away and the sweep is
+      # idempotent, so retrying a failed pass buys nothing a wait does not.
+      max_retries = 0
+      timeout     = "300s"
+
+      containers {
+        image   = var.image != "" ? var.image : var.bootstrap_image
+        command = ["node"]
+        args    = ["packages/api/dist/jobs/sla-sweep.js"]
+
+        env {
+          name = "DATABASE_URL"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.database_url.secret_id
+              version = "latest"
+            }
+          }
+        }
+
+        env {
+          name  = "NODE_ENV"
+          value = var.node_env
+        }
+
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "512Mi"
+          }
+        }
+      }
+
+      volumes {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [google_sql_database_instance.main.connection_name]
+        }
+      }
+    }
+  }
+
+  lifecycle {
+    # The deploy workflow updates the image; Terraform must not revert it.
+    ignore_changes = [template[0].template[0].containers[0].image]
+  }
+}
+
+# ---------------------------------------------------------------------------
+# The identity Cloud Scheduler acts as.
+#
+# Separate from the API's: this one may start a job and nothing else, so a
+# compromised scheduler cannot read the database or the secrets the API holds.
+# ---------------------------------------------------------------------------
+
+resource "google_service_account" "scheduler" {
+  account_id   = "${local.name_prefix}-scheduler"
+  display_name = "Cloud Scheduler — starts background jobs"
+}
+
+resource "google_cloud_run_v2_job_iam_member" "scheduler_runs_sla_sweep" {
+  name     = google_cloud_run_v2_job.sla_sweep.name
+  location = google_cloud_run_v2_job.sla_sweep.location
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.scheduler.email}"
+}
+
+resource "google_cloud_scheduler_job" "sla_sweep" {
+  name        = "${local.name_prefix}-sla-sweep"
+  region      = var.region
+  description = "Vendor acceptance SLA: reminders at 5 minutes, cancellation at 10 (§1.9.4)"
+
+  # Every two minutes. The SLA it enforces is measured in five- and ten-minute
+  # steps, so this is fine enough to be accurate and coarse enough to be cheap.
+  schedule  = var.sla_sweep_schedule
+  time_zone = "Asia/Kolkata"
+
+  attempt_deadline = "320s"
+
+  retry_config {
+    # One retry. A missed pass is caught by the next one two minutes later.
+    retry_count = 1
+  }
+
+  http_target {
+    http_method = "POST"
+    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.sla_sweep.name}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.scheduler.email
+      scope                 = "https://www.googleapis.com/auth/cloud-platform"
+    }
+  }
+
+  depends_on = [google_project_service.required]
+}

@@ -50,3 +50,8 @@ output "redis_host" {
   description = "Null until var.enable_redis is set."
   value       = var.enable_redis ? google_redis_instance.cache[0].host : null
 }
+
+output "sla_sweep_job_name" {
+  description = "Cloud Run job the scheduler executes for the §1.9.4 SLA sweep."
+  value       = google_cloud_run_v2_job.sla_sweep.name
+}

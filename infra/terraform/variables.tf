@@ -120,3 +120,9 @@ variable "node_env" {
   type        = string
   default     = "development"
 }
+
+variable "sla_sweep_schedule" {
+  description = "Cron for the vendor acceptance SLA sweep. Every two minutes by default; the SLA it enforces is measured in five- and ten-minute steps."
+  type        = string
+  default     = "*/2 * * * *"
+}

@@ -10,6 +10,8 @@ locals {
     "servicenetworking.googleapis.com",
     # Builds images without any local Docker dependency.
     "cloudbuild.googleapis.com",
+    # Fires the background jobs in scheduled_jobs.tf (rule R8).
+    "cloudscheduler.googleapis.com",
   ]
 
   redis_apis = var.enable_redis ? ["redis.googleapis.com", "vpcaccess.googleapis.com"] : []

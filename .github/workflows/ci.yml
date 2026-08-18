@@ -253,6 +253,7 @@ jobs:
       SERVICE: freshkirana-staging-api
       WEB_SERVICE: freshkirana-staging-web
       MIGRATE_JOB: freshkirana-staging-migrate
+      SLA_SWEEP_JOB: freshkirana-staging-sla-sweep
 
     steps:
       - uses: actions/checkout@v4
@@ -289,6 +290,16 @@ jobs:
           gcloud run jobs execute "$MIGRATE_JOB" \
             --region "$REGION" \
             --wait
+
+      # Background jobs run the same image as the API. Without this they stay
+      # pinned to whatever image they were created with, and a scheduled sweep
+      # would quietly go on executing code from weeks ago.
+      - name: Point scheduled jobs at the new image
+        run: |
+          gcloud run jobs update "$SLA_SWEEP_JOB" \
+            --region "$REGION" \
+            --image "${{ steps.image.outputs.image }}" \
+            --quiet
 
       - name: Deploy API revision
         run: |
