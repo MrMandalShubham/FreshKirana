@@ -6,6 +6,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { OfferModule } from './modules/offer/offer.module';
+import { SearchModule } from './modules/search/search.module';
 import { VendorModule } from './modules/vendor/vendor.module';
 import { ObservabilityModule } from './observability/observability.module';
 
@@ -28,6 +29,7 @@ import { ObservabilityModule } from './observability/observability.module';
     CatalogModule,
     VendorModule,
     OfferModule,
+    SearchModule,
     AdminModule,
   ],
   controllers: [HealthController],
