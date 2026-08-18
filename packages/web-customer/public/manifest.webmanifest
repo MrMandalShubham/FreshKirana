@@ -1,0 +1,13 @@
+{
+  "name": "FreshKirana",
+  "short_name": "FreshKirana",
+  "description": "Your neighbourhood kirana, ordered in two minutes.",
+  "start_url": "/en",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1f7a4d",
+  "orientation": "portrait",
+  "lang": "en",
+  "categories": ["shopping", "food"],
+  "icons": []
+}

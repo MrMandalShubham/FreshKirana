@@ -6,6 +6,7 @@ import { CatalogService } from './internal/catalog.service';
 import { DuplicateDetector } from './internal/duplicate-detector';
 import { ProductRequestController } from './internal/product-request.controller';
 import { ProductRequestService } from './internal/product-request.service';
+import { StorefrontCatalogController } from './internal/storefront.controller';
 
 /**
  * Catalog module — master products, categories, brands, and the product-request
@@ -20,7 +21,7 @@ import { ProductRequestService } from './internal/product-request.service';
  */
 @Module({
   imports: [IdentityModule],
-  controllers: [CatalogController, ProductRequestController],
+  controllers: [CatalogController, ProductRequestController, StorefrontCatalogController],
   providers: [
     CatalogService,
     DuplicateDetector,

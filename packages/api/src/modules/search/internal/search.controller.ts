@@ -91,6 +91,28 @@ export class SearchController {
   suggest(@Query('q') q: string, @Query('limit') limit?: string) {
     return this.search.suggest(q ?? '', limit ? Number(limit) : undefined);
   }
+
+  /** Category listing (§4.2). A browse, not a search — no query required. */
+  @Public()
+  @Get('browse')
+  browse(
+    @Query('categoryId') categoryId?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    return this.search.browse({
+      categoryId,
+      limit: limit ? Number(limit) : undefined,
+      offset: offset ? Number(offset) : undefined,
+    });
+  }
+
+  /** Price and availability for one product, by slug. Feeds the PDP. */
+  @Public()
+  @Get('product/:slug')
+  product(@Param('slug') slug: string) {
+    return this.search.findBySlug(slug);
+  }
 }
 
 /**

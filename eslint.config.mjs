@@ -7,9 +7,11 @@ export default tseslint.config(
   {
     ignores: [
       '**/dist/**',
+      '**/.next/**',
       '**/node_modules/**',
       '**/coverage/**',
       '**/*.tsbuildinfo',
+      '**/next-env.d.ts',
       'docs/**',
     ],
   },

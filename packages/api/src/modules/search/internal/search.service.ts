@@ -140,6 +140,64 @@ export class SearchService {
   }
 
   /**
+   * Category browsing — a listing page, not a search (spec §4.2).
+   *
+   * Same availability-first ordering as search: a category page led by
+   * out-of-stock products is a page that cannot fill a basket.
+   */
+  async browse(input: {
+    categoryId?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<SearchResponse> {
+    const limit = Math.min(input.limit ?? 20, 50);
+    const offset = input.offset ?? 0;
+
+    const rows = await this.db.execute<IndexRow>(sql`
+      select
+        pi.master_product_id, pi.slug, pi.name, pi.brand, pi.category_id,
+        pi.net_quantity, pi.uom, pi.veg_mark, pi.image_url,
+        pi.min_price_paise, pi.mrp_paise, pi.is_available, pi.offer_count,
+        0::float as score, false as contains
+      from search.product_index pi
+      where pi.product_status = 'ACTIVE'
+        ${input.categoryId ? sql`and pi.category_id = ${input.categoryId}` : sql``}
+      order by
+        pi.is_available desc,
+        pi.quantity_mode_offer_count desc,
+        pi.min_price_paise asc nulls last
+      limit ${limit} offset ${offset}
+    `);
+
+    const items = rows.rows.map((row) => this.toItem(row, ''));
+
+    return {
+      query: '',
+      expandedTerms: [],
+      items,
+      total: items.length,
+      zeroResult: items.length === 0,
+    };
+  }
+
+  /** The indexed view of one product: price and availability for the PDP. */
+  async findBySlug(slug: string): Promise<SearchResultItem | null> {
+    const rows = await this.db.execute<IndexRow>(sql`
+      select
+        pi.master_product_id, pi.slug, pi.name, pi.brand, pi.category_id,
+        pi.net_quantity, pi.uom, pi.veg_mark, pi.image_url,
+        pi.min_price_paise, pi.mrp_paise, pi.is_available, pi.offer_count,
+        1::float as score, true as contains
+      from search.product_index pi
+      where pi.product_status = 'ACTIVE' and pi.slug = ${slug}
+      limit 1
+    `);
+
+    const row = rows.rows[0];
+    return row ? this.toItem(row, slug) : null;
+  }
+
+  /**
    * Autocomplete. Availability-first for the same reason as full search, and
    * capped tight because a suggestion list is scanned, not read.
    */

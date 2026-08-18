@@ -135,6 +135,34 @@ jobs:
             exit 1
           fi
 
+  web:
+    name: Customer PWA builds within budget
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Pages are force-dynamic, so no API is needed to build.
+      - name: Build
+        run: npm run build:web
+
+      - name: Typecheck
+        run: npm run typecheck -w @freshkirana/web-customer
+
+      # §4.1 budgets 200 KB of gzipped initial JS on a mid-range Android over
+      # 4G. Enforced, because a budget nobody measures is a wish — bundles only
+      # grow by accident, one convenient dependency at a time.
+      - name: Check bundle budget
+        run: npm run check:budget
+
   container:
     name: Container builds and boots
     runs-on: ubuntu-latest
