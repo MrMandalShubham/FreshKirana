@@ -652,15 +652,25 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
         }),
       ]);
 
+      // How the two interleave is genuinely timing-dependent: overlapping, both
+      // succeed and return the same order; serialised, the second finds a cart
+      // already converted and is refused. Asserting one interleaving makes the
+      // test fail on a fast machine for no reason, so assert the invariant that
+      // has to hold either way — one order, one place taken.
       const placed = [first, second].filter((r) => r.status === 201);
-      expect(placed).toHaveLength(2);
+      expect(placed.length).toBeGreaterThanOrEqual(1);
 
-      const ids = placed.map((r) => (r.body as PlacedOrder).id);
-      expect(new Set(ids).size).toBe(1);
+      const ids = new Set(placed.map((r) => (r.body as PlacedOrder).id));
+      expect(ids.size).toBe(1);
 
-      // And exactly one place was taken, not two.
       const after = await slotsFor(vendorId);
       expect(after.find((s) => s.id === slot.id)!.booked).toBe(bookedBefore + 1);
+
+      const orderNumber = (placed[0]!.body as PlacedOrder).orderNumber;
+      const history = await asCustomer(http().get('/me/orders')).expect(200);
+      expect(
+        (history.body as PlacedOrder[]).filter((o) => o.orderNumber === orderNumber),
+      ).toHaveLength(1);
     });
 
     it('does not place a second order from a basket already bought', async () => {
