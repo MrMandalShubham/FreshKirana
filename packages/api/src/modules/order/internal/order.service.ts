@@ -11,7 +11,7 @@ import {
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { DATABASE } from '../../../db/db.module';
 import type { Database, Transaction } from '../../../db';
-import { order, orderLine } from '../schema';
+import { order, orderLine, orderStatusHistory } from '../schema';
 
 export interface CreateOrderLineInput {
   masterProductId: string;
@@ -136,6 +136,17 @@ export class OrderService {
       .returning();
 
     const row = created[0]!;
+
+    // The audit trail starts here, with no `from`: this is where the order
+    // came into existence, and a history that begins at the first *change*
+    // cannot answer when the order was placed or by whom (§3.8).
+    await tx.insert(orderStatusHistory).values({
+      orderId: row.id,
+      fromStatus: null,
+      toStatus: row.status,
+      actorAccountId: input.accountId,
+      actorRole: 'CUSTOMER',
+    });
 
     await tx.insert(orderLine).values(
       lines.map((line) => ({

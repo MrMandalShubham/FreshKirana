@@ -33,15 +33,30 @@ export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
 
 export const ORDER_STATUSES = Object.values(OrderStatus);
 
-/** States from which no further transition is possible. */
+/**
+ * States from which no further transition is possible.
+ *
+ * `COMPLETED` is deliberately **not** here, though it looks like an ending:
+ * §2.6.1 allows `COMPLETED → RETURN_REQUESTED`, because a customer opens the
+ * bag after the rider has gone. Calling it terminal would make the return path
+ * unreachable — the single most expensive thing to get wrong here, since the
+ * customer discovers it at exactly the moment they are already unhappy.
+ *
+ * "Fulfilment is over" and "nothing can happen next" are different questions;
+ * this answers the second.
+ */
 export const TERMINAL_ORDER_STATUSES = [
-  OrderStatus.COMPLETED,
   OrderStatus.CANCELLED,
   OrderStatus.RETURNED,
 ] as const satisfies readonly OrderStatus[];
 
 export function isTerminalOrderStatus(status: OrderStatus): boolean {
   return (TERMINAL_ORDER_STATUSES as readonly OrderStatus[]).includes(status);
+}
+
+/** Fulfilment is over and no money is owed. Not the same as terminal. */
+export function isFulfilledOrderStatus(status: OrderStatus): boolean {
+  return status === OrderStatus.COMPLETED || status === OrderStatus.DELIVERED;
 }
 
 /**

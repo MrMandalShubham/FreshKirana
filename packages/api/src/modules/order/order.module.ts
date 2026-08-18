@@ -1,22 +1,28 @@
 import { Module } from '@nestjs/common';
+import { AnalyticsModule } from '../analytics/analytics.module';
 import { IdentityModule } from '../identity/identity.module';
-import { OrderController, VendorOrderController } from './internal/order.controller';
+import { ServiceabilityModule } from '../serviceability/serviceability.module';
+import { OrderStateService } from './internal/order-state.service';
+import {
+  OrderController,
+  OrderTransitionController,
+  VendorOrderController,
+} from './internal/order.controller';
 import { OrderService } from './internal/order.service';
 
 /**
- * Order module — the canonical order and its lines (spec §2.6, §2.2).
+ * Order module — the canonical order, its lines, and the §2.6 state machine.
  *
  * Owns the `order` PostgreSQL schema. Other modules may import only from
  * `./contracts`; `./schema` and `./internal` are private (§2.1.1, rule R2).
  *
- * Deliberately knows nothing about carts, slots or addresses: checkout hands it
- * a complete, already-validated order. That is what keeps the canonical record
- * free of the sequence that produced it.
+ * Depends on `serviceability` for one reason: cancelling releases the delivery
+ * slot, and that has to happen in the same transaction as the status change.
  */
 @Module({
-  imports: [IdentityModule],
-  controllers: [OrderController, VendorOrderController],
-  providers: [OrderService],
-  exports: [OrderService],
+  imports: [IdentityModule, AnalyticsModule, ServiceabilityModule],
+  controllers: [OrderController, VendorOrderController, OrderTransitionController],
+  providers: [OrderService, OrderStateService],
+  exports: [OrderService, OrderStateService],
 })
 export class OrderModule {}

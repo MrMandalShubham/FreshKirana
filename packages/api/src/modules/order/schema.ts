@@ -231,5 +231,52 @@ export const orderLine = orderSchema.table(
   ],
 );
 
+/**
+ * Every status change an order has ever made (spec §2.6, §3.8).
+ *
+ * The order table holds where an order *is*; this holds how it got there. That
+ * matters twice over: §3.8 requires an audit trail for anything ops can touch,
+ * and every fulfilment argument — "the store says they accepted at 6, the
+ * customer says it was never confirmed" — is settled by this table or by
+ * nobody.
+ *
+ * Append-only by intent. Nothing in the codebase updates or deletes a row here.
+ */
+export const orderStatusHistory = orderSchema.table(
+  'order_status_history',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => order.id, { onDelete: 'cascade' }),
+
+    /** Null on the row recording placement — there was no previous state. */
+    fromStatus: text('from_status'),
+    toStatus: text('to_status').notNull(),
+
+    /** Who did it. Null when the system moved it on its own. */
+    actorAccountId: uuid('actor_account_id'),
+    actorRole: text('actor_role'),
+
+    /** Required by the guard on rejections, cancellations and failed delivery. */
+    reason: text('reason'),
+
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (table) => [
+    index('order_status_history_order_idx').on(table.orderId, table.createdAt),
+    check(
+      'order_status_history_moved',
+      sql`${table.fromStatus} is distinct from ${table.toStatus}`,
+    ),
+  ],
+);
+
 export type OrderRow = typeof order.$inferSelect;
 export type OrderLineRow = typeof orderLine.$inferSelect;
+export type OrderStatusHistoryRow = typeof orderStatusHistory.$inferSelect;

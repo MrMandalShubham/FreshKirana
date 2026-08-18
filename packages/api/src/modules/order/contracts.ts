@@ -11,13 +11,21 @@
 export { OrderService } from './internal/order.service';
 export type { CreateOrderInput, CreateOrderLineInput } from './internal/order.service';
 
-export type { OrderRow, OrderLineRow } from './schema';
+export { OrderStateService } from './internal/order-state.service';
+export type { TransitionActor, TransitionOptions } from './internal/order-state.service';
+
+export type { OrderRow, OrderLineRow, OrderStatusHistoryRow } from './schema';
 
 export {
+  Audience,
   OrderStatus,
   OrderLineStatus,
   PaymentStatus,
   PaymentMethod,
   SubstitutionPreference,
+  allowedTransitions,
+  findTransition,
   isTerminalOrderStatus,
+  isTransitionAllowed,
+  labelFor,
 } from '@freshkirana/contracts';

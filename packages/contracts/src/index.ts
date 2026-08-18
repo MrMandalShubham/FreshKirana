@@ -13,6 +13,7 @@ export * from './analytics';
 export * from './cart';
 export * from './catalog';
 export * from './order-status';
+export * from './order-transitions';
 export * from './payment-status';
 export * from './roles';
 export * from './search';
