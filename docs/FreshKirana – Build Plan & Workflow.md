@@ -422,7 +422,7 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | 1 | **P1.6** | **Deploy the customer PWA to Cloud Run** | ✅ | 2026-08-18 | 🌐 Rule R8 satisfied · `1ae5611` · CI deploys both services |
 | — | 🎯 | **PHASE 1 COMPLETE** | ✅ | 2026-08-18 | 6 parts · 182 tests · API + storefront both live on GCP |
 | 2 | P2.1 | Cart | ⏳ | | `3c90712` · CI green, deployed · 228 tests · D2 enforced with a resolvable 409 · anonymous basket claimed on sign-in · re-priced from the live offer |
-| 2 | P2.2 | Serviceability & slots | ☐ | | |
+| 2 | P2.2 | Serviceability & slots | ⏳ | | `589b7bc` · CI green, deployed · 294 tests · PostGIS live · 20 racing bookings → exactly 5 · fixed a latent PATCH bug that blocked vendor approval and product publishing |
 | 2 | P2.3 | Checkout & order creation | ☐ | | |
 | 2 | P2.4 | Order state machine | ☐ | | |
 | 2 | P2.5 | Vendor WhatsApp flow ⚙ | ☐ | | |
@@ -484,6 +484,13 @@ Record every decision made during the build that isn't already in the spec. This
 | 2026-08-18 | P2.1 | On sign-in the **anonymous basket wins**; any older account basket is abandoned, not merged | Merging two single-vendor baskets from different shops has no correct answer under D2, and silently dropping half is worse than either. The anonymous basket is what the shopper was looking at one second ago |
 | 2026-08-18 | P2.1 | Unavailable lines stay **visible but excluded from the total** | Silently removing a sold-out line lets a shopper reach checkout believing they ordered something they did not — the failure surfaces at the door instead of on the screen |
 | 2026-08-18 | P2.1 | Order-level fees live in a **`pricing` module**, taking a vendor id from the first call | Cart, checkout and settlement must agree on what a basket costs; two implementations eventually disagree. The signature is the expensive part to change once three callers exist, even while every vendor gets the same answer |
+| 2026-08-18 | **P2.2** | **No geocoding provider.** The client supplies latitude and longitude from a map pin or the device | A geocoding API is a paid program dependency, not a build decision. The seam is one insert: whoever adds it fills two columns that already exist. Recorded in Deferred Items |
+| 2026-08-18 | P2.2 | Service areas are **`geography`, not `geometry`**, with polygon preferred and radius as a fallback | `geography` measures metres on the spheroid; `geometry` measures degrees, and a degree of longitude is 111 km at the equator and 0 at the pole — a "5 km radius" would mean different things in Chennai and Srinagar. The radius fallback lets a vendor be live the day they sign up |
+| 2026-08-18 | P2.2 | A vendor with **no service area serves nobody** | Failing closed. The alternative is promising delivery to an address no rider can reach, discovered at the door |
+| 2026-08-18 | P2.2 | Slot instances are **materialised lazily on read**, not by a nightly job | A scheduler is a thing to run, monitor and back-fill after every outage. The unique key on (definition, date) makes concurrent generation harmless, so a slot exists exactly when somebody looks for it |
+| 2026-08-18 | P2.2 | **`FULL` is derived** from booked against capacity, deviating from the §2.8.2 sketch that stores it | Storing it is a second source of truth that every release path must remember to undo. Stored status carries only what a person decided: OPEN, CLOSED, BLACKOUT |
+| 2026-08-18 | P2.2 | Capacity is **frozen into the instance** at materialisation | Raising a definition's capacity must not silently change a day people have already booked into, and lowering it must never strand orders that exist |
+| 2026-08-18 | P2.2 | **e2e test files run sequentially** (`fileParallelism: false`) | Every e2e file boots the app against the same Cloud SQL database with a pool of up to 10; a dozen at once exceeds the instance's connection limit, and the loser gets a 5-second connect timeout that looks like a flake. Also removes a class of cross-file interference on shared data |
 | | | | |
 
 ---
@@ -496,6 +503,9 @@ Anything consciously postponed during a part, so it resurfaces instead of being 
 |---|---|---|---|
 | 2026-08-17 | P0.5b | **Rotate the staging database password.** It was pasted into a chat transcript on 2026-08-17. Accepted risk for staging: the instance has no authorized networks, so the password alone cannot connect — every path goes through the IAM-authenticated Cloud SQL Auth Proxy. Rotate with `terraform apply -replace=random_password.db`. | **Before production** |
 | 2026-08-12 | P0.3 | 🔒 **Authentication ceremony** — real OTP send/verify, SMS/WhatsApp delivery, rotating refresh tokens with reuse detection, session revoke, OTP rate limiting, admin MFA, and removal of the dev-login path from non-development builds. **Until this ships there is no real authentication and the product cannot go to production.** | **P8.6** |
+| 2026-08-18 | P2.2 | **Geocoding provider.** Addresses take a latitude and longitude from the client. Turning a typed address into a pin — and validating that the pin matches the text — needs a paid API (Google Maps, MapmyIndia). Until then the PWA must collect the pin from a map or the device, and a shopper who skips that has no serviceable address. | **Before pilot** — it is a program cost, not a build task |
+| 2026-08-18 | P2.2 | **Store ranking beyond distance.** §2.8.1 ranks serviceable stores by distance, catalog coverage of the customer's usual basket, *and* vendor quality score. The last two do not exist yet — the usual basket is P2.7 and SLA scores are P6.3 — so resolution ranks by distance alone. The signature already takes more. | **P2.7**, then **P6.3** |
+| 2026-08-18 | P2.2 | **Over-commit protection** (§2.8.2): remaining slots auto-close for a store that repeatedly breaches its pack SLA on the day. Needs SLA measurement, which arrives with the vendor flow. `setStatus(CLOSED)` is the mechanism it will call. | **P6.3** |
 | | | | |
 
 ---
