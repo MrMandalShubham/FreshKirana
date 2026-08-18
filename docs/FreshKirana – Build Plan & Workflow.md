@@ -419,8 +419,8 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | 1 | P1.3 | Catalog seeding tooling | ✅ | 2026-08-18 | `3a1bc32` · CI green, deployed · unblocks C1 |
 | 1 | P1.4 | Search | ✅ | 2026-08-18 | `95a3e28` · CI green, deployed · Postgres engine, Typesense on §2.1.2 trigger |
 | 1 | P1.5 | Customer PWA shell | ⏳ | | `40e0a07` · CI green · 182 tests · 103.9 KB of the 200 KB budget |
-| 1 | **P1.6** | **Deploy the customer PWA to Cloud Run** | ⏳ | | 🌐 Rule R8 satisfied. Live at `freshkirana-staging-web`, IAM-private |
-| — | 🎯 | **PHASE 1 COMPLETE** | ⏳ | | 5 parts · browsable catalog, en + hi |
+| 1 | **P1.6** | **Deploy the customer PWA to Cloud Run** | ✅ | 2026-08-18 | 🌐 Rule R8 satisfied · `1ae5611` · CI deploys both services |
+| — | 🎯 | **PHASE 1 COMPLETE** | ✅ | 2026-08-18 | 6 parts · 182 tests · API + storefront both live on GCP |
 | 2 | P2.1 | Cart | ☐ | | |
 | 2 | P2.2 | Serviceability & slots | ☐ | | |
 | 2 | P2.3 | Checkout & order creation | ☐ | | |
