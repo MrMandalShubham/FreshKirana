@@ -148,6 +148,25 @@ export class CatalogService {
     }
   }
 
+  /** Null rather than throwing: the importer uses this to detect re-runs. */
+  async findBySlug(slug: string) {
+    const rows = await this.db
+      .select()
+      .from(masterProduct)
+      .where(eq(masterProduct.slug, slug))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  async findCategoryBySlug(slug: string) {
+    const rows = await this.db
+      .select()
+      .from(category)
+      .where(eq(category.slug, slug))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
   async getProduct(id: string) {
     const rows = await this.db
       .select()

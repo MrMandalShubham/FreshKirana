@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DbModule } from './db/db.module';
 import { HealthController } from './health/health.controller';
+import { AdminModule } from './modules/admin/admin.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { IdentityModule } from './modules/identity/identity.module';
@@ -27,6 +28,7 @@ import { ObservabilityModule } from './observability/observability.module';
     CatalogModule,
     VendorModule,
     OfferModule,
+    AdminModule,
   ],
   controllers: [HealthController],
 })

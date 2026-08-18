@@ -153,3 +153,59 @@ export class ListProductsQueryDto {
 }
 
 export const DEFAULT_GST_RATE_BP = GST_RATE_BP.FIVE;
+
+// ---------------------------------------------------------------------------
+// Product requests (§1.9.1)
+// ---------------------------------------------------------------------------
+
+export class CreateProductRequestDto {
+  @IsString() @MinLength(2) @MaxLength(300) proposedName!: string;
+
+  @IsOptional() @Validate(EanConstraint) proposedEanBarcode?: string;
+  @IsOptional() @IsString() @MaxLength(200) proposedBrand?: string;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) proposedNetQuantity?: number;
+  @IsOptional() @IsIn(Object.values(Uom)) proposedUom?: Uom;
+  @IsOptional() @IsString() @MaxLength(200) categoryHint?: string;
+  @IsOptional() @IsString() @MaxLength(2000) notes?: string;
+  @IsOptional() @IsArray() @IsString({ each: true }) images?: string[];
+
+  // Captured up front so approval can attach the offer without asking again.
+  @IsOptional() @IsInt() @Min(1) desiredMrpPaise?: number;
+  @IsOptional() @IsInt() @Min(1) desiredSellingPricePaise?: number;
+  @IsOptional() @IsInt() @Min(0) desiredStockOnHand?: number;
+}
+
+export class ApproveProductRequestDto {
+  @Matches(SLUG, { message: 'slug must be lowercase kebab-case' })
+  @MaxLength(200)
+  slug!: string;
+
+  @IsString() @MinLength(1) @MaxLength(300) name!: string;
+  @IsString() categoryId!: string;
+
+  @IsInt() @Min(1) netQuantity!: number;
+  @IsIn(Object.values(Uom)) uom!: Uom;
+
+  @Validate(HsnCodeConstraint) hsnCode!: string;
+  @IsInt() @Min(0) @Max(5000) gstRateBp!: number;
+
+  @IsOptional() @Validate(EanConstraint) eanBarcode?: string;
+  @IsOptional() @IsBoolean() isPrepackaged?: boolean;
+  @IsOptional() @IsString() @MaxLength(500) manufacturerPacker?: string;
+  @IsOptional() @IsString() @MaxLength(100) countryOfOrigin?: string;
+  @IsOptional() @IsString() @MaxLength(300) consumerCareContact?: string;
+
+  /** Also publish it. Legal Metrology still gates this (§3.7.3). */
+  @IsOptional() @IsBoolean() activate?: boolean;
+}
+
+export class RejectProductRequestDto {
+  @IsString() @MinLength(3) @MaxLength(1000) reviewerNotes!: string;
+
+  /** Set when rejecting as a duplicate, so the vendor is pointed at the real one. */
+  @IsOptional() @IsString() duplicateOfMasterProductId?: string;
+}
+
+export class ImportCatalogDto {
+  @IsString() @MinLength(10) csv!: string;
+}

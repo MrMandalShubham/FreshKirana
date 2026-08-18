@@ -188,6 +188,103 @@ export const masterProduct = catalogSchema.table(
   ],
 );
 
+/**
+ * A vendor asking for a product the master catalog does not yet have
+ * (spec §1.9.1, §2.4.1).
+ *
+ * This is the release valve on decision D1. Vendors cannot create master
+ * products — that is what keeps search deduplicated — but a kirana stocking a
+ * regional brand nobody has catalogued must have some way to sell it. They
+ * submit; an admin creates the canonical product; their offer attaches
+ * automatically.
+ *
+ * Without this queue, D1 would simply mean "you cannot sell what we have not
+ * thought of", and vendor adoption (§1.9) would stall on day one.
+ */
+export const productRequest = catalogSchema.table(
+  'product_request',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+
+    /** Owned by the vendor module — validated via contracts, never joined. */
+    vendorId: uuid('vendor_id').notNull(),
+    /** Owned by identity. Who to tell when this is resolved. */
+    requestedByAccountId: uuid('requested_by_account_id'),
+
+    /** Scanned at the shelf where available; the strongest dedupe signal. */
+    eanBarcode: text('ean_barcode'),
+
+    /** What the vendor typed. Deliberately loose — they are describing, not cataloguing. */
+    proposedName: text('proposed_name').notNull(),
+    proposedBrand: text('proposed_brand'),
+    proposedNetQuantity: integer('proposed_net_quantity'),
+    proposedUom: text('proposed_uom'),
+    categoryHint: text('category_hint'),
+    notes: text('notes'),
+    images: text('images')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+
+    /**
+     * Price and stock to apply if this is approved, so the vendor is not asked
+     * twice. The offer is created for them on approval.
+     */
+    desiredMrpPaise: integer('desired_mrp_paise'),
+    desiredSellingPricePaise: integer('desired_selling_price_paise'),
+    desiredStockOnHand: integer('desired_stock_on_hand'),
+
+    /** PENDING | APPROVED | REJECTED | DUPLICATE */
+    status: text('status').notNull().default('PENDING'),
+
+    /** Set on approval, or on rejection as a duplicate — points at the real product. */
+    resolvedMasterProductId: uuid('resolved_master_product_id'),
+    reviewerNotes: text('reviewer_notes'),
+    reviewedByAccountId: uuid('reviewed_by_account_id'),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (table) => [
+    // The admin queue's only query: oldest pending first.
+    index('product_request_status_idx').on(table.status, table.createdAt),
+    index('product_request_vendor_idx').on(table.vendorId, table.status),
+    index('product_request_ean_idx')
+      .on(table.eanBarcode)
+      .where(sql`${table.eanBarcode} is not null`),
+
+    /**
+     * A resolved request must say what it resolved to, and a pending one must
+     * not pretend to have. Otherwise the queue silently loses the link between
+     * "we asked for this" and "here is the product you got".
+     */
+    check(
+      'product_request_resolution_coherent',
+      sql`
+        (${table.status} = 'PENDING' and ${table.resolvedMasterProductId} is null)
+        or (${table.status} = 'REJECTED')
+        or (${table.status} in ('APPROVED', 'DUPLICATE') and ${table.resolvedMasterProductId} is not null)
+      `,
+    ),
+
+    check(
+      'product_request_price_within_mrp',
+      sql`
+        ${table.desiredMrpPaise} is null
+        or ${table.desiredSellingPricePaise} is null
+        or ${table.desiredSellingPricePaise} <= ${table.desiredMrpPaise}
+      `,
+    ),
+  ],
+);
+
+export type ProductRequestRow = typeof productRequest.$inferSelect;
+export type NewProductRequestRow = typeof productRequest.$inferInsert;
+
 export type CategoryRow = typeof category.$inferSelect;
 export type BrandRow = typeof brand.$inferSelect;
 export type MasterProductRow = typeof masterProduct.$inferSelect;

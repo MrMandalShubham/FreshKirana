@@ -36,6 +36,20 @@
       "when": 1787015833681,
       "tag": "0004_early_iceman",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787017788843,
+      "tag": "0005_enable_pg_trgm",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787017827070,
+      "tag": "0006_light_beast",
+      "breakpoints": true
     }
   ]
 }

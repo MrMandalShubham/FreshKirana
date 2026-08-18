@@ -11,7 +11,29 @@
 
 export { CatalogService } from './internal/catalog.service';
 
-export type { CategoryRow, BrandRow, MasterProductRow } from './schema';
+export {
+  ProductRequestService,
+  ProductRequestStatus,
+} from './internal/product-request.service';
+
+export { CatalogImportService } from './internal/catalog-import.service';
+export type { ImportReport, ImportRowOutcome } from './internal/catalog-import.service';
+
+export { DuplicateDetector } from './internal/duplicate-detector';
+export type { DuplicateCandidate } from './internal/duplicate-detector';
+
+export {
+  ApproveProductRequestDto,
+  ImportCatalogDto,
+  RejectProductRequestDto,
+} from './internal/catalog.dto';
+
+export type {
+  CategoryRow,
+  BrandRow,
+  MasterProductRow,
+  ProductRequestRow,
+} from './schema';
 
 export {
   ProductStatus,
