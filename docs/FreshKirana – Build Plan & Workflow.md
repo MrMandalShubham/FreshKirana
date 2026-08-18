@@ -387,8 +387,9 @@ Estimates are in **sessions** (one focused working block), not calendar time —
 | 1 | P1.1 | Master catalog | ✅ | 2026-08-17 | `6fe5eb4` · CI green, deployed · D1 master side |
 | 1 | P1.2 | Vendors & offers | ✅ | 2026-08-18 | `ade2a4f` · CI green, deployed · D1 offer side + §3.2 scoping live |
 | 1 | P1.3 | Catalog seeding tooling | ✅ | 2026-08-18 | `3a1bc32` · CI green, deployed · unblocks C1 |
-| 1 | P1.4 | Search | ⏳ | | `95a3e28` · CI green, deployed · 168 tests · Postgres engine, Typesense on §2.1.2 trigger |
-| 1 | P1.5 | Customer PWA shell | ☐ | | |
+| 1 | P1.4 | Search | ✅ | 2026-08-18 | `95a3e28` · CI green, deployed · Postgres engine, Typesense on §2.1.2 trigger |
+| 1 | P1.5 | Customer PWA shell | ⏳ | | `40e0a07` · CI green · 182 tests · 103.9 KB of the 200 KB budget |
+| — | 🎯 | **PHASE 1 COMPLETE** | ⏳ | | 5 parts · browsable catalog, en + hi |
 | 2 | P2.1 | Cart | ☐ | | |
 | 2 | P2.2 | Serviceability & slots | ☐ | | |
 | 2 | P2.3 | Checkout & order creation | ☐ | | |
