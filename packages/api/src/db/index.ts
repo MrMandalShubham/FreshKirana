@@ -19,14 +19,43 @@ export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 let pool: Pool | undefined;
 
 export function getPool(connectionString = requireDatabaseUrl()): Pool {
-  pool ??= new Pool({
+  if (pool) return pool;
+
+  const created = new Pool({
     connectionString,
     // Sized for a single API instance; §1.4.1 peak is ~150 RPS across 2-3
     // instances, well inside Postgres' default 100 connection limit.
     max: 10,
     idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 5_000,
+    connectionTimeoutMillis: 10_000,
+
+    /**
+     * Keep idle connections alive at the TCP level.
+     *
+     * Every connection runs through the Cloud SQL Auth Proxy, and proxies and
+     * NAT layers drop idle TCP without telling either end. The application then
+     * checks out a client that looks fine, issues a query, and gets
+     * "Connection terminated unexpectedly" — surfacing as a 500 on a request
+     * that did nothing wrong. Keepalives make the drop visible to the pool,
+     * which then discards the connection instead of handing it out.
+     */
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10_000,
   });
+
+  /**
+   * An idle client that errors emits on the pool, not on any request.
+   *
+   * Without this listener Node treats it as an unhandled `error` event and
+   * takes the process down — losing every in-flight request because one idle
+   * connection was dropped. The pool has already discarded the client by the
+   * time this runs; there is nothing to do but say so.
+   */
+  created.on('error', (error) => {
+    console.error(`[db] idle client error: ${error.message}`);
+  });
+
+  pool = created;
   return pool;
 }
 

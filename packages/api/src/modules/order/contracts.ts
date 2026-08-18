@@ -11,6 +11,9 @@
 export { OrderService } from './internal/order.service';
 export type { CreateOrderInput, CreateOrderLineInput } from './internal/order.service';
 
+export { VendorOrderFlowService } from './internal/vendor-order-flow.service';
+export type { InboundOutcome } from './internal/vendor-order-flow.service';
+
 export { OrderStateService } from './internal/order-state.service';
 export type { TransitionActor, TransitionOptions } from './internal/order-state.service';
 

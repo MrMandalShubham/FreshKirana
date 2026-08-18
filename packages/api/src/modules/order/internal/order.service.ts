@@ -8,7 +8,7 @@ import {
   istDateKey,
   taxWithinInclusivePaise,
 } from '@freshkirana/contracts';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { DATABASE } from '../../../db/db.module';
 import type { Database, Transaction } from '../../../db';
 import { order, orderLine, orderStatusHistory } from '../schema';
@@ -171,6 +171,38 @@ export class OrderService {
     );
 
     return row;
+  }
+
+  /**
+   * One order, unscoped, with its lines.
+   *
+   * Unscoped, so **not** for a customer- or vendor-facing route — those must go
+   * through `findForAccount` or `listForVendor`, which cannot see somebody
+   * else's order. This exists for workflows that already know which order they
+   * are acting on, such as the WhatsApp vendor flow.
+   */
+  async findById(orderId: string) {
+    const rows = await this.db.select().from(order).where(eq(order.id, orderId)).limit(1);
+    const found = rows[0];
+    if (!found) return null;
+
+    return { ...found, lines: await this.linesOf(found.id) };
+  }
+
+  /**
+   * Orders sitting in one state, oldest first.
+   *
+   * Oldest first because every caller is a sweeper looking for what has been
+   * waiting longest, and a newest-first page would starve exactly the orders
+   * the sweep exists to catch.
+   */
+  async listByStatus(status: string, limit = 100) {
+    return this.db
+      .select()
+      .from(order)
+      .where(eq(order.status, status))
+      .orderBy(asc(order.placedAt))
+      .limit(Math.min(limit, 500));
   }
 
   /** The order placed from this cart, if there is one. Backs idempotent placing. */

@@ -13,7 +13,7 @@ import {
 import { DATABASE } from '../../../db/db.module';
 import type { Database } from '../../../db';
 import { CartService, type CartView } from '../../cart/contracts';
-import { OrderService } from '../../order/contracts';
+import { OrderService, VendorOrderFlowService } from '../../order/contracts';
 import {
   ServiceAreaService,
   SlotService,
@@ -63,6 +63,7 @@ export class CheckoutService {
     private readonly areas: ServiceAreaService,
     private readonly slots: SlotService,
     private readonly orders: OrderService,
+    private readonly vendorFlow: VendorOrderFlowService,
   ) {}
 
   /**
@@ -214,6 +215,12 @@ export class CheckoutService {
       slot,
       substitutionPreference,
     });
+
+    // Outside the transaction, deliberately. A messaging outage must not undo
+    // an order: the store not hearing about it is recoverable — the §1.9.4
+    // sweep chases it — while an order that does not exist is not. `send`
+    // never throws, and this is not awaited into the response.
+    void this.vendorFlow.announceNewOrder(orderId);
 
     return this.orders.findForAccount(accountId, orderId);
   }

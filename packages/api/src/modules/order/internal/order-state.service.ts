@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -48,6 +49,8 @@ export interface TransitionOptions {
  */
 @Injectable()
 export class OrderStateService {
+  private readonly logger = new Logger(OrderStateService.name);
+
   constructor(
     @Inject(DATABASE) private readonly db: Database,
     private readonly slots: SlotService,
@@ -194,7 +197,16 @@ export class OrderStateService {
           // In the same transaction as the status change: a cancelled order
           // still holding a place is capacity the store cannot sell and a
           // shopper cannot book, and nothing would ever notice.
-          await this.slots.release(updated.slotInstanceId, tx);
+          //
+          // A slot that no longer exists is not a reason to refuse the
+          // cancellation. There is nothing to give back, and blocking the
+          // transition would leave the order stuck in a state it can never
+          // leave — a worse outcome than a place nobody was holding anyway.
+          await this.slots.release(updated.slotInstanceId, tx).catch((error) => {
+            this.logger.warn(
+              `Could not release slot ${updated.slotInstanceId}: ${String(error)}`,
+            );
+          });
           break;
       }
     }
