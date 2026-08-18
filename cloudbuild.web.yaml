@@ -1,0 +1,23 @@
+# Builds the customer PWA image without any local Docker (standing rule R8).
+#
+#   gcloud builds submit --region=asia-south1 --config=cloudbuild.web.yaml .
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - '-f'
+      - Dockerfile.web
+      - '-t'
+      - '${_IMAGE}'
+      - '.'
+
+images:
+  - '${_IMAGE}'
+
+substitutions:
+  _IMAGE: asia-south1-docker.pkg.dev/freshkirana-staging-mm/freshkirana/web:bootstrap
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8

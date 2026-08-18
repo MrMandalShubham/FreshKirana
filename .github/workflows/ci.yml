@@ -239,7 +239,7 @@ jobs:
 
   deploy-staging:
     name: Deploy to staging
-    needs: [verify, migrations, container]
+    needs: [verify, migrations, container, web]
     if: >-
       github.ref == 'refs/heads/main' &&
       github.event_name != 'pull_request' &&
@@ -251,6 +251,7 @@ jobs:
     env:
       REGION: asia-south1
       SERVICE: freshkirana-staging-api
+      WEB_SERVICE: freshkirana-staging-web
       MIGRATE_JOB: freshkirana-staging-migrate
 
     steps:
@@ -289,11 +290,29 @@ jobs:
             --region "$REGION" \
             --wait
 
-      - name: Deploy revision
+      - name: Deploy API revision
         run: |
           gcloud run deploy "$SERVICE" \
             --region "$REGION" \
             --image "${{ steps.image.outputs.image }}" \
+            --quiet
+
+      # The storefront is a separate service (rule R8: every surface gets a GCP
+      # home). Built after the API so a revision is never serving pages against
+      # an API that has not migrated yet.
+      - name: Build and push web image
+        id: web_image
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/freshkirana/web:${GITHUB_SHA}"
+          docker build -f Dockerfile.web -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy web revision
+        run: |
+          gcloud run deploy "$WEB_SERVICE" \
+            --region "$REGION" \
+            --image "${{ steps.web_image.outputs.image }}" \
             --quiet
 
       - name: Resolve service URL
@@ -319,9 +338,33 @@ jobs:
 
       # The service is IAM-private, so this authenticates. An unauthenticated
       # curl would 403 - that is the point until P8.6 ships real auth.
-      - name: Smoke test the deployed revision
+      - name: Smoke test the deployed API
         run: |
           curl -fsS \
             -H "Authorization: Bearer ${{ steps.idtoken.outputs.id_token }}" \
             "${{ steps.url.outputs.url }}/health" | tee /dev/stderr | grep -q '"status":"ok"'
-          echo "Deployed: ${{ steps.url.outputs.url }}"
+          echo "API deployed: ${{ steps.url.outputs.url }}"
+
+      - name: Resolve web URL
+        id: web_url
+        run: |
+          echo "url=$(gcloud run services describe "$WEB_SERVICE" --region "$REGION" --format='value(status.url)')" >> "$GITHUB_OUTPUT"
+
+      - id: web_idtoken
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ steps.web_url.outputs.url }}
+          id_token_include_email: true
+
+      # Fetches a real page, not just /status: /status deliberately makes no API
+      # call, so it stays green even when the storefront cannot reach the API.
+      # Rendering the home page proves the whole chain, identity token included.
+      - name: Smoke test the deployed storefront
+        run: |
+          curl -fsS \
+            -H "Authorization: Bearer ${{ steps.web_idtoken.outputs.id_token }}" \
+            "${{ steps.web_url.outputs.url }}/en" | grep -q 'FreshKirana'
+          echo "Storefront deployed: ${{ steps.web_url.outputs.url }}"

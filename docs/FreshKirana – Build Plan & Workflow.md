@@ -373,7 +373,7 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | Container images | Artifact Registry, built by Cloud Build | ✅ |
 | Secrets | Secret Manager | ✅ |
 | Deploy identity | Workload Identity Federation | ✅ |
-| **Customer PWA** | **Cloud Run** | ☐ **P1.6** |
+| **Customer PWA** | **Cloud Run** (`freshkirana-staging-web`) | ✅ P1.6 |
 | Redis | Memorystore | ⏸ provisioned-but-off until P3.1 needs it |
 | Rider PWA | Cloud Run | ☐ with P6.2 |
 | Vendor PWA | Cloud Run | ☐ with P7.1 |
@@ -419,7 +419,7 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | 1 | P1.3 | Catalog seeding tooling | ✅ | 2026-08-18 | `3a1bc32` · CI green, deployed · unblocks C1 |
 | 1 | P1.4 | Search | ✅ | 2026-08-18 | `95a3e28` · CI green, deployed · Postgres engine, Typesense on §2.1.2 trigger |
 | 1 | P1.5 | Customer PWA shell | ⏳ | | `40e0a07` · CI green · 182 tests · 103.9 KB of the 200 KB budget |
-| 1 | **P1.6** | **Deploy the customer PWA to Cloud Run** | ☐ | | 🌐 **Rule R8.** Built and CI-verified, but has no GCP home yet |
+| 1 | **P1.6** | **Deploy the customer PWA to Cloud Run** | ⏳ | | 🌐 Rule R8 satisfied. Live at `freshkirana-staging-web`, IAM-private |
 | — | 🎯 | **PHASE 1 COMPLETE** | ⏳ | | 5 parts · browsable catalog, en + hi |
 | 2 | P2.1 | Cart | ☐ | | |
 | 2 | P2.2 | Serviceability & slots | ☐ | | |

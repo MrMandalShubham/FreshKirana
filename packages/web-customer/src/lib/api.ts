@@ -1,6 +1,17 @@
 import type { SearchResponse, SearchResultItem } from '@freshkirana/contracts';
+import { fetchIdentityToken } from './gcp-auth';
 
-const API_BASE = process.env['NEXT_PUBLIC_API_BASE'] ?? 'http://localhost:3000';
+/**
+ * Read at **runtime**, not inlined at build time.
+ *
+ * A `NEXT_PUBLIC_` variable is baked into the bundle during `next build`, which
+ * would mean one image per environment and a rebuild to repoint the API. Every
+ * fetch here happens in a server component, so a plain server-side variable
+ * works and one image runs anywhere.
+ */
+function apiBase(): string {
+  return process.env['API_BASE'] ?? 'http://localhost:3000';
+}
 
 export interface Category {
   id: string;
@@ -43,12 +54,32 @@ export interface MasterProduct {
  * shop that looks like we have no stock.
  */
 async function getJson<T>(path: string, revalidateSeconds = 60): Promise<T | null> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const base = apiBase();
+
+  const headers: Record<string, string> = { accept: 'application/json' };
+
+  // The API is IAM-private until P8.6, so on Cloud Run every call carries an
+  // identity token. Locally this is null and the header is omitted.
+  const token = await fetchIdentityToken(base);
+  if (token) headers['authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(`${base}${path}`, {
     next: { revalidate: revalidateSeconds },
-    headers: { accept: 'application/json' },
+    headers,
   });
 
   if (response.status === 404) return null;
+
+  if (response.status === 401 || response.status === 403) {
+    // Distinguished deliberately: "the storefront cannot reach the API" and
+    // "the product does not exist" look identical as an empty page otherwise,
+    // and the first is an outage.
+    throw new Error(
+      `API ${path} rejected the storefront (${response.status}). ` +
+        'Check the web service account holds run.invoker on the API service.',
+    );
+  }
+
   if (!response.ok) {
     throw new Error(`API ${path} responded ${response.status}`);
   }
