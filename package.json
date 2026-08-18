@@ -12,7 +12,7 @@
   },
   "scripts": {
     "build": "npm run build -w @freshkirana/contracts && npm run build -w @freshkirana/api",
-    "build:web": "npm run build -w @freshkirana/web-customer",
+    "build:web": "npm run build -w @freshkirana/contracts && npm run build -w @freshkirana/web-customer",
     "check:budget": "npm run check:budget -w @freshkirana/web-customer",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
