@@ -64,10 +64,18 @@ resource "google_project_iam_member" "deployer" {
   member  = "serviceAccount:${google_service_account.deployer.email}"
 }
 
-# Cloud Run deploys run *as* the API service account, so the deployer must be
-# allowed to act as it.
+# A Cloud Run deploy runs *as* the service's own service account, so the
+# deployer needs actAs on every service account it deploys - one per service,
+# not one for the project. Missing the web one is what broke its first
+# automated deploy.
 resource "google_service_account_iam_member" "deployer_acts_as_api" {
   service_account_id = google_service_account.api.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.deployer.email}"
+}
+
+resource "google_service_account_iam_member" "deployer_acts_as_web" {
+  service_account_id = google_service_account.web.name
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${google_service_account.deployer.email}"
 }
