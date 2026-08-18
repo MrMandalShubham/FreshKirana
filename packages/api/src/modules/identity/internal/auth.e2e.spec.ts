@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../../../app.module';
 import { closeDatabase, createDatabase } from '../../../db';
 import { loadEnv } from '../../../config/env';
+import { AccountRepository } from './account.repository';
 import { SEED_VENDOR_A, SEED_VENDOR_B } from './dev-auth.service';
 
 loadEnv();
@@ -127,9 +128,39 @@ describe.skipIf(!dbUp)('auth (e2e)', () => {
         .expect(200);
 
       const principal = res.body as Principal;
-      const assignment = principal.roles.find((r) => r.role === Role.VENDOR_STAFF);
-      expect(assignment?.scopeType).toBe(ScopeType.VENDOR);
-      expect(assignment?.scopeId).toBe(SEED_VENDOR_A);
+
+      // Assert the assignment *exists*, rather than that it is the first one.
+      // Dev accounts are shared across suites and accumulate roles at several
+      // vendors, so picking roles[0] would depend on test execution order.
+      expect(
+        principal.roles.some(
+          (r) =>
+            r.role === Role.VENDOR_STAFF &&
+            r.scopeType === ScopeType.VENDOR &&
+            r.scopeId === SEED_VENDOR_A,
+        ),
+      ).toBe(true);
+    });
+  });
+
+  describe('concurrent account creation', () => {
+    it('returns one account when the same phone is created simultaneously', async () => {
+      // Check-then-insert used to race here: parallel test files hitting
+      // dev/login-as for the same seeded phone produced a unique-violation 500
+      // on a fresh database. Only CI caught it, because a database that already
+      // had the accounts never entered the window.
+      const repository = app.get(AccountRepository);
+      const phone = `+9199${Math.floor(Math.random() * 1e8)
+        .toString()
+        .padStart(8, '0')}`;
+
+      const results = await Promise.all(
+        Array.from({ length: 5 }, () =>
+          repository.createAccount({ phone, displayName: 'Race' }),
+        ),
+      );
+
+      expect(new Set(results.map((r) => r.id)).size).toBe(1);
     });
   });
 

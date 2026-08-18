@@ -57,6 +57,14 @@ export class AccountRepository {
     return rows[0] ?? null;
   }
 
+  /**
+   * Creates an account, or returns the existing one for that phone.
+   *
+   * Check-then-insert is a race: two simultaneous first-time logins for the
+   * same number both see "no account", both insert, and the loser gets a
+   * unique-violation 500. `onConflictDoNothing` plus a re-read closes it, and
+   * the same window will exist for real OTP signup at P8.6.
+   */
   async createAccount(input: {
     phone: string;
     displayName: string;
@@ -64,11 +72,18 @@ export class AccountRepository {
     const rows = await this.db
       .insert(account)
       .values({ phone: input.phone, displayName: input.displayName })
+      .onConflictDoNothing({ target: account.phone })
       .returning({ id: account.id });
 
     const created = rows[0];
-    if (!created) throw new Error('account insert returned no row');
-    return created;
+    if (created) return created;
+
+    // Lost the race — another request created it between our insert and now.
+    const existing = await this.findByPhone(input.phone);
+    if (!existing) {
+      throw new Error(`Account for ${input.phone} could not be created or found`);
+    }
+    return existing;
   }
 
   async grantRole(input: {
