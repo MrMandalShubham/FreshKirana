@@ -421,7 +421,7 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | 1 | P1.5 | Customer PWA shell | ⏳ | | `40e0a07` · CI green · 182 tests · 103.9 KB of the 200 KB budget |
 | 1 | **P1.6** | **Deploy the customer PWA to Cloud Run** | ✅ | 2026-08-18 | 🌐 Rule R8 satisfied · `1ae5611` · CI deploys both services |
 | — | 🎯 | **PHASE 1 COMPLETE** | ✅ | 2026-08-18 | 6 parts · 182 tests · API + storefront both live on GCP |
-| 2 | P2.1 | Cart | ⏳ | | 228 tests · D2 enforced with a resolvable 409 · anonymous basket claimed on sign-in · re-priced from the live offer |
+| 2 | P2.1 | Cart | ⏳ | | `3c90712` · CI green, deployed · 228 tests · D2 enforced with a resolvable 409 · anonymous basket claimed on sign-in · re-priced from the live offer |
 | 2 | P2.2 | Serviceability & slots | ☐ | | |
 | 2 | P2.3 | Checkout & order creation | ☐ | | |
 | 2 | P2.4 | Order state machine | ☐ | | |
