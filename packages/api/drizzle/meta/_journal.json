@@ -64,6 +64,13 @@
       "when": 1787020642891,
       "tag": "0008_search_trgm_index",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787044921784,
+      "tag": "0009_loving_roughhouse",
+      "breakpoints": true
     }
   ]
 }

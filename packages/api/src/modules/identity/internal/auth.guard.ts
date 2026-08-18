@@ -33,12 +33,13 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const targets = [context.getHandler(), context.getClass()];
+    const request = context.switchToHttp().getRequest<RequestWithPrincipal>();
 
     if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, targets)) {
+      await this.attachPrincipalIfSignedIn(request);
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<RequestWithPrincipal>();
     const token = extractBearerToken(request.headers['authorization']);
     if (!token) {
       throw new UnauthorizedException('Missing bearer token');
@@ -61,6 +62,32 @@ export class AuthGuard implements CanActivate {
     }
 
     return true;
+  }
+
+  /**
+   * Resolves the principal on a public route, when there is one.
+   *
+   * Public does not mean anonymous. The cart is the clearest case: it is public
+   * because a basket exists before signup, but a signed-in shopper sending a
+   * token must be recognised — otherwise they are handed an anonymous basket
+   * and cannot see the cart they just claimed.
+   *
+   * A bad or expired token is *ignored* rather than rejected. On a route that
+   * works without any token at all, 401 would be a strange answer, and a stale
+   * token left in a browser would lock a shopper out of browsing entirely.
+   * Routes where the token must be good are simply not public.
+   */
+  private async attachPrincipalIfSignedIn(request: RequestWithPrincipal): Promise<void> {
+    const token = extractBearerToken(request.headers['authorization']);
+    if (!token) return;
+
+    try {
+      const payload = await this.tokens.verify(token);
+      const principal = await this.accounts.findPrincipal(payload.sub);
+      if (principal) request.principal = principal;
+    } catch {
+      // Anonymous, deliberately.
+    }
   }
 }
 

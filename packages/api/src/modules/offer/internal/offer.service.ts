@@ -86,6 +86,22 @@ export class OfferService {
     }
   }
 
+  /**
+   * One offer by id, regardless of vendor. Null rather than throwing.
+   *
+   * Unscoped on purpose, and therefore **not** for vendor-facing routes: cart
+   * and checkout hold an offer id the shopper chose and need to price it. Every
+   * vendor-scoped read still goes through `findForVendor` (§3.2).
+   */
+  async findById(offerId: string) {
+    const rows = await this.db
+      .select()
+      .from(vendorOffer)
+      .where(eq(vendorOffer.id, offerId))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
   async findForVendor(vendorId: string, offerId: string) {
     const rows = await this.db
       .select()

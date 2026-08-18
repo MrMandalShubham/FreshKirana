@@ -421,7 +421,7 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | 1 | P1.5 | Customer PWA shell | ⏳ | | `40e0a07` · CI green · 182 tests · 103.9 KB of the 200 KB budget |
 | 1 | **P1.6** | **Deploy the customer PWA to Cloud Run** | ✅ | 2026-08-18 | 🌐 Rule R8 satisfied · `1ae5611` · CI deploys both services |
 | — | 🎯 | **PHASE 1 COMPLETE** | ✅ | 2026-08-18 | 6 parts · 182 tests · API + storefront both live on GCP |
-| 2 | P2.1 | Cart | ☐ | | |
+| 2 | P2.1 | Cart | ⏳ | | 228 tests · D2 enforced with a resolvable 409 · anonymous basket claimed on sign-in · re-priced from the live offer |
 | 2 | P2.2 | Serviceability & slots | ☐ | | |
 | 2 | P2.3 | Checkout & order creation | ☐ | | |
 | 2 | P2.4 | Order state machine | ☐ | | |
@@ -479,6 +479,11 @@ Record every decision made during the build that isn't already in the spec. This
 | 2026-08-18 | P1.3 | Cross-module workflows live in the **admin module** | Approving a product request touches catalog *and* offer, and offer already depends on catalog — catalog calling offer would close a cycle. This is what §2.2 means by admin as orchestration |
 | 2026-08-18 | — | **Everything runs on GCP — standing rule R8.** Backend, database, every frontend surface, jobs, images, secrets | Confirmed by Shubham. No delivered component may depend on a local machine, and none is finished until it has a GCP home. Tracked in the GCP surface checklist in §7.4 |
 | 2026-08-18 | **P1.4** | **Search engine is PostgreSQL + `pg_trgm`, not Typesense** — deviating from §2.7.1 | Tuning a dedicated engine against an empty catalog is premature, and the hard part (Indian-language expansion) is engine-independent. §2.1.2 already names the trigger to revisit: catalog > 200K offers, or search p95 > 200 ms. Built behind a projection table so the swap is an implementation, not a rewrite |
+| 2026-08-18 | **P2.1** | **The cart is re-priced from the live offer on every read; the stored price only flags a change** | Grocery prices move daily. Honouring a snapshot either shorts the vendor or overcharges the shopper, and neither is recoverable at checkout. The shopper sees the current price with a "price changed" marker instead of a surprise at payment |
+| 2026-08-18 | P2.1 | A second vendor is refused with a **409 carrying both vendor ids**, not by silently switching or merging | D2 makes one order one store, so this conflict is real and will happen often. The UI can only offer "switch shop and start again" if the response says what it is switching between; a 409 with a bare message forces the client to guess |
+| 2026-08-18 | P2.1 | On sign-in the **anonymous basket wins**; any older account basket is abandoned, not merged | Merging two single-vendor baskets from different shops has no correct answer under D2, and silently dropping half is worse than either. The anonymous basket is what the shopper was looking at one second ago |
+| 2026-08-18 | P2.1 | Unavailable lines stay **visible but excluded from the total** | Silently removing a sold-out line lets a shopper reach checkout believing they ordered something they did not — the failure surfaces at the door instead of on the screen |
+| 2026-08-18 | P2.1 | Order-level fees live in a **`pricing` module**, taking a vendor id from the first call | Cart, checkout and settlement must agree on what a basket costs; two implementations eventually disagree. The signature is the expensive part to change once three callers exist, even while every vendor gets the same answer |
 | | | | |
 
 ---

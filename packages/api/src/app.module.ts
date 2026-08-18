@@ -3,7 +3,9 @@ import { DbModule } from './db/db.module';
 import { HealthController } from './health/health.controller';
 import { AdminModule } from './modules/admin/admin.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { CartModule } from './modules/cart/cart.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
+import { PricingModule } from './modules/pricing/pricing.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { OfferModule } from './modules/offer/offer.module';
 import { SearchModule } from './modules/search/search.module';
@@ -30,6 +32,8 @@ import { ObservabilityModule } from './observability/observability.module';
     VendorModule,
     OfferModule,
     SearchModule,
+    PricingModule,
+    CartModule,
     AdminModule,
   ],
   controllers: [HealthController],
