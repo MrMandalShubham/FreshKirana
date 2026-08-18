@@ -424,7 +424,7 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | 2 | P2.1 | Cart | ⏳ | | `3c90712` · CI green, deployed · 228 tests · D2 enforced with a resolvable 409 · anonymous basket claimed on sign-in · re-priced from the live offer |
 | 2 | P2.2 | Serviceability & slots | ⏳ | | `589b7bc` · CI green, deployed · 294 tests · PostGIS live · 20 racing bookings → exactly 5 · fixed a latent PATCH bug that blocked vendor approval and product publishing |
 | 2 | P2.3 | Checkout & order creation | ⏳ | | `486b445` · CI green, deployed · 333 tests · COD end to end · slot booking + order + cart conversion in one transaction · GST extracted per line |
-| 2 | P2.4 | Order state machine | ☐ | | |
+| 2 | P2.4 | Order state machine | ⏳ | | `6450350` · CI green, deployed · 372 tests · declarative table, guards, effects, §2.6.3 labels · audit trail per move |
 | 2 | P2.5 | Vendor WhatsApp flow ⚙ | ☐ | | |
 | 2 | P2.6 | Order tracking | ☐ | | |
 | 2 | P2.7 | Reorder & Usual Basket | ☐ | | |
@@ -498,6 +498,12 @@ Record every decision made during the build that isn't already in the spec. This
 | 2026-08-18 | P2.3 | **Checkout owns no tables.** It orchestrates other modules' contracts | The sequence "validate → book → write → close" is what payments (P3.2) and reservations (P3.1) change. Keeping it in one module with no schema means those parts extend a workflow instead of rewriting five modules |
 | 2026-08-18 | P2.3 | The review screen returns **every blocker at once**, not the first | Fixing one problem only to discover the next is how a two-minute fix becomes an abandoned basket |
 | 2026-08-18 | P2.3 | e2e suites place fixtures at **per-run coordinates** | The shared database accumulates real serviceable stores. Pinning every suite to the same point makes one suite's vendors crowd another's "nearest stores" list, and assertions fail for reasons unrelated to the code |
+| 2026-08-18 | **P2.4** | **The state machine is a declarative table in `contracts`, and nothing else writes `order.status`** | §2.6 requires it. A status set directly is a status set with no guard, no audit row and none of the effects that were meant to accompany it — here the one that matters is releasing the slot, invisible until a store runs out of capacity it never used |
+| 2026-08-18 | P2.4 | Guards and effects are **named, not functions** | The table ships to the frontends in the contracts package and must stay free of database and service dependencies. The names are also what makes the table readable as a specification |
+| 2026-08-18 | P2.4 | **Ops appear on every transition** | Reality does not follow the diagram: a rider's phone dies, a store marks the wrong order packed. Denying support the ability to correct state guarantees an out-of-band `UPDATE`, which leaves no audit trail at all (§3.8) |
+| 2026-08-18 | P2.4 | 403 and 409 are **different answers**: forbidden for this role, versus illegal from this state | A client that cannot tell them apart cannot decide whether to hide a button, show an error, or reload. Both responses carry what *is* allowed |
+| 2026-08-18 | P2.4 | §2.6.3 labels are a **lookup**, never a status column per audience | Two columns drift into two state machines, which is precisely the mistake v1.0 of the spec made |
+| 2026-08-18 | P2.4 | **`COMPLETED` is not terminal**, correcting `TERMINAL_ORDER_STATUSES` | §2.6.1 allows `COMPLETED → RETURN_REQUESTED` — customers open the bag after the rider has gone. Calling it terminal made the return path unreachable, and the customer discovers that exactly when they are already unhappy |
 | | | | |
 
 ---
@@ -516,6 +522,9 @@ Anything consciously postponed during a part, so it resurfaces instead of being 
 | 2026-08-18 | **P2.3** | ⚠️ **Stock is checked at placement, not reserved.** Availability is confirmed as the order is written, which closes the ordinary case but not the race: two shoppers can still both take the last unit. Slot capacity *is* reserved atomically; product stock is not. | **P3.1** — this is precisely what that part exists for |
 | 2026-08-18 | P2.3 | **Client-supplied idempotency key.** Concurrent double-submits are safe (unique index on `cart_id`), but a retry *after* success is refused as an empty basket rather than returning the original order. A key on the request would make the retry return the order. | **P3.1**, which introduces idempotency keys for reservations |
 | 2026-08-18 | P2.3 | **Prepaid payment.** `place` accepts COD only and refuses other methods with a 400 rather than accepting an order nobody can pay for. | **P3.2** |
+| 2026-08-18 | **P2.4** | **Automatic transitions have no trigger yet.** `PENDING_PAYMENT → AWAITING_VENDOR`, `REASSIGNING → AWAITING_VENDOR` and `DELIVERED → COMPLETED` are in the table with no actor but ops, because the things that should fire them — the payment webhook, the reassignment job, the return-window timer — do not exist. Ops can drive them by hand meanwhile. | **P3.2** (payment), **P2.5** (reassignment), **P3.5** (return window) |
+| 2026-08-18 | P2.4 | **COD payment status stays `PENDING` after delivery.** §2.6.2 says a COD order moves to `COD_COLLECTED` when the rider takes the cash; that transition belongs to the cod module and its reconciliation. | **P3.4** |
+| 2026-08-18 | P2.4 | **Cancellation fee from `PACKED`.** §1.8.1 allows one (default none in V1). The guard exists and is named; the fee itself needs the refund path. | **P3.5** |
 | | | | |
 
 ---
