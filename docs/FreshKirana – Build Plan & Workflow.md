@@ -423,7 +423,7 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | — | 🎯 | **PHASE 1 COMPLETE** | ✅ | 2026-08-18 | 6 parts · 182 tests · API + storefront both live on GCP |
 | 2 | P2.1 | Cart | ⏳ | | `3c90712` · CI green, deployed · 228 tests · D2 enforced with a resolvable 409 · anonymous basket claimed on sign-in · re-priced from the live offer |
 | 2 | P2.2 | Serviceability & slots | ⏳ | | `589b7bc` · CI green, deployed · 294 tests · PostGIS live · 20 racing bookings → exactly 5 · fixed a latent PATCH bug that blocked vendor approval and product publishing |
-| 2 | P2.3 | Checkout & order creation | ☐ | | |
+| 2 | P2.3 | Checkout & order creation | ⏳ | | `486b445` · CI green, deployed · 333 tests · COD end to end · slot booking + order + cart conversion in one transaction · GST extracted per line |
 | 2 | P2.4 | Order state machine | ☐ | | |
 | 2 | P2.5 | Vendor WhatsApp flow ⚙ | ☐ | | |
 | 2 | P2.6 | Order tracking | ☐ | | |
@@ -491,6 +491,13 @@ Record every decision made during the build that isn't already in the spec. This
 | 2026-08-18 | P2.2 | **`FULL` is derived** from booked against capacity, deviating from the §2.8.2 sketch that stores it | Storing it is a second source of truth that every release path must remember to undo. Stored status carries only what a person decided: OPEN, CLOSED, BLACKOUT |
 | 2026-08-18 | P2.2 | Capacity is **frozen into the instance** at materialisation | Raising a definition's capacity must not silently change a day people have already booked into, and lowering it must never strand orders that exist |
 | 2026-08-18 | P2.2 | **e2e test files run sequentially** (`fileParallelism: false`) | Every e2e file boots the app against the same Cloud SQL database with a pool of up to 10; a dozen at once exceeds the instance's connection limit, and the loser gets a 5-second connect timeout that looks like a flake. Also removes a class of cross-file interference on shared data |
+| 2026-08-18 | **P2.3** | **Everything is snapshotted onto the order** — address, slot window, product names, prices, HSN codes, GST rates | A customer may delete an address tomorrow and a vendor may re-price tonight. An order that changes retroactively cannot be supported, invoiced or audited, and §2.11 settlement is computed against what was actually agreed |
+| 2026-08-18 | P2.3 | **The cart id is unique on the order**, and that is what makes placing idempotent | Two submissions in flight both see an open cart and both reach the write. The index decides it: the loser's transaction rolls back entirely, releasing the slot place it took. A service-level check alone cannot do this |
+| 2026-08-18 | P2.3 | **GST is extracted from the price, never added to it** — per line, at each line's own rate | Indian retail prices are GST-inclusive. Adding would charge ₹535.50 for a ₹510 basket. A real basket mixes 5% atta with nil-rated vegetables, so one blended rate misstates every invoice |
+| 2026-08-18 | P2.3 | Order numbers come from a **Postgres sequence** — `FK-260818-00042` | `count(*) + 1` races and would hand two simultaneous orders the same receipt. `nextval` never reuses a value; a gap is harmless, a collision is a support case. The format survives being read over the phone, which a UUID does not |
+| 2026-08-18 | P2.3 | **Checkout owns no tables.** It orchestrates other modules' contracts | The sequence "validate → book → write → close" is what payments (P3.2) and reservations (P3.1) change. Keeping it in one module with no schema means those parts extend a workflow instead of rewriting five modules |
+| 2026-08-18 | P2.3 | The review screen returns **every blocker at once**, not the first | Fixing one problem only to discover the next is how a two-minute fix becomes an abandoned basket |
+| 2026-08-18 | P2.3 | e2e suites place fixtures at **per-run coordinates** | The shared database accumulates real serviceable stores. Pinning every suite to the same point makes one suite's vendors crowd another's "nearest stores" list, and assertions fail for reasons unrelated to the code |
 | | | | |
 
 ---
@@ -506,6 +513,9 @@ Anything consciously postponed during a part, so it resurfaces instead of being 
 | 2026-08-18 | P2.2 | **Geocoding provider.** Addresses take a latitude and longitude from the client. Turning a typed address into a pin — and validating that the pin matches the text — needs a paid API (Google Maps, MapmyIndia). Until then the PWA must collect the pin from a map or the device, and a shopper who skips that has no serviceable address. | **Before pilot** — it is a program cost, not a build task |
 | 2026-08-18 | P2.2 | **Store ranking beyond distance.** §2.8.1 ranks serviceable stores by distance, catalog coverage of the customer's usual basket, *and* vendor quality score. The last two do not exist yet — the usual basket is P2.7 and SLA scores are P6.3 — so resolution ranks by distance alone. The signature already takes more. | **P2.7**, then **P6.3** |
 | 2026-08-18 | P2.2 | **Over-commit protection** (§2.8.2): remaining slots auto-close for a store that repeatedly breaches its pack SLA on the day. Needs SLA measurement, which arrives with the vendor flow. `setStatus(CLOSED)` is the mechanism it will call. | **P6.3** |
+| 2026-08-18 | **P2.3** | ⚠️ **Stock is checked at placement, not reserved.** Availability is confirmed as the order is written, which closes the ordinary case but not the race: two shoppers can still both take the last unit. Slot capacity *is* reserved atomically; product stock is not. | **P3.1** — this is precisely what that part exists for |
+| 2026-08-18 | P2.3 | **Client-supplied idempotency key.** Concurrent double-submits are safe (unique index on `cart_id`), but a retry *after* success is refused as an empty basket rather than returning the original order. A key on the request would make the retry return the order. | **P3.1**, which introduces idempotency keys for reservations |
+| 2026-08-18 | P2.3 | **Prepaid payment.** `place` accepts COD only and refuses other methods with a 400 rather than accepting an order nobody can pay for. | **P3.2** |
 | | | | |
 
 ---
