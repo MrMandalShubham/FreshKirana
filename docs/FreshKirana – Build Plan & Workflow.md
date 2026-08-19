@@ -429,8 +429,8 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | 2 | P2.5 | Vendor WhatsApp flow ⚙ | ⏳ | | `4f6f77c` · CI green, deployed · mock channel + idempotent webhook · SLA reminder and auto-cancel |
 | 2 | P2.5a | **Scheduled SLA sweep** | ⏳ | | `1b1b4fa` · CI green · 403 tests · Cloud Run job + Cloud Scheduler, verified executing on GCP |
 | 2 | P2.6 | Order tracking **+ customer ordering screens** | ⏳ | | `b68995e` · CI green, deployed · 421 tests · timeline, notifications, and the cart/checkout/orders UI that P2.1–P2.3 left as API-only |
-| 2 | P2.7 | Reorder & Usual Basket | ☐ | | |
-| — | 🎯 | **V0 MILESTONE** | ☐ | | 5 real orders |
+| 2 | P2.7 | Reorder & Usual Basket | ⏳ | | `46fc3d8` · CI green, deployed · 453 tests · the §0.3 wedge, live · rule R3 satisfied in full |
+| — | 🎯 | **V0 MILESTONE** | ⏳ | | **All 7 parts built and deployed.** Gate: place 5 real orders end to end with a friendly vendor |
 | 3 | P3.1 | Inventory modes & reservations | ☐ | | |
 | 3 | P3.2 | Payment gateway ⚙ | ☐ | | Needs B3 |
 | 3 | P3.3 | Payment failure recovery | ☐ | | |
@@ -511,6 +511,12 @@ Record every decision made during the build that isn't already in the spec. This
 | 2026-08-18 | P2.5 | The webhook is **idempotent on the provider's message id** | Providers retry; that is documented behaviour, not an edge case. "Accept" applied twice looks harmless right up until the button is "cancel" |
 | 2026-08-18 | P2.5 | An SLA breach goes **`AWAITING_VENDOR → REASSIGNING → CANCELLED`**, not straight to cancelled | Keeps "the store ignored us" distinguishable from "the customer changed their mind" in the audit trail, which is what §6.4 vendor scoring reads |
 | 2026-08-18 | P2.5 | The WhatsApp flow lives in **`order`**, not `notification` | The obvious home closes a cycle — and not a lint one: the module that talks to a messaging provider would also have to know what an order status means. The dependency runs one way, `order → notification` |
+| 2026-08-19 | **P2.7** | **The usual basket is a SQL heuristic, and stays out of the AI backlog** | §2.17.1 guardrail 1. Frequency × median repurchase interval is the whole model, and it is enough. Filing it under "AI, later" launches a generic marketplace |
+| 2026-08-19 | P2.7 | **Median, not mean**, for the repurchase interval; two purchases minimum; dueness capped at 3× | Grocery histories are full of holidays and festival bulk-buys, and one drags an average far enough to ruin the prediction. A one-off in the basket every week teaches shoppers to distrust the list, and an abandoned product must not outrank the weekly atta by being enormously overdue |
+| 2026-08-19 | P2.7 | Every predicted item **carries its reason** — "usually every 7 days, last bought 8 days ago" | A bare list has to be audited item by item, which costs more attention than shopping would have |
+| 2026-08-19 | P2.7 | One-tap add is **partial success by design** | The basket is pinned to one store (D2) and assembled from months of buying, so some of it will be unavailable. Refusing all of it turns one tap into a puzzle; dropping it silently means finding out at the door |
+| 2026-08-19 | P2.7 | The heuristic lives in `contracts` as **pure functions** | The part most likely to be tuned should be testable without a database |
+| 2026-08-19 | P2.7 | `/dev/login-as` accepts a **phone**, for a test account of its own | Prediction is about one shopper's history and cannot use a customer every suite orders as. Three suites already carried workarounds for sharing it |
 | 2026-08-19 | **P2.6** | **P2.6 absorbed the customer ordering screens.** The PWA had none: P2.1–P2.5 were API-only and the storefront had no per-user session | The confirmation tests for P2.1 and P2.3 say "on your phone" and were not runnable, and V0 needs a real person to place a real order. The session plumbing was needed either way, and cart/checkout screens are far cheaper alongside it than as a later part |
 | 2026-08-19 | P2.6 | The Google identity token moved to **`X-Serverless-Authorization`** | Cloud Run's IAM check reads `Authorization`, which is also where the API expects the shopper's token. Sharing one header authenticates the storefront and signs the shopper out on every request |
 | 2026-08-19 | P2.6 | The dev sign-in is gated by **`ALLOW_DEV_LOGIN`, not `NODE_ENV`** | The storefront runs a production build on staging. Tying it to NODE_ENV would mean either no sign-in on staging or a shipped one in production. **Must be false once P8.6 lands** |
