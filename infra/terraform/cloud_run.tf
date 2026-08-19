@@ -150,6 +150,50 @@ resource "google_cloud_run_v2_service" "api" {
         }
       }
 
+      # Razorpay (decision B3), mounted only once credentials exist.
+      #
+      # Gated rather than always-on because Cloud Run resolves secret versions
+      # at deploy time: mounting a secret that has no version yet fails the
+      # revision, so an empty container created ahead of the values would break
+      # every deploy until somebody added them.
+      #
+      # With no key id the application selects the mock provider, which means
+      # "cannot take real payments" rather than an outage — the catalog, the
+      # basket and COD orders all keep working.
+      dynamic "env" {
+        for_each = var.razorpay_key_id != "" ? [1] : []
+        content {
+          name  = "RAZORPAY_KEY_ID"
+          value = var.razorpay_key_id
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.razorpay_key_id != "" ? [1] : []
+        content {
+          name = "RAZORPAY_KEY_SECRET"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.razorpay_key_secret.secret_id
+              version = "latest"
+            }
+          }
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.razorpay_key_id != "" ? [1] : []
+        content {
+          name = "RAZORPAY_WEBHOOK_SECRET"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.razorpay_webhook_secret.secret_id
+              version = "latest"
+            }
+          }
+        }
+      }
+
       resources {
         limits = {
           cpu    = "1"

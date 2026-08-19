@@ -144,3 +144,9 @@ variable "payment_reconciliation_schedule" {
   type        = string
   default     = "*/5 * * * *"
 }
+
+variable "razorpay_key_id" {
+  description = "Razorpay key id (rzp_test_… / rzp_live_…). Public: it ships to browsers in the checkout SDK, so it is a variable rather than a secret. Empty keeps the mock provider."
+  type        = string
+  default     = ""
+}

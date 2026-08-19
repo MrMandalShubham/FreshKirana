@@ -258,6 +258,7 @@ jobs:
       REGION: asia-south1
       SERVICE: freshkirana-staging-api
       WEB_SERVICE: freshkirana-staging-web
+      WEBHOOK_SERVICE: freshkirana-staging-webhooks
       MIGRATE_JOB: freshkirana-staging-migrate
       SLA_SWEEP_JOB: freshkirana-staging-sla-sweep
       RESERVATION_SWEEP_JOB: freshkirana-staging-reservation-sweep
@@ -312,6 +313,16 @@ jobs:
       - name: Deploy API revision
         run: |
           gcloud run deploy "$SERVICE" \
+            --region "$REGION" \
+            --image "${{ steps.image.outputs.image }}" \
+            --quiet
+
+      # The public webhook front door runs the same image with a different entry
+      # point, so it must move in lockstep with the API — a webhook service on
+      # last week's code applies payments by last week's rules.
+      - name: Deploy webhook front door
+        run: |
+          gcloud run deploy "$WEBHOOK_SERVICE" \
             --region "$REGION" \
             --image "${{ steps.image.outputs.image }}" \
             --quiet

@@ -25,7 +25,7 @@ import { InventoryService } from '../../inventory/contracts';
 import { PaymentFlowService } from '../../order/contracts';
 import type { SlotView } from '../../serviceability/contracts';
 import { PaymentService } from './payment.service';
-import { MockRazorpayProvider } from './razorpay.provider';
+import { MockRazorpayProvider, PAYMENT_PROVIDER } from './razorpay.provider';
 
 loadEnv();
 
@@ -168,7 +168,14 @@ describe.skipIf(!dbUp)('payment (e2e)', () => {
   }
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    // Pinned to the mock, not left to whatever the environment happens to hold.
+    // The module picks the live gateway whenever RAZORPAY_KEY_ID is set, so a
+    // developer with credentials in their .env would otherwise have these tests
+    // making real calls to Razorpay — which is how this suite first failed.
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(PAYMENT_PROVIDER)
+      .useClass(MockRazorpayProvider)
+      .compile();
 
     // The webhook signature is computed over the raw request bytes, so the test
     // application must capture them exactly as production does.
@@ -182,7 +189,8 @@ describe.skipIf(!dbUp)('payment (e2e)', () => {
     );
     await app.init();
 
-    provider = app.get(MockRazorpayProvider);
+    // The same instance the service uses, so signing and verifying agree.
+    provider = app.get<MockRazorpayProvider>(PAYMENT_PROVIDER);
     payments = app.get(PaymentService);
     flow = app.get(PaymentFlowService);
     inventory = app.get(InventoryService);

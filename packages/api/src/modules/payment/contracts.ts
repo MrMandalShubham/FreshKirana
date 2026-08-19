@@ -13,6 +13,7 @@ export { PaymentService } from './internal/payment.service';
 export type { AppliedPayment, StartPaymentInput } from './internal/payment.service';
 
 export { PAYMENT_PROVIDER, MockRazorpayProvider } from './internal/razorpay.provider';
+export { LiveRazorpayProvider } from './internal/razorpay.live-provider';
 
 export type { PaymentRow, PaymentEventRow } from './schema';
 
