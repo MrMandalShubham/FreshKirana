@@ -28,6 +28,8 @@ interface IndexRow extends Record<string, unknown> {
   veg_mark: string;
   image_url: string | null;
   min_price_paise: number | null;
+  best_offer_id: string | null;
+  best_vendor_id: string | null;
   mrp_paise: number | null;
   is_available: boolean;
   offer_count: number;
@@ -97,7 +99,8 @@ export class SearchService {
       select
         pi.master_product_id, pi.slug, pi.name, pi.brand, pi.category_id,
         pi.net_quantity, pi.uom, pi.veg_mark, pi.image_url,
-        pi.min_price_paise, pi.mrp_paise, pi.is_available, pi.offer_count,
+        pi.min_price_paise, pi.mrp_paise, pi.best_offer_id, pi.best_vendor_id,
+        pi.is_available, pi.offer_count,
         (select max(similarity(pi.search_text, t)) from unnest(string_to_array(${termList}, ',')) as t) as score,
         (select bool_or(pi.search_text like '%' || t || '%') from unnest(string_to_array(${termList}, ',')) as t) as contains
       from search.product_index pi
@@ -157,7 +160,8 @@ export class SearchService {
       select
         pi.master_product_id, pi.slug, pi.name, pi.brand, pi.category_id,
         pi.net_quantity, pi.uom, pi.veg_mark, pi.image_url,
-        pi.min_price_paise, pi.mrp_paise, pi.is_available, pi.offer_count,
+        pi.min_price_paise, pi.mrp_paise, pi.best_offer_id, pi.best_vendor_id,
+        pi.is_available, pi.offer_count,
         0::float as score, false as contains
       from search.product_index pi
       where pi.product_status = 'ACTIVE'
@@ -186,7 +190,8 @@ export class SearchService {
       select
         pi.master_product_id, pi.slug, pi.name, pi.brand, pi.category_id,
         pi.net_quantity, pi.uom, pi.veg_mark, pi.image_url,
-        pi.min_price_paise, pi.mrp_paise, pi.is_available, pi.offer_count,
+        pi.min_price_paise, pi.mrp_paise, pi.best_offer_id, pi.best_vendor_id,
+        pi.is_available, pi.offer_count,
         1::float as score, true as contains
       from search.product_index pi
       where pi.product_status = 'ACTIVE' and pi.slug = ${slug}
@@ -251,6 +256,8 @@ export class SearchService {
       vegMark: row.veg_mark,
       imageUrl: row.image_url,
       minPricePaise: row.min_price_paise,
+      bestOfferId: row.best_offer_id,
+      bestVendorId: row.best_vendor_id,
       mrpPaise: row.mrp_paise,
       isAvailable: row.is_available,
       offerCount: row.offer_count,

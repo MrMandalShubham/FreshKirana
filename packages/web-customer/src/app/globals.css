@@ -394,3 +394,276 @@ a {
   color: var(--brand);
   font-weight: 600;
 }
+
+/* --------------------------------------------------------------------------
+   Basket, checkout and orders (P2.6)
+
+   Touch targets stay at 44px and up: §4.1's audience is on a mid-range phone,
+   often one-handed, sometimes with wet hands from the kitchen.
+   -------------------------------------------------------------------------- */
+
+.cart-lines,
+.order-lines,
+.order-list,
+.option-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cart-line {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line, #e6e6e6);
+}
+
+.cart-line.unavailable .cart-line-main {
+  opacity: 0.6;
+}
+
+.cart-line-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cart-line-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--line, #e6e6e6);
+  border-radius: 8px;
+}
+
+.stepper-button {
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 20px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.stepper-button:disabled {
+  opacity: 0.5;
+}
+
+.stepper-value {
+  min-width: 56px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.totals {
+  margin: 20px 0;
+  padding: 12px 0;
+  border-top: 1px solid var(--line, #e6e6e6);
+}
+
+.totals-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 6px 0;
+}
+
+.totals-row.total {
+  font-weight: 700;
+  font-size: 1.1rem;
+  border-top: 1px solid var(--line, #e6e6e6);
+  padding-top: 10px;
+}
+
+.totals-row.highlight {
+  color: var(--success, #1a7f37);
+}
+
+.cart-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 16px 0 32px;
+}
+
+.button.primary {
+  background: var(--brand, #1a7f37);
+  color: #fff;
+}
+
+.button.wide {
+  width: 100%;
+  min-height: 48px;
+}
+
+.button.danger,
+.link-button.danger {
+  color: var(--danger, #b42318);
+}
+
+.link-button {
+  background: none;
+  border: 0;
+  padding: 10px 0;
+  min-height: 44px;
+  color: var(--brand, #1a7f37);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.notice.error {
+  color: var(--danger, #b42318);
+}
+
+.notice.success {
+  color: var(--success, #1a7f37);
+}
+
+.checkout-section {
+  margin: 24px 0;
+}
+
+.option {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  min-height: 44px;
+  border: 1px solid var(--line, #e6e6e6);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.option span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Full and closed slots stay visible, greyed (§2.8.2) — a slot that vanishes
+   reads as a bug rather than as information. */
+.option.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.field-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.input {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--line, #e6e6e6);
+  border-radius: 8px;
+  font-size: 16px; /* Below 16px, iOS zooms the whole page on focus. */
+}
+
+.order-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line, #e6e6e6);
+  text-decoration: none;
+  color: inherit;
+}
+
+.order-card-top {
+  display: flex;
+  justify-content: space-between;
+}
+
+.order-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+
+/* The timeline. State is carried by the label as well as the mark, because
+   colour and position alone must not convey meaning (§4.5). */
+.timeline {
+  list-style: none;
+  margin: 20px 0;
+  padding: 0;
+}
+
+.timeline-step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding-bottom: 18px;
+  position: relative;
+}
+
+.timeline-step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 18px;
+  bottom: 0;
+  width: 2px;
+  background: var(--line, #e6e6e6);
+}
+
+.timeline-step.done:not(:last-child)::before {
+  background: var(--brand, #1a7f37);
+}
+
+.timeline-mark {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--line, #e6e6e6);
+  background: #fff;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  z-index: 1;
+}
+
+.timeline-step.done .timeline-mark {
+  background: var(--brand, #1a7f37);
+  border-color: var(--brand, #1a7f37);
+}
+
+.timeline-step.current .timeline-mark {
+  border-color: var(--brand, #1a7f37);
+  box-shadow: 0 0 0 4px rgba(26, 127, 55, 0.18);
+}
+
+.timeline-step.skipped {
+  opacity: 0.5;
+}
+
+.timeline-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-label {
+  font-weight: 600;
+}
+
+.add-to-cart {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

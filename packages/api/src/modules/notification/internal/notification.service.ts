@@ -5,7 +5,7 @@ import {
   type NotificationTemplate,
   type VendorReply,
 } from '@freshkirana/contracts';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import { DATABASE } from '../../../db/db.module';
 import type { Database } from '../../../db';
 import { inboundMessage, message } from '../schema';
@@ -16,6 +16,8 @@ import {
 } from './whatsapp.channel';
 
 export interface SendInput {
+  /** Defaults to WhatsApp, the primary channel for both audiences (§2.12). */
+  channel?: NotificationChannel;
   toPhone: string;
   template: NotificationTemplate;
   payload?: Record<string, unknown>;
@@ -47,10 +49,12 @@ export class NotificationService {
    * exist because the store could not be told is worse.
    */
   async send(input: SendInput) {
+    const channel = input.channel ?? NotificationChannel.WHATSAPP;
+
     const queued = await this.db
       .insert(message)
       .values({
-        channel: NotificationChannel.WHATSAPP,
+        channel,
         template: input.template,
         toPhone: input.toPhone,
         payload: input.payload ?? {},
@@ -62,6 +66,21 @@ export class NotificationService {
       .returning();
 
     const row = queued[0]!;
+
+    /**
+     * In-app messages have no provider: the row *is* the notification, and the
+     * customer's app reads it from here. Marking it SENT immediately is honest
+     * — there is nothing else that has to happen for it to be delivered.
+     */
+    if (channel === NotificationChannel.IN_APP) {
+      const stored = await this.db
+        .update(message)
+        .set({ status: MessageStatus.SENT, sentAt: new Date(), updatedAt: new Date() })
+        .where(eq(message.id, row.id))
+        .returning();
+
+      return stored[0]!;
+    }
 
     try {
       const result = await this.whatsapp.send({
@@ -134,6 +153,63 @@ export class NotificationService {
       .where(eq(message.vendorId, vendorId))
       .orderBy(desc(message.createdAt))
       .limit(Math.min(limit, 100));
+  }
+
+  /**
+   * The customer's in-app inbox, newest first.
+   *
+   * Read from the same table as everything else. A separate "in-app
+   * notification" table would drift from the delivery log, and then a support
+   * question about what a customer was told would have two answers.
+   */
+  async inboxFor(accountId: string, limit = 30) {
+    return this.db
+      .select()
+      .from(message)
+      .where(
+        and(
+          eq(message.accountId, accountId),
+          eq(message.channel, NotificationChannel.IN_APP),
+        ),
+      )
+      .orderBy(desc(message.createdAt))
+      .limit(Math.min(limit, 100));
+  }
+
+  async unreadCountFor(accountId: string): Promise<number> {
+    const rows = await this.db
+      .select({ total: count() })
+      .from(message)
+      .where(
+        and(
+          eq(message.accountId, accountId),
+          eq(message.channel, NotificationChannel.IN_APP),
+          isNull(message.readAt),
+        ),
+      );
+
+    return Number(rows[0]?.total ?? 0);
+  }
+
+  /** Scoped to the account, so one shopper cannot mark another's as read. */
+  async markRead(accountId: string, messageId: string): Promise<void> {
+    await this.db
+      .update(message)
+      .set({ readAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(message.id, messageId), eq(message.accountId, accountId)));
+  }
+
+  async markAllRead(accountId: string): Promise<void> {
+    await this.db
+      .update(message)
+      .set({ readAt: new Date(), updatedAt: new Date() })
+      .where(
+        and(
+          eq(message.accountId, accountId),
+          eq(message.channel, NotificationChannel.IN_APP),
+          isNull(message.readAt),
+        ),
+      );
   }
 
   parseInbound(body: unknown): InboundReply | null {

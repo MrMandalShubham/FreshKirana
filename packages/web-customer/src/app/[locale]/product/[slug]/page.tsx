@@ -6,6 +6,7 @@ import {
   gstRateBpToPercent,
   pricePerBaseUnit,
 } from '@freshkirana/contracts';
+import { AddToCart } from '@/components/AddToCart';
 import { BottomNav, Header } from '@/components/Chrome';
 import { VegBadge, formatQuantity } from '@/components/ProductCard';
 import { fetchProduct, fetchProductAvailability } from '@/lib/api';
@@ -87,6 +88,19 @@ export default async function ProductPage({
           before they commit, not when the charge differs from the estimate.
         */}
         {product.isVariableWeight && <p className="notice">{t.variableWeightNotice}</p>}
+
+        {/*
+          The add button comes after the variable-weight notice on purpose: a
+          shopper must know the final price moves with the delivered weight
+          *before* they commit (§1.7.1), not when the charge differs.
+
+          `bestOfferId` is the cheapest purchasable offer, decided by the same
+          §2.7.3 rule that produced the price above — so the button adds the
+          thing whose price is on screen.
+        */}
+        {availability?.bestOfferId && availability.isAvailable && (
+          <AddToCart vendorOfferId={availability.bestOfferId} locale={locale} />
+        )}
 
         {product.description && (
           <section className="section">

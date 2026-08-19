@@ -8,6 +8,8 @@ import {
 import {
   Audience,
   ORDER_TRANSITIONS,
+  StepState,
+  customerTimeline,
   TransitionEffect,
   TransitionGuard,
   allowedTransitions,
@@ -238,5 +240,123 @@ describe('role-specific labels (§2.6.3)', () => {
         `no customer label for ${status}`,
       ).toBeTruthy();
     }
+  });
+});
+
+describe('the customer timeline', () => {
+  const at = (minutes: number) =>
+    new Date(Date.parse('2026-08-18T10:00:00Z') + minutes * 60_000).toISOString();
+
+  const history = (...entries: Array<[OrderStatus, number]>) =>
+    entries.map(([toStatus, minutes]) => ({ toStatus, createdAt: at(minutes) }));
+
+  it('shows five steps, not seventeen states', () => {
+    // A shopper does not care that PICKING and SUBSTITUTION_PENDING differ.
+    const { steps } = customerTimeline(
+      OrderStatus.AWAITING_VENDOR,
+      history([OrderStatus.AWAITING_VENDOR, 0]),
+    );
+    expect(steps).toHaveLength(5);
+  });
+
+  it('marks where the order is now', () => {
+    const { steps } = customerTimeline(
+      OrderStatus.PICKING,
+      history(
+        [OrderStatus.AWAITING_VENDOR, 0],
+        [OrderStatus.ACCEPTED, 3],
+        [OrderStatus.PICKING, 8],
+      ),
+    );
+
+    expect(steps.map((s) => s.state)).toEqual([
+      StepState.DONE,
+      StepState.DONE,
+      StepState.CURRENT,
+      StepState.UPCOMING,
+      StepState.UPCOMING,
+    ]);
+  });
+
+  it('carries the time each step happened', () => {
+    // "Confirmed at 6:04pm" is what a waiting customer wants, and only the
+    // audit trail knows it — the order row only knows where it is now.
+    const { steps } = customerTimeline(
+      OrderStatus.ACCEPTED,
+      history([OrderStatus.AWAITING_VENDOR, 0], [OrderStatus.ACCEPTED, 4]),
+    );
+
+    expect(steps[0]?.at).toBe(at(0));
+    expect(steps[1]?.at).toBe(at(4));
+    expect(steps[2]?.at).toBeNull();
+  });
+
+  it('does not collapse states that share a step', () => {
+    // PICKING then PACKED are one step to the customer, and it should keep the
+    // time it *started*, not the time it last moved within itself.
+    const { steps } = customerTimeline(
+      OrderStatus.PACKED,
+      history(
+        [OrderStatus.AWAITING_VENDOR, 0],
+        [OrderStatus.ACCEPTED, 3],
+        [OrderStatus.PICKING, 8],
+        [OrderStatus.PACKED, 20],
+      ),
+    );
+
+    expect(steps[2]?.at).toBe(at(8));
+  });
+
+  it('finishes with nothing current once delivered', () => {
+    const { steps } = customerTimeline(
+      OrderStatus.DELIVERED,
+      history(
+        [OrderStatus.AWAITING_VENDOR, 0],
+        [OrderStatus.ACCEPTED, 3],
+        [OrderStatus.PICKING, 8],
+        [OrderStatus.DISPATCHED, 30],
+        [OrderStatus.DELIVERED, 55],
+      ),
+    );
+
+    expect(steps.every((s) => s.state === StepState.DONE)).toBe(true);
+  });
+
+  it('stops promising delivery for a cancelled order', () => {
+    // A progress bar that still shows "On the way" ahead of a cancelled order
+    // is worse than no progress bar at all.
+    const { steps, endedEarly } = customerTimeline(
+      OrderStatus.CANCELLED,
+      history([OrderStatus.AWAITING_VENDOR, 0], [OrderStatus.CANCELLED, 12]),
+    );
+
+    expect(endedEarly).toBe(true);
+    expect(steps.filter((s) => s.state === StepState.UPCOMING)).toHaveLength(0);
+    expect(steps.slice(1).every((s) => s.state === StepState.SKIPPED)).toBe(true);
+  });
+
+  it('keeps what did happen before a late cancellation', () => {
+    // Cancelled after packing: the packing happened, and the timeline should
+    // not rewrite history to say otherwise.
+    const { steps } = customerTimeline(
+      OrderStatus.CANCELLED,
+      history(
+        [OrderStatus.AWAITING_VENDOR, 0],
+        [OrderStatus.ACCEPTED, 3],
+        [OrderStatus.PACKED, 25],
+        [OrderStatus.CANCELLED, 30],
+      ),
+    );
+
+    expect(steps[0]?.state).toBe(StepState.DONE);
+    expect(steps[1]?.state).toBe(StepState.DONE);
+    expect(steps[2]?.state).toBe(StepState.DONE);
+    expect(steps[3]?.state).toBe(StepState.SKIPPED);
+  });
+
+  it('survives an empty history', () => {
+    // A brand-new order read before its first history row lands.
+    const { steps } = customerTimeline(OrderStatus.AWAITING_VENDOR, []);
+    expect(steps[0]?.state).toBe(StepState.CURRENT);
   });
 });

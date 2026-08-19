@@ -79,6 +79,22 @@ resource "google_cloud_run_v2_service" "web" {
         value = "production"
       }
 
+      /**
+       * The development sign-in.
+       *
+       * There is no real authentication until P8.6, so the storefront offers a
+       * button that asks the API for a test customer's token. It is gated by
+       * this flag rather than by NODE_ENV, because the storefront runs as a
+       * production build on staging — tying it to NODE_ENV would mean either no
+       * sign-in on staging or a shipped one in production.
+       *
+       * MUST be false, or absent, once P8.6 lands.
+       */
+      env {
+        name  = "ALLOW_DEV_LOGIN"
+        value = var.allow_dev_login ? "true" : "false"
+      }
+
       resources {
         limits = {
           cpu    = "1"

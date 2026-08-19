@@ -5,6 +5,7 @@ import {
   OrderStatus,
   type Principal,
   Role,
+  customerTimeline,
   hasRoleAtVendor,
 } from '@freshkirana/contracts';
 import { Type } from 'class-transformer';
@@ -56,9 +57,14 @@ export class OrderController {
   @Get(':orderId')
   async get(@CurrentUser() principal: Principal, @Param('orderId') orderId: string) {
     const order = await this.orders.findForAccount(principal.accountId, orderId);
+    const history = await this.state.history(orderId);
+
     return {
       ...this.forCustomer(order),
-      history: await this.state.history(orderId),
+      history,
+      // Built from history, not from the row: "confirmed at 6:04pm" is what a
+      // waiting customer wants, and only the audit trail knows it.
+      timeline: customerTimeline(order.status as OrderStatus, history),
     };
   }
 

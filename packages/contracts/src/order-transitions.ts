@@ -387,3 +387,156 @@ const LABELS: Record<OrderStatus, Record<Audience, string | null>> = {
 export function labelFor(status: OrderStatus, audience: Audience): string | null {
   return LABELS[status][audience];
 }
+
+// ---------------------------------------------------------------------------
+// The customer's timeline (§2.6.3, §4.2)
+// ---------------------------------------------------------------------------
+
+/**
+ * What a customer watching their order actually sees.
+ *
+ * Deliberately fewer steps than the state machine has. A shopper does not care
+ * that PICKING and SUBSTITUTION_PENDING are different states — they care that
+ * their order is being packed. Seventeen states rendered as seventeen dots is a
+ * progress bar nobody can read, and it leaks internal vocabulary the §2.6.3
+ * labels exist to hide.
+ */
+export const CustomerStep = {
+  PLACED: 'PLACED',
+  CONFIRMED: 'CONFIRMED',
+  PACKING: 'PACKING',
+  ON_THE_WAY: 'ON_THE_WAY',
+  DELIVERED: 'DELIVERED',
+} as const;
+
+export type CustomerStep = (typeof CustomerStep)[keyof typeof CustomerStep];
+
+/** Which canonical states each visible step covers. Order matters. */
+const STEP_STATUSES: ReadonlyArray<{
+  step: CustomerStep;
+  statuses: readonly OrderStatus[];
+}> = [
+  {
+    step: CustomerStep.PLACED,
+    statuses: [
+      OrderStatus.PENDING_PAYMENT,
+      OrderStatus.AWAITING_VENDOR,
+      OrderStatus.REASSIGNING,
+    ],
+  },
+  { step: CustomerStep.CONFIRMED, statuses: [OrderStatus.ACCEPTED] },
+  {
+    step: CustomerStep.PACKING,
+    statuses: [
+      OrderStatus.PICKING,
+      OrderStatus.SUBSTITUTION_PENDING,
+      OrderStatus.PACKED,
+      OrderStatus.READY_FOR_PICKUP,
+    ],
+  },
+  {
+    step: CustomerStep.ON_THE_WAY,
+    statuses: [OrderStatus.DISPATCHED, OrderStatus.DELIVERY_FAILED],
+  },
+  {
+    step: CustomerStep.DELIVERED,
+    statuses: [OrderStatus.DELIVERED, OrderStatus.COMPLETED],
+  },
+];
+
+/**
+ * States where the order stopped rather than progressed.
+ *
+ * The timeline must not keep showing "Out for delivery" as a future step for an
+ * order that was cancelled — a progress bar that implies an order is still
+ * coming is worse than no progress bar.
+ */
+export const ENDED_EARLY_STATUSES: readonly OrderStatus[] = [
+  OrderStatus.CANCELLED,
+  OrderStatus.RTO,
+  OrderStatus.RETURN_REQUESTED,
+  OrderStatus.RETURNED,
+];
+
+export const StepState = {
+  DONE: 'DONE',
+  CURRENT: 'CURRENT',
+  UPCOMING: 'UPCOMING',
+  /** Never reached, because the order ended first. */
+  SKIPPED: 'SKIPPED',
+} as const;
+
+export type StepState = (typeof StepState)[keyof typeof StepState];
+
+export interface TimelineStep {
+  step: CustomerStep;
+  state: StepState;
+  /** When it happened. Null for anything not yet reached. */
+  at: string | null;
+}
+
+export interface CustomerTimeline {
+  steps: TimelineStep[];
+  /** True when the order stopped early — the UI shows why instead of a bar. */
+  endedEarly: boolean;
+}
+
+function stepIndexOf(status: OrderStatus): number {
+  return STEP_STATUSES.findIndex((entry) => entry.statuses.includes(status));
+}
+
+/**
+ * Builds the timeline from the status history.
+ *
+ * Timestamps come from history rather than from the order row, because the row
+ * only knows *where* an order is. "Confirmed at 6:04pm" is the thing a waiting
+ * customer actually wants, and it is only recoverable from the audit trail.
+ */
+export function customerTimeline(
+  current: OrderStatus,
+  history: ReadonlyArray<{ toStatus: string; createdAt: string | Date }>,
+): CustomerTimeline {
+  const endedEarly = ENDED_EARLY_STATUSES.includes(current);
+  const currentIndex = stepIndexOf(current);
+
+  // The furthest step the order ever reached — not the same as where it is now.
+  // A cancelled order that was already packed should still show packing done.
+  let reachedIndex = currentIndex;
+  const firstSeenAt = new Map<CustomerStep, string>();
+
+  for (const entry of history) {
+    const index = stepIndexOf(entry.toStatus as OrderStatus);
+    if (index < 0) continue;
+
+    const step = STEP_STATUSES[index]!.step;
+    if (!firstSeenAt.has(step)) {
+      firstSeenAt.set(
+        step,
+        entry.createdAt instanceof Date ? entry.createdAt.toISOString() : entry.createdAt,
+      );
+    }
+    if (index > reachedIndex) reachedIndex = index;
+  }
+
+  const steps = STEP_STATUSES.map(({ step }, index) => {
+    let state: StepState;
+
+    if (index < reachedIndex) state = StepState.DONE;
+    else if (index === reachedIndex)
+      state = endedEarly ? StepState.DONE : StepState.CURRENT;
+    else state = endedEarly ? StepState.SKIPPED : StepState.UPCOMING;
+
+    // A delivered order has no "current" step left; everything is done.
+    if (
+      !endedEarly &&
+      index === reachedIndex &&
+      (current === OrderStatus.DELIVERED || current === OrderStatus.COMPLETED)
+    ) {
+      state = StepState.DONE;
+    }
+
+    return { step, state, at: firstSeenAt.get(step) ?? null };
+  });
+
+  return { steps, endedEarly };
+}

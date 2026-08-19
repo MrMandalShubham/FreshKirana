@@ -126,3 +126,9 @@ variable "sla_sweep_schedule" {
   type        = string
   default     = "*/2 * * * *"
 }
+
+variable "allow_dev_login" {
+  description = "Offer the development sign-in on the storefront. Must be false in production — real authentication is P8.6."
+  type        = bool
+  default     = true
+}

@@ -99,6 +99,20 @@
       "when": 1787066612461,
       "tag": "0013_adorable_the_initiative",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1787074317463,
+      "tag": "0014_special_jack_power",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1787075215784,
+      "tag": "0015_supreme_pride",
+      "breakpoints": true
     }
   ]
 }

@@ -38,10 +38,13 @@ export class SearchIndexService {
       (offer) => offer.status === OfferStatus.ACTIVE && this.offers.isPurchasable(offer),
     );
 
-    const minPricePaise =
-      purchasable.length > 0
-        ? Math.min(...purchasable.map((o) => o.sellingPricePaise))
-        : null;
+    // Sorted rather than reduced with Math.min, because the *offer* is needed
+    // and not only its price — see bestOfferId in schema.ts.
+    const cheapest = [...purchasable].sort(
+      (a, b) => a.sellingPricePaise - b.sellingPricePaise,
+    )[0];
+
+    const minPricePaise = cheapest?.sellingPricePaise ?? null;
 
     const mrpPaise =
       purchasable.length > 0 ? Math.min(...purchasable.map((o) => o.mrpPaise)) : null;
@@ -64,6 +67,8 @@ export class SearchIndexService {
         productStatus: product.status,
         minPricePaise,
         mrpPaise,
+        bestOfferId: cheapest?.id ?? null,
+        bestVendorId: cheapest?.vendorId ?? null,
         isAvailable: purchasable.length > 0,
         offerCount: offers.length,
         quantityModeOfferCount: purchasable.filter(
@@ -86,6 +91,8 @@ export class SearchIndexService {
           productStatus: product.status,
           minPricePaise,
           mrpPaise,
+          bestOfferId: cheapest?.id ?? null,
+          bestVendorId: cheapest?.vendorId ?? null,
           isAvailable: purchasable.length > 0,
           offerCount: offers.length,
           quantityModeOfferCount: purchasable.filter(

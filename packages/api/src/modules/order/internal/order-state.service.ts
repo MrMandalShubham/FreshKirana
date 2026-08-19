@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 import {
   Audience,
+  NotificationChannel,
+  customerTemplateFor,
   type OrderStatus,
   type OrderTransition,
   type Role,
@@ -22,6 +24,7 @@ import {
 import { and, asc, eq } from 'drizzle-orm';
 import { DATABASE } from '../../../db/db.module';
 import type { Database, Transaction } from '../../../db';
+import { NotificationService } from '../../notification/contracts';
 import { SlotService } from '../../serviceability/contracts';
 import { order, orderStatusHistory } from '../schema';
 
@@ -54,6 +57,7 @@ export class OrderStateService {
   constructor(
     @Inject(DATABASE) private readonly db: Database,
     private readonly slots: SlotService,
+    private readonly notifications: NotificationService,
   ) {}
 
   /**
@@ -96,7 +100,7 @@ export class OrderStateService {
 
     this.assertGuards(transition, options);
 
-    return this.db.transaction(async (tx) => {
+    const result = await this.db.transaction(async (tx) => {
       // Conditional on the status we read. Two people acting on the same order
       // at once — a store accepting while ops reassigns — must not both apply;
       // whoever is second is told the order moved rather than silently winning.
@@ -128,6 +132,58 @@ export class OrderStateService {
       await this.applyEffects(transition, updated, tx);
 
       return { order: updated, transition };
+    });
+
+    // Outside the transaction, and not awaited into the caller's response. A
+    // messaging failure must not undo a status change that already happened,
+    // and the customer's screen should not wait on a provider round trip.
+    void this.tellTheCustomer(result.order);
+
+    return result;
+  }
+
+  /**
+   * Tells the customer their order moved (§2.12, §4.2).
+   *
+   * Two channels, deliberately: in-app so the order screen has something to
+   * show whenever they open it, and WhatsApp so they find out without opening
+   * anything. Only the states §2.12 maps to a template — notifying on every
+   * internal transition trains people to ignore notifications, which costs
+   * exactly the one that mattered.
+   */
+  private async tellTheCustomer(updated: {
+    id: string;
+    accountId: string;
+    vendorId: string;
+    status: string;
+    orderNumber: string;
+    recipientPhone: string;
+  }): Promise<void> {
+    const template = customerTemplateFor(updated.status);
+    if (!template) return;
+
+    const payload = {
+      orderNumber: updated.orderNumber,
+      status: updated.status,
+      label: labelFor(updated.status as OrderStatus, Audience.CUSTOMER),
+    };
+
+    const common = {
+      template,
+      payload,
+      accountId: updated.accountId,
+      vendorId: updated.vendorId,
+      orderId: updated.id,
+      toPhone: updated.recipientPhone,
+    };
+
+    await Promise.all([
+      this.notifications.send({ ...common, channel: NotificationChannel.IN_APP }),
+      this.notifications.send({ ...common, channel: NotificationChannel.WHATSAPP }),
+    ]).catch((error: unknown) => {
+      this.logger.warn(
+        `Could not notify customer of ${updated.status}: ${String(error)}`,
+      );
     });
   }
 

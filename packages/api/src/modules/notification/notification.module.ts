@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { IdentityModule } from '../identity/identity.module';
+import { InboxController } from './internal/inbox.controller';
 import { NotificationService } from './internal/notification.service';
 import { MockWhatsAppChannel, WHATSAPP_CHANNEL } from './internal/whatsapp.channel';
 
@@ -17,6 +19,8 @@ import { MockWhatsAppChannel, WHATSAPP_CHANNEL } from './internal/whatsapp.chann
  * line in this file plus an implementation.
  */
 @Module({
+  imports: [IdentityModule],
+  controllers: [InboxController],
   providers: [
     NotificationService,
     MockWhatsAppChannel,

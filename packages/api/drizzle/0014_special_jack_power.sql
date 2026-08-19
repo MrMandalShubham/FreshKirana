@@ -1,0 +1,2 @@
+ALTER TABLE "notification"."message" ADD COLUMN "read_at" timestamp with time zone;--> statement-breakpoint
+CREATE INDEX "message_account_idx" ON "notification"."message" USING btree ("account_id","created_at");

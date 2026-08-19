@@ -56,6 +56,9 @@ export const NotificationTemplate = {
 
   // --- Customer ---
   ORDER_CONFIRMED: 'ORDER_CONFIRMED',
+  ORDER_DISPATCHED_NOTICE: 'ORDER_DISPATCHED_NOTICE',
+  ORDER_DELIVERED_NOTICE: 'ORDER_DELIVERED_NOTICE',
+  ORDER_DELIVERY_FAILED_NOTICE: 'ORDER_DELIVERY_FAILED_NOTICE',
   ORDER_CANCELLED_NOTICE: 'ORDER_CANCELLED_NOTICE',
 } as const;
 
@@ -105,6 +108,9 @@ export const TEMPLATE_URGENCY: Record<NotificationTemplate, NotificationUrgency>
   ORDER_PACKED_CONFIRM: NotificationUrgency.CRITICAL,
   HANDOVER_CONFIRM: NotificationUrgency.CRITICAL,
   ORDER_CONFIRMED: NotificationUrgency.CRITICAL,
+  ORDER_DISPATCHED_NOTICE: NotificationUrgency.CRITICAL,
+  ORDER_DELIVERED_NOTICE: NotificationUrgency.CRITICAL,
+  ORDER_DELIVERY_FAILED_NOTICE: NotificationUrgency.CRITICAL,
   ORDER_CANCELLED_NOTICE: NotificationUrgency.CRITICAL,
   PAYOUT_STATEMENT: NotificationUrgency.ROUTINE,
   LOW_STOCK_DIGEST: NotificationUrgency.ROUTINE,
@@ -153,4 +159,33 @@ export function needsReminder(placedAt: Date, sla: AcceptanceSla, now: Date): bo
 
 export function hasBreached(placedAt: Date, sla: AcceptanceSla, now: Date): boolean {
   return minutesSince(placedAt, now) >= sla.breachAfterMinutes;
+}
+
+// ---------------------------------------------------------------------------
+// Telling the customer (§2.12, §4.2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Which customer template fires when an order reaches a state.
+ *
+ * A partial map on purpose: most states are the store's business, not the
+ * customer's. Nobody wants a message saying their order moved from PICKING to
+ * SUBSTITUTION_PENDING — they want to be told when something is *expected of
+ * them*, or when the order visibly moves. A system that notifies on every
+ * internal transition trains people to ignore it, which costs exactly the
+ * message that mattered.
+ */
+export const CUSTOMER_TEMPLATE_FOR_STATUS: Partial<Record<string, NotificationTemplate>> =
+  {
+    ACCEPTED: NotificationTemplate.ORDER_CONFIRMED,
+    SUBSTITUTION_PENDING: NotificationTemplate.SUBSTITUTION_PROPOSE,
+    PACKED: NotificationTemplate.ORDER_PACKED_CONFIRM,
+    DISPATCHED: NotificationTemplate.ORDER_DISPATCHED_NOTICE,
+    DELIVERED: NotificationTemplate.ORDER_DELIVERED_NOTICE,
+    DELIVERY_FAILED: NotificationTemplate.ORDER_DELIVERY_FAILED_NOTICE,
+    CANCELLED: NotificationTemplate.ORDER_CANCELLED_NOTICE,
+  };
+
+export function customerTemplateFor(status: string): NotificationTemplate | null {
+  return CUSTOMER_TEMPLATE_FOR_STATUS[status] ?? null;
 }

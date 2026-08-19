@@ -32,6 +32,15 @@ export interface SearchResultItem {
   /** Cheapest purchasable offer, in integer paise. Null when nobody has it. */
   minPricePaise: number | null;
   mrpPaise: number | null;
+  /**
+   * The offer that price belongs to, so the price is actionable.
+   *
+   * A storefront cannot add to a basket without it, and recomputing "cheapest"
+   * client-side would be a second implementation of the §2.7.3 rule that could
+   * disagree with the number already on screen.
+   */
+  bestOfferId: string | null;
+  bestVendorId: string | null;
   /** Drives the §2.7.3 rule that an unavailable offer never outranks an available one. */
   isAvailable: boolean;
   offerCount: number;

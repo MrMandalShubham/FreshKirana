@@ -104,6 +104,17 @@ export const productIndex = searchSchema.table(
 
     /** Cheapest purchasable offer in paise; null when nobody stocks it. */
     minPricePaise: integer('min_price_paise'),
+
+    /**
+     * *Which* offer that price belongs to.
+     *
+     * Without it the storefront can show a price nobody can act on: adding to
+     * a basket needs an offer id, and recomputing "cheapest" in the client
+     * would be a second implementation of the §2.7.3 rule that could disagree
+     * with the one that produced the number on screen.
+     */
+    bestOfferId: uuid('best_offer_id'),
+    bestVendorId: uuid('best_vendor_id'),
     mrpPaise: integer('mrp_paise'),
     /** The §2.7.3 rule: an unavailable product never outranks an available one. */
     isAvailable: boolean('is_available').notNull().default(false),

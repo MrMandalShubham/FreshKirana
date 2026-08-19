@@ -57,6 +57,8 @@ export const message = notificationSchema.table(
     failureReason: text('failure_reason'),
 
     sentAt: timestamp('sent_at', { withTimezone: true }),
+    /** In-app only: when the customer opened it. Null while unread. */
+    readAt: timestamp('read_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .default(sql`now()`),
@@ -68,6 +70,8 @@ export const message = notificationSchema.table(
     index('message_order_idx').on(table.orderId, table.template),
     index('message_vendor_idx').on(table.vendorId, table.createdAt),
     index('message_provider_idx').on(table.providerMessageId),
+    // The in-app inbox reads by account, newest first.
+    index('message_account_idx').on(table.accountId, table.createdAt),
   ],
 );
 
