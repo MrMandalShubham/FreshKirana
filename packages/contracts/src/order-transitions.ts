@@ -45,6 +45,10 @@ export type TransitionGuard = (typeof TransitionGuard)[keyof typeof TransitionGu
 export const TransitionEffect = {
   /** Give the delivery slot's place back, so somebody else can book it. */
   RELEASE_SLOT: 'RELEASE_SLOT',
+  /** Put the held stock back on the shelf (§2.5). */
+  RELEASE_STOCK: 'RELEASE_STOCK',
+  /** The stock left the building: no longer held, no longer on hand. */
+  CONSUME_STOCK: 'CONSUME_STOCK',
 } as const;
 
 export type TransitionEffect = (typeof TransitionEffect)[keyof typeof TransitionEffect];
@@ -86,7 +90,7 @@ const TRANSITIONS: readonly OrderTransition[] = [
     from: OrderStatus.PENDING_PAYMENT,
     to: OrderStatus.CANCELLED,
     actors: [Role.CUSTOMER],
-    effects: [TransitionEffect.RELEASE_SLOT],
+    effects: [TransitionEffect.RELEASE_SLOT, TransitionEffect.RELEASE_STOCK],
     event: AnalyticsEvent.ORDER_CANCELLED,
     note: 'Payment failed or timed out. No fee — nothing was ever charged.',
   },
@@ -111,7 +115,7 @@ const TRANSITIONS: readonly OrderTransition[] = [
     to: OrderStatus.CANCELLED,
     actors: [Role.CUSTOMER],
     guards: [TransitionGuard.CUSTOMER_CANCEL_WINDOW],
-    effects: [TransitionEffect.RELEASE_SLOT],
+    effects: [TransitionEffect.RELEASE_SLOT, TransitionEffect.RELEASE_STOCK],
     event: AnalyticsEvent.ORDER_CANCELLED,
     note: '§1.8.1: free, the store has not started work.',
   },
@@ -128,7 +132,7 @@ const TRANSITIONS: readonly OrderTransition[] = [
     to: OrderStatus.CANCELLED,
     actors: [Role.CUSTOMER],
     guards: [TransitionGuard.REASON_REQUIRED],
-    effects: [TransitionEffect.RELEASE_SLOT],
+    effects: [TransitionEffect.RELEASE_SLOT, TransitionEffect.RELEASE_STOCK],
     event: AnalyticsEvent.ORDER_CANCELLED,
     note: 'Nobody else can fulfil it.',
   },
@@ -145,7 +149,7 @@ const TRANSITIONS: readonly OrderTransition[] = [
     to: OrderStatus.CANCELLED,
     actors: [Role.CUSTOMER],
     guards: [TransitionGuard.CUSTOMER_CANCEL_WINDOW],
-    effects: [TransitionEffect.RELEASE_SLOT],
+    effects: [TransitionEffect.RELEASE_SLOT, TransitionEffect.RELEASE_STOCK],
     event: AnalyticsEvent.ORDER_CANCELLED,
     note: '§1.8.1: accepted but not packed — still free.',
   },
@@ -166,15 +170,16 @@ const TRANSITIONS: readonly OrderTransition[] = [
     from: OrderStatus.PICKING,
     to: OrderStatus.PACKED,
     actors: VENDOR,
+    effects: [TransitionEffect.CONSUME_STOCK],
     event: AnalyticsEvent.ORDER_PACKED,
-    note: 'Bagged and weighed. The COD amount is final from here (§2.6.1).',
+    note: 'Bagged and weighed. The COD amount is final from here (§2.6.1). The stock leaves the shelf at this point, not at delivery.',
   },
   {
     from: OrderStatus.PICKING,
     to: OrderStatus.CANCELLED,
     actors: [Role.CUSTOMER],
     guards: [TransitionGuard.CUSTOMER_CANCEL_WINDOW],
-    effects: [TransitionEffect.RELEASE_SLOT],
+    effects: [TransitionEffect.RELEASE_SLOT, TransitionEffect.RELEASE_STOCK],
     event: AnalyticsEvent.ORDER_CANCELLED,
   },
 
@@ -190,7 +195,7 @@ const TRANSITIONS: readonly OrderTransition[] = [
     to: OrderStatus.CANCELLED,
     actors: [Role.CUSTOMER],
     guards: [TransitionGuard.CUSTOMER_CANCEL_WINDOW],
-    effects: [TransitionEffect.RELEASE_SLOT],
+    effects: [TransitionEffect.RELEASE_SLOT, TransitionEffect.RELEASE_STOCK],
     event: AnalyticsEvent.ORDER_CANCELLED,
     note: '§1.8.1: allowed with a warning. The work is done and wasted.',
   },
@@ -240,7 +245,7 @@ const TRANSITIONS: readonly OrderTransition[] = [
     from: OrderStatus.RTO,
     to: OrderStatus.RETURNED,
     actors: VENDOR,
-    note: 'Back on the shelf.',
+    note: 'Back on the shelf. Restocking is P3.5, with the refund it belongs to.',
   },
 
   // --- After delivery -----------------------------------------------------

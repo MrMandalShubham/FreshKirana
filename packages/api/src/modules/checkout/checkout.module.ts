@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AnalyticsModule } from '../analytics/analytics.module';
 import { CartModule } from '../cart/cart.module';
 import { IdentityModule } from '../identity/identity.module';
+import { InventoryModule } from '../inventory/inventory.module';
 import { OrderModule } from '../order/order.module';
 import { ServiceabilityModule } from '../serviceability/serviceability.module';
 import { UserModule } from '../user/user.module';
@@ -25,6 +26,7 @@ import { CheckoutService } from './internal/checkout.service';
     UserModule,
     ServiceabilityModule,
     OrderModule,
+    InventoryModule,
   ],
   controllers: [CheckoutController],
   providers: [CheckoutService],

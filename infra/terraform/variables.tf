@@ -132,3 +132,9 @@ variable "allow_dev_login" {
   type        = bool
   default     = true
 }
+
+variable "reservation_sweep_schedule" {
+  description = "Cron for releasing expired stock holds. §2.5 asks for every 60 seconds."
+  type        = string
+  default     = "* * * * *"
+}

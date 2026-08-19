@@ -122,3 +122,103 @@ resource "google_cloud_scheduler_job" "sla_sweep" {
 
   depends_on = [google_project_service.required]
 }
+
+# ---------------------------------------------------------------------------
+# Reservation expiry (spec §2.5).
+#
+# Abandoned checkouts are the normal case, not an exception — somebody opens a
+# payment app and never comes back — and each one holds stock no other customer
+# can buy. §2.5 asks for a 60-second sweep.
+#
+# Same shape as the SLA sweep above, which is the point: the job runner was
+# built once in P2.5a and this is the second tenant.
+# ---------------------------------------------------------------------------
+
+resource "google_cloud_run_v2_job" "reservation_sweep" {
+  name     = "${local.name_prefix}-reservation-sweep"
+  location = var.region
+  labels   = local.common_labels
+
+  deletion_protection = false
+
+  template {
+    template {
+      service_account = google_service_account.api.email
+      max_retries     = 0
+      timeout         = "300s"
+
+      containers {
+        image   = var.image != "" ? var.image : var.bootstrap_image
+        command = ["node"]
+        args    = ["packages/api/dist/jobs/reservation-sweep.js"]
+
+        env {
+          name = "DATABASE_URL"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.database_url.secret_id
+              version = "latest"
+            }
+          }
+        }
+
+        env {
+          name  = "NODE_ENV"
+          value = var.node_env
+        }
+
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "512Mi"
+          }
+        }
+      }
+
+      volumes {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [google_sql_database_instance.main.connection_name]
+        }
+      }
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [template[0].template[0].containers[0].image]
+  }
+}
+
+resource "google_cloud_run_v2_job_iam_member" "scheduler_runs_reservation_sweep" {
+  name     = google_cloud_run_v2_job.reservation_sweep.name
+  location = google_cloud_run_v2_job.reservation_sweep.location
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.scheduler.email}"
+}
+
+resource "google_cloud_scheduler_job" "reservation_sweep" {
+  name        = "${local.name_prefix}-reservation-sweep"
+  region      = var.region
+  description = "Releases stock held by checkouts nobody finished (§2.5)"
+
+  schedule  = var.reservation_sweep_schedule
+  time_zone = "Asia/Kolkata"
+
+  attempt_deadline = "320s"
+
+  retry_config {
+    retry_count = 1
+  }
+
+  http_target {
+    http_method = "POST"
+    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.reservation_sweep.name}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.scheduler.email
+      scope                 = "https://www.googleapis.com/auth/cloud-platform"
+    }
+  }
+
+  depends_on = [google_project_service.required]
+}

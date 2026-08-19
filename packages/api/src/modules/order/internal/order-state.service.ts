@@ -24,6 +24,7 @@ import {
 import { and, asc, eq } from 'drizzle-orm';
 import { DATABASE } from '../../../db/db.module';
 import type { Database, Transaction } from '../../../db';
+import { InventoryService } from '../../inventory/contracts';
 import { NotificationService } from '../../notification/contracts';
 import { SlotService } from '../../serviceability/contracts';
 import { order, orderStatusHistory } from '../schema';
@@ -58,6 +59,7 @@ export class OrderStateService {
     @Inject(DATABASE) private readonly db: Database,
     private readonly slots: SlotService,
     private readonly notifications: NotificationService,
+    private readonly inventory: InventoryService,
   ) {}
 
   /**
@@ -244,7 +246,7 @@ export class OrderStateService {
 
   private async applyEffects(
     transition: OrderTransition,
-    updated: { slotInstanceId: string },
+    updated: { id: string; slotInstanceId: string },
     tx: Transaction,
   ): Promise<void> {
     for (const effect of transition.effects ?? []) {
@@ -263,6 +265,24 @@ export class OrderStateService {
               `Could not release slot ${updated.slotInstanceId}: ${String(error)}`,
             );
           });
+          break;
+
+        case TransitionEffect.RELEASE_STOCK:
+          // In the same transaction as the cancellation. Stock held against an
+          // order that no longer exists is unsellable until somebody notices,
+          // and on a shelf of three packets nobody notices in time.
+          await this.inventory.releaseForOrder(
+            updated.id,
+            `Order moved to ${transition.to}`,
+            tx,
+          );
+          break;
+
+        case TransitionEffect.CONSUME_STOCK:
+          // Packed, so the goods physically left the shelf. Holding the
+          // reservation open past this point would mean the count still
+          // included stock that is now in a bag by the door.
+          await this.inventory.consumeForOrder(updated.id, tx);
           break;
       }
     }

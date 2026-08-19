@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AnalyticsModule } from '../analytics/analytics.module';
 import { IdentityModule } from '../identity/identity.module';
+import { InventoryModule } from '../inventory/inventory.module';
 import { NotificationModule } from '../notification/notification.module';
 import { ServiceabilityModule } from '../serviceability/serviceability.module';
 import { VendorModule } from '../vendor/vendor.module';
@@ -39,6 +40,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     AnalyticsModule,
     ServiceabilityModule,
     NotificationModule,
+    InventoryModule,
     VendorModule,
   ],
   controllers: [

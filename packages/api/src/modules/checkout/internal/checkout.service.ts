@@ -7,12 +7,15 @@ import {
 } from '@nestjs/common';
 import {
   PaymentMethod,
+  ReservationOutcome,
   SubstitutionPreference,
   type CartTotals,
+  reservationTtlMinutes,
 } from '@freshkirana/contracts';
 import { DATABASE } from '../../../db/db.module';
 import type { Database } from '../../../db';
 import { CartService, type CartView } from '../../cart/contracts';
+import { InventoryService } from '../../inventory/contracts';
 import { OrderService, VendorOrderFlowService } from '../../order/contracts';
 import {
   ServiceAreaService,
@@ -64,6 +67,7 @@ export class CheckoutService {
     private readonly slots: SlotService,
     private readonly orders: OrderService,
     private readonly vendorFlow: VendorOrderFlowService,
+    private readonly inventory: InventoryService,
   ) {}
 
   /**
@@ -235,6 +239,48 @@ export class CheckoutService {
    * returns the winner's order. Without that, a double tap produces two orders
    * and two places held in a slot that only ever needed one.
    */
+  /**
+   * Holds stock for every line, or refuses the order.
+   *
+   * The refusal is a 409 naming the item, because "something went wrong" on a
+   * checkout screen is indistinguishable from a bug — and this is the most
+   * ordinary thing that can happen to a shop with three packets left.
+   *
+   * The idempotency key is derived from the cart line rather than generated, so
+   * a retried checkout reuses the same key and cannot take a second unit
+   * (rule R4). Two attempts at the same basket are the same intent.
+   */
+  private async reserveEveryLine(
+    cart: CartView,
+    orderId: string,
+    cartId: string,
+    accountId: string,
+    tx: Parameters<Parameters<Database['transaction']>[0]>[0],
+  ): Promise<void> {
+    for (const line of cart.lines) {
+      const result = await this.inventory.reserve(
+        {
+          vendorOfferId: line.vendorOfferId,
+          quantity: line.quantity,
+          idempotencyKey: `cart:${cartId}:line:${line.id}`,
+          orderId,
+          accountId,
+          ttlMinutes: reservationTtlMinutes(PaymentMethod.COD),
+        },
+        tx,
+      );
+
+      if (result.outcome === ReservationOutcome.INSUFFICIENT_STOCK) {
+        throw new ConflictException({
+          message: `${line.name} just sold out. Remove it to continue.`,
+          code: 'INSUFFICIENT_STOCK',
+          vendorOfferId: line.vendorOfferId,
+          name: line.name,
+        });
+      }
+    }
+  }
+
   private async writeOrder(
     accountId: string,
     context: {
@@ -313,6 +359,21 @@ export class CheckoutService {
           },
           tx,
         );
+
+        // Stock is taken here, at checkout initiation (§2.5) — never at
+        // add-to-cart, where one shopper browsing would make an item look out
+        // of stock to everybody else.
+        //
+        // After the order exists so each hold can name it, and inside the same
+        // transaction so losing the race for the last packet unwinds the order
+        // and the slot with it. A hold kept for an order nobody wrote is stock
+        // nobody can sell and nobody can find.
+        await this.reserveEveryLine(cart, created.id, activeCart.id, accountId, tx);
+
+        // COD has no payment step, so the holds are settled the moment the
+        // order exists. Prepaid will leave them HELD until the gateway
+        // answers (P3.2), which is what the TTL and the sweeper are for.
+        await this.inventory.confirmForOrder(created.id, tx);
 
         await this.carts.markConverted(activeCart.id, tx);
 

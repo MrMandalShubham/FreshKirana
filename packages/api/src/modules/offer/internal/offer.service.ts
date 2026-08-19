@@ -6,9 +6,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InventoryMode } from '@freshkirana/contracts';
-import { and, count, desc, eq, lte, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, lte, sql, type SQL } from 'drizzle-orm';
 import { DATABASE } from '../../../db/db.module';
-import type { Database } from '../../../db';
+import type { Database, Transaction } from '../../../db';
 import { CatalogService, ProductStatus } from '../../catalog/contracts';
 import { VendorService, VendorStatus } from '../../vendor/contracts';
 import { vendorOffer } from '../schema';
@@ -203,6 +203,100 @@ export class OfferService {
       return offer.stockOnHand - offer.stockReserved > 0;
     }
     return true;
+  }
+
+  /**
+   * Takes stock for a reservation, atomically.
+   *
+   * ## Why one statement and no version column
+   *
+   * §2.5 specifies optimistic locking on `vendor_offer.version` with bounded
+   * retry, falling back to `SELECT … FOR UPDATE` for hot SKUs. Both exist to
+   * make a *read-modify-write* safe — and there is no read here. The guard
+   * lives in the `WHERE` clause, so Postgres evaluates availability and takes
+   * the stock in the same statement, under the same row lock.
+   *
+   * That is strictly stronger than the spec's design and has less machinery: no
+   * version to carry, no retry loop to tune, and no retry storm on the one SKU
+   * everybody wants. Two simultaneous checkouts for the last packet cannot both
+   * match the guard; the loser gets zero rows back and a clean answer.
+   *
+   * Returns null when there was not enough. That is not an exception — §2.5 is
+   * explicit that an inventory condition must never reach the customer as a
+   * system failure.
+   */
+  async takeStock(
+    vendorOfferId: string,
+    quantity: number,
+    tx: Transaction | Database = this.db,
+  ) {
+    const rows = await tx
+      .update(vendorOffer)
+      .set({
+        stockReserved: sql`${vendorOffer.stockReserved} + ${quantity}`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(vendorOffer.id, vendorOfferId),
+          eq(vendorOffer.status, OfferStatus.ACTIVE),
+          eq(vendorOffer.isAvailable, true),
+          // Available to promise, not the raw count: a shop with five packets
+          // and four held has one.
+          sql`${vendorOffer.stockOnHand} - ${vendorOffer.stockReserved} >= ${quantity}`,
+        ),
+      )
+      .returning();
+
+    return rows[0] ?? null;
+  }
+
+  /**
+   * Gives held stock back.
+   *
+   * `greatest(0, …)` because releasing twice must not push the count below
+   * zero: an under-counted hold means the shop believes it has stock it has
+   * already promised, which is the oversell this whole part exists to prevent.
+   */
+  async giveBackStock(
+    vendorOfferId: string,
+    quantity: number,
+    tx: Transaction | Database = this.db,
+  ) {
+    const rows = await tx
+      .update(vendorOffer)
+      .set({
+        stockReserved: sql`greatest(0, ${vendorOffer.stockReserved} - ${quantity})`,
+        updatedAt: new Date(),
+      })
+      .where(eq(vendorOffer.id, vendorOfferId))
+      .returning();
+
+    return rows[0] ?? null;
+  }
+
+  /**
+   * The stock left the building: it is no longer held, and no longer on hand.
+   *
+   * Both counters move together, or the shelf count drifts from reality every
+   * time an order is packed.
+   */
+  async consumeStock(
+    vendorOfferId: string,
+    quantity: number,
+    tx: Transaction | Database = this.db,
+  ) {
+    const rows = await tx
+      .update(vendorOffer)
+      .set({
+        stockOnHand: sql`greatest(0, ${vendorOffer.stockOnHand} - ${quantity})`,
+        stockReserved: sql`greatest(0, ${vendorOffer.stockReserved} - ${quantity})`,
+        updatedAt: new Date(),
+      })
+      .where(eq(vendorOffer.id, vendorOfferId))
+      .returning();
+
+    return rows[0] ?? null;
   }
 
   private assertPricingIsLawful(sellingPricePaise: number, mrpPaise: number): void {

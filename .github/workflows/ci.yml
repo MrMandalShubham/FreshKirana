@@ -254,6 +254,7 @@ jobs:
       WEB_SERVICE: freshkirana-staging-web
       MIGRATE_JOB: freshkirana-staging-migrate
       SLA_SWEEP_JOB: freshkirana-staging-sla-sweep
+      RESERVATION_SWEEP_JOB: freshkirana-staging-reservation-sweep
 
     steps:
       - uses: actions/checkout@v4
