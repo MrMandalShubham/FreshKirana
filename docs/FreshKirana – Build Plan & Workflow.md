@@ -372,6 +372,7 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | Migrations | Cloud Run job | ✅ |
 | **Scheduled work** (§1.9.4 SLA sweep) | **Cloud Run job + Cloud Scheduler** | ✅ P2.5a |
 | **Reservation expiry** (§2.5, every 60 s) | **Cloud Run job + Cloud Scheduler** | ✅ P3.1 |
+| **Payment reconciliation** (§2.10.3, every 5 min) | **Cloud Run job + Cloud Scheduler** | ✅ P3.2 |
 | Container images | Artifact Registry, built by Cloud Build | ✅ |
 | Secrets | Secret Manager | ✅ |
 | Deploy identity | Workload Identity Federation | ✅ |
@@ -433,7 +434,7 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | 2 | P2.7 | Reorder & Usual Basket | ⏳ | | `46fc3d8` · CI green, deployed · 453 tests · the §0.3 wedge, live · rule R3 satisfied in full |
 | — | 🎯 | **V0 MILESTONE** | ⏳ | | **All 7 parts built and deployed.** Gate: place 5 real orders end to end with a friendly vendor |
 | 3 | P3.1 | Inventory modes & reservations | ⏳ | | `198c29f` · CI green, deployed · 480 tests · oversell closed · sweeper running every minute on GCP |
-| 3 | P3.2 | Payment gateway (UPI) ⚙ | ⏳ | | B3 decided: **Razorpay** · mock-first behind `PaymentProvider` · webhook signature, replay protection, reconciliation |
+| 3 | P3.2 | Payment gateway (UPI) ⚙ | ⏳ | | `d9a6035` · CI green, deployed · 501 tests · B3 decided: **Razorpay** · real signature scheme, replay protection, reconciliation job live on GCP |
 | 3 | P3.3 | Payment failure recovery | ☐ | | |
 | 3 | P3.4 | COD risk & confirmation | ☐ | | |
 | 3 | P3.5 | Refunds & cancellations | ☐ | | |
@@ -555,6 +556,9 @@ Anything consciously postponed during a part, so it resurfaces instead of being 
 | 2026-08-18 | P2.2 | **Store ranking beyond distance.** §2.8.1 ranks serviceable stores by distance, catalog coverage of the customer's usual basket, *and* vendor quality score. The last two do not exist yet — the usual basket is P2.7 and SLA scores are P6.3 — so resolution ranks by distance alone. The signature already takes more. | **P2.7**, then **P6.3** |
 | 2026-08-18 | P2.2 | **Over-commit protection** (§2.8.2): remaining slots auto-close for a store that repeatedly breaches its pack SLA on the day. Needs SLA measurement, which arrives with the vendor flow. `setStatus(CLOSED)` is the mechanism it will call. | **P6.3** |
 | ~~2026-08-18~~ | ~~P2.3~~ | ~~Stock is checked at placement, not reserved.~~ **Closed by P3.1** (`198c29f`): held atomically at checkout, with a TTL sweeper and idempotency keys. | ✅ Done |
+| 2026-08-19 | **P3.2** | **Cards and wallets are refused**, though the gateway supports them. Refunds, settlement and chargebacks are not built for them (§2.10.1 marks them fast-follow) — taking money we cannot service is worse than declining it. | **After P3.5** (refunds) and **P5.3** (settlement) |
+| 2026-08-19 | P3.2 | **The live Razorpay HTTP calls.** Signature verification, the webhook envelope and the whole order flow are real and tested; `createIntent` and `fetchPayment` are mocked because there is no account until B3's contracting completes. | **When B3's account lands** — swap one provider class |
+| 2026-08-19 | P3.2 | **§2.10.3's failure-recovery UX**: retry with another UPI app, smart payment link over WhatsApp, and COD conversion for trusted customers. The state machine and the payment records support all three; the customer-facing flow does not exist. | **P3.3** — that part's entire subject |
 | 2026-08-18 | P2.3 | **Client-supplied idempotency key on `place`.** Reservations now carry keys (P3.1), but the *order* still does not: a retry after success is refused as an empty basket rather than returning the original order. Concurrent double-submits remain safe via the unique index on `cart_id`. | **P3.2**, alongside payment idempotency |
 | 2026-08-18 | P2.3 | **Prepaid payment.** `place` accepts COD only and refuses other methods with a 400 rather than accepting an order nobody can pay for. | **P3.2** |
 | 2026-08-18 | **P2.4** | **Automatic transitions have no trigger yet.** `PENDING_PAYMENT → AWAITING_VENDOR`, `REASSIGNING → AWAITING_VENDOR` and `DELIVERED → COMPLETED` are in the table with no actor but ops, because the things that should fire them — the payment webhook, the reassignment job, the return-window timer — do not exist. Ops can drive them by hand meanwhile. | **P3.2** (payment), **P2.5** (reassignment), **P3.5** (return window) |
