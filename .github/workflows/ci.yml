@@ -77,10 +77,16 @@ jobs:
         run: npm run test
 
       # An e2e suite that silently skips is worse than none: it reads as green.
-      - name: Assert e2e suites actually ran
+      #
+      # This used to run the whole suite a second time and grep for a skip
+      # message. It no longer needs to: `testing/database.ts` skips only when
+      # DATABASE_URL is absent and *throws* when it is set but unreachable, so a
+      # broken database fails the run above rather than quietly passing it.
+      # Asserting the variable is set is all that is left to check.
+      - name: Assert e2e suites could run
         run: |
-          if npm run test 2>&1 | grep -q "SKIPPED - no migrated database"; then
-            echo "::error::e2e suites skipped in CI - the database service is not reachable."
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL is not set, so every e2e suite skipped."
             exit 1
           fi
 

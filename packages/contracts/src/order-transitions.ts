@@ -53,11 +53,23 @@ export const TransitionEffect = {
 
 export type TransitionEffect = (typeof TransitionEffect)[keyof typeof TransitionEffect];
 
+/**
+ * The platform itself, acting without a person.
+ *
+ * Not a `Role`: roles are granted to accounts and checked by the auth guard,
+ * and there is no account here. Keeping it separate means an automated
+ * transition is recorded as SYSTEM in the audit trail rather than borrowing
+ * ops' name — §3.8 wants to know that nobody decided this.
+ */
+export const SYSTEM_ACTOR = 'SYSTEM' as const;
+
+export type TransitionActorRole = Role | typeof SYSTEM_ACTOR;
+
 export interface OrderTransition {
   from: OrderStatus;
   to: OrderStatus;
   /** Who may trigger it. ADMIN and OPS are added to every row — see below. */
-  actors: readonly Role[];
+  actors: readonly TransitionActorRole[];
   guards?: readonly TransitionGuard[];
   effects?: readonly TransitionEffect[];
   /** Emitted on success (rule R1). */
@@ -74,22 +86,22 @@ export interface OrderTransition {
  * ability to correct state would guarantee an out-of-band `UPDATE` against the
  * database, which is worse — it leaves no audit trail at all (§3.8).
  */
-const OPS: readonly Role[] = [Role.ADMIN, Role.OPS];
+const OPS: readonly TransitionActorRole[] = [Role.ADMIN, Role.OPS];
 
-const VENDOR: readonly Role[] = [Role.VENDOR_OWNER, Role.VENDOR_STAFF];
+const VENDOR: readonly TransitionActorRole[] = [Role.VENDOR_OWNER, Role.VENDOR_STAFF];
 
 const TRANSITIONS: readonly OrderTransition[] = [
   // --- Placement ----------------------------------------------------------
   {
     from: OrderStatus.PENDING_PAYMENT,
     to: OrderStatus.AWAITING_VENDOR,
-    actors: [],
-    note: 'Prepaid, once the gateway confirms (P3.2). COD skips this state.',
+    actors: [SYSTEM_ACTOR],
+    note: 'Prepaid, once the gateway confirms it took the money. COD skips this state entirely.',
   },
   {
     from: OrderStatus.PENDING_PAYMENT,
     to: OrderStatus.CANCELLED,
-    actors: [Role.CUSTOMER],
+    actors: [Role.CUSTOMER, SYSTEM_ACTOR],
     effects: [TransitionEffect.RELEASE_SLOT, TransitionEffect.RELEASE_STOCK],
     event: AnalyticsEvent.ORDER_CANCELLED,
     note: 'Payment failed or timed out. No fee — nothing was ever charged.',
@@ -124,7 +136,7 @@ const TRANSITIONS: readonly OrderTransition[] = [
   {
     from: OrderStatus.REASSIGNING,
     to: OrderStatus.AWAITING_VENDOR,
-    actors: [],
+    actors: [SYSTEM_ACTOR],
     note: 'Offered to another store. Automatic — no human triggers this.',
   },
   {
@@ -252,7 +264,7 @@ const TRANSITIONS: readonly OrderTransition[] = [
   {
     from: OrderStatus.DELIVERED,
     to: OrderStatus.COMPLETED,
-    actors: [],
+    actors: [SYSTEM_ACTOR],
     note: 'Automatic once the return window closes.',
   },
   {
@@ -305,7 +317,10 @@ export function nextStatuses(from: OrderStatus): OrderStatus[] {
 }
 
 /** What *this* role may do next — the buttons a surface should render. */
-export function allowedTransitions(from: OrderStatus, role: Role): OrderTransition[] {
+export function allowedTransitions(
+  from: OrderStatus,
+  role: TransitionActorRole,
+): OrderTransition[] {
   return ORDER_TRANSITIONS.filter(
     (transition) => transition.from === from && transition.actors.includes(role),
   );
@@ -314,7 +329,7 @@ export function allowedTransitions(from: OrderStatus, role: Role): OrderTransiti
 export function isTransitionAllowed(
   from: OrderStatus,
   to: OrderStatus,
-  role: Role,
+  role: TransitionActorRole,
 ): boolean {
   return allowedTransitions(from, role).some((transition) => transition.to === to);
 }

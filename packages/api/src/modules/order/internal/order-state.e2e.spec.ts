@@ -16,32 +16,13 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../../../app.module';
 import { loadEnv } from '../../../config/env';
-import { closeDatabase, createDatabase } from '../../../db';
+import { createDatabase } from '../../../db';
+import { requireDatabase } from '../../../testing/database';
 import type { SlotView } from '../../serviceability/contracts';
 
 loadEnv();
 
-async function databaseIsReachable(): Promise<boolean> {
-  if (!process.env['DATABASE_URL']) return false;
-  try {
-    const db = createDatabase();
-    await db.execute('select 1 from "order".order_status_history limit 1');
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await closeDatabase().catch(() => undefined);
-  }
-}
-
-const dbUp = await databaseIsReachable();
-
-if (!dbUp) {
-  console.warn(
-    '\n  order state machine (e2e) SKIPPED - no migrated database.\n' +
-      '  Run: npm run build && npm run db:migrate\n',
-  );
-}
+const dbUp = await requireDatabase('"order".order_status_history');
 
 /** Its own patch of the map for this run — see the serviceability suite. */
 const STORE = {

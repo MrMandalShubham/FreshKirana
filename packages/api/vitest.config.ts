@@ -26,8 +26,11 @@ export default defineConfig({
 
     // Booting a Nest application and seeding fixtures over a network round trip
     // does not fit in the 10s default.
-    hookTimeout: 60_000,
-    testTimeout: 30_000,
+    hookTimeout: 120_000,
+    // Each e2e test makes several HTTP round trips, each several queries, against
+    // Cloud SQL through the auth proxy. 30s was tight enough that ordinary
+    // latency read as a failure.
+    testTimeout: 60_000,
   },
   plugins: [
     swc.vite({

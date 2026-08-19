@@ -9,6 +9,7 @@ import { CheckoutModule } from './modules/checkout/checkout.module';
 import { CodModule } from './modules/cod/cod.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { OrderModule } from './modules/order/order.module';
+import { PaymentModule } from './modules/payment/payment.module';
 import { PricingModule } from './modules/pricing/pricing.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { OfferModule } from './modules/offer/offer.module';
@@ -46,6 +47,7 @@ import { ObservabilityModule } from './observability/observability.module';
     CheckoutModule,
     CodModule,
     InventoryModule,
+    PaymentModule,
     AdminModule,
   ],
   controllers: [HealthController],

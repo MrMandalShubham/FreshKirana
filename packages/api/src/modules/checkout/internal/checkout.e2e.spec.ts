@@ -22,33 +22,14 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../../../app.module';
 import { loadEnv } from '../../../config/env';
-import { closeDatabase, createDatabase } from '../../../db';
+import { createDatabase } from '../../../db';
+import { requireDatabase } from '../../../testing/database';
 import { CartService } from '../../cart/contracts';
 import { SlotService, type SlotView } from '../../serviceability/contracts';
 
 loadEnv();
 
-async function databaseIsReachable(): Promise<boolean> {
-  if (!process.env['DATABASE_URL']) return false;
-  try {
-    const db = createDatabase();
-    await db.execute('select 1 from "order"."order" limit 1');
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await closeDatabase().catch(() => undefined);
-  }
-}
-
-const dbUp = await databaseIsReachable();
-
-if (!dbUp) {
-  console.warn(
-    '\n  checkout (e2e) SKIPPED - no migrated database.\n' +
-      '  Run: npm run build && npm run db:migrate\n',
-  );
-}
+const dbUp = await requireDatabase('"order"."order"');
 
 /**
  * Its own patch of the map, for this run only — see the note in the
@@ -610,7 +591,10 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
       expect(JSON.stringify(res.body)).toContain('CART_EMPTY');
     });
 
-    it('refuses prepaid, which has no gateway yet', async () => {
+    it('refuses a method nothing downstream can service', async () => {
+      // UPI works from P3.2. Cards and wallets are fast-follow (§2.10.1): the
+      // gateway supports them, but refunds, settlement and chargebacks are not
+      // built for them — taking money we cannot service is worse than refusing.
       await resetCart();
       await addToCart(offerId, 1);
       const slot = await bookableSlot(vendorId);
@@ -619,7 +603,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
         .send({
           addressId,
           slotInstanceId: slot.id,
-          paymentMethod: PaymentMethod.UPI_INTENT,
+          paymentMethod: PaymentMethod.CARD,
         })
         .expect(400);
     });

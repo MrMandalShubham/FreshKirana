@@ -4,7 +4,7 @@ import { Role, ScopeType, hasRoleAtVendor, type Principal } from '@freshkirana/c
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../../../app.module';
-import { closeDatabase, createDatabase } from '../../../db';
+import { requireDatabase } from '../../../testing/database';
 import { loadEnv } from '../../../config/env';
 import { AccountRepository } from './account.repository';
 import { SEED_VENDOR_A, SEED_VENDOR_B } from './dev-auth.service';
@@ -18,27 +18,8 @@ loadEnv();
  * running locally, they skip with a clear reason — unit tests stay runnable on
  * any machine. CI always provides the database, so they always execute there.
  */
-async function databaseIsReachable(): Promise<boolean> {
-  if (!process.env['DATABASE_URL']) return false;
-  try {
-    const db = createDatabase();
-    await db.execute('select 1 from identity.account limit 1');
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await closeDatabase().catch(() => undefined);
-  }
-}
 
-const dbUp = await databaseIsReachable();
-
-if (!dbUp) {
-  console.warn(
-    '\n  auth (e2e) SKIPPED - no migrated database.\n' +
-      '  Run: npm run db:up && npm run build && npm run db:migrate\n',
-  );
-}
+const dbUp = await requireDatabase('identity.account');
 
 /**
  * End-to-end authentication and authorisation (spec §3.2).

@@ -1,31 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { loadEnv } from '../config/env';
-import { closeDatabase, createDatabase } from '../db';
+import { requireDatabase } from '../testing/database';
 import { runSlaSweep } from './sla-sweep';
 
 loadEnv();
 
-async function databaseIsReachable(): Promise<boolean> {
-  if (!process.env['DATABASE_URL']) return false;
-  try {
-    const db = createDatabase();
-    await db.execute('select 1 from "order"."order" limit 1');
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await closeDatabase().catch(() => undefined);
-  }
-}
-
-const dbUp = await databaseIsReachable();
-
-if (!dbUp) {
-  console.warn(
-    '\n  SLA sweep job (e2e) SKIPPED - no migrated database.\n' +
-      '  Run: npm run build && npm run db:migrate\n',
-  );
-}
+const dbUp = await requireDatabase('"order"."order"');
 
 /**
  * The job entrypoint, run exactly as Cloud Scheduler runs it.

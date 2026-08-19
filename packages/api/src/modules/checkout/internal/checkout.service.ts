@@ -7,15 +7,18 @@ import {
 } from '@nestjs/common';
 import {
   PaymentMethod,
+  type PaymentIntent,
   ReservationOutcome,
   SubstitutionPreference,
   type CartTotals,
+  needsGateway,
   reservationTtlMinutes,
 } from '@freshkirana/contracts';
 import { DATABASE } from '../../../db/db.module';
 import type { Database } from '../../../db';
 import { CartService, type CartView } from '../../cart/contracts';
 import { InventoryService } from '../../inventory/contracts';
+import { PaymentService } from '../../payment/contracts';
 import { OrderService, VendorOrderFlowService } from '../../order/contracts';
 import {
   ServiceAreaService,
@@ -68,6 +71,7 @@ export class CheckoutService {
     private readonly orders: OrderService,
     private readonly vendorFlow: VendorOrderFlowService,
     private readonly inventory: InventoryService,
+    private readonly payments: PaymentService,
   ) {}
 
   /**
@@ -177,11 +181,15 @@ export class CheckoutService {
    * asked to send a smaller one.
    */
   async place(accountId: string, input: PlaceOrderInput) {
-    const method = input.paymentMethod ?? PaymentMethod.COD;
-    if (method !== PaymentMethod.COD) {
-      // Prepaid arrives with the gateway in P3.2. Refusing plainly beats
-      // accepting an order nobody can pay for.
-      throw new BadRequestException('Only cash on delivery is available right now');
+    const method = (input.paymentMethod ?? PaymentMethod.COD) as PaymentMethod;
+
+    // Cards and wallets are fast-follow (§2.10.1): the gateway supports them,
+    // but nothing downstream — refunds, settlement, chargebacks — is built for
+    // them yet. Refusing plainly beats taking money we cannot service.
+    if (method === PaymentMethod.CARD || method === PaymentMethod.WALLET) {
+      throw new BadRequestException(
+        'Only UPI and cash on delivery are available right now',
+      );
     }
 
     const activeCart = await this.carts.findActive({ accountId });
@@ -212,21 +220,27 @@ export class CheckoutService {
       cart.substitutionPreference ??
       SubstitutionPreference.AUTO_SUBSTITUTE;
 
-    const orderId = await this.writeOrder(accountId, {
+    const { orderId, intent } = await this.writeOrder(accountId, {
       cart,
       cartId: activeCart.id,
       address,
       slot,
       substitutionPreference,
+      method,
     });
 
-    // Outside the transaction, deliberately. A messaging outage must not undo
-    // an order: the store not hearing about it is recoverable — the §1.9.4
-    // sweep chases it — while an order that does not exist is not. `send`
-    // never throws, and this is not awaited into the response.
-    void this.vendorFlow.announceNewOrder(orderId);
+    // Only once the money is certain. Telling a store to start packing a
+    // prepaid order before the gateway confirms is how a failed payment
+    // becomes a shop's loss — for prepaid the announcement moves to capture.
+    if (!needsGateway(method)) {
+      // Outside the transaction, deliberately. A messaging outage must not undo
+      // an order: the store not hearing about it is recoverable — the §1.9.4
+      // sweep chases it — while an order that does not exist is not.
+      void this.vendorFlow.announceNewOrder(orderId);
+    }
 
-    return this.orders.findForAccount(accountId, orderId);
+    const order = await this.orders.findForAccount(accountId, orderId);
+    return intent ? { ...order, payment: intent } : order;
   }
 
   /**
@@ -255,6 +269,7 @@ export class CheckoutService {
     orderId: string,
     cartId: string,
     accountId: string,
+    method: PaymentMethod,
     tx: Parameters<Parameters<Database['transaction']>[0]>[0],
   ): Promise<void> {
     for (const line of cart.lines) {
@@ -265,7 +280,7 @@ export class CheckoutService {
           idempotencyKey: `cart:${cartId}:line:${line.id}`,
           orderId,
           accountId,
-          ttlMinutes: reservationTtlMinutes(PaymentMethod.COD),
+          ttlMinutes: reservationTtlMinutes(method),
         },
         tx,
       );
@@ -289,100 +304,129 @@ export class CheckoutService {
       address: Awaited<ReturnType<AddressService['get']>>;
       slot: SlotView;
       substitutionPreference: string;
+      method: PaymentMethod;
     },
-  ): Promise<string> {
-    const { cart, address, slot, substitutionPreference } = context;
+  ): Promise<{ orderId: string; intent: PaymentIntent | null }> {
+    const { cart, address, slot, substitutionPreference, method } = context;
     const activeCart = { id: context.cartId };
 
+    // Set inside the transaction and read after it: the caller needs the
+    // gateway handle to hand to the customer's app.
+    let intent: PaymentIntent | null = null;
+
     try {
-      return await this.db.transaction(async (tx) => {
-        // Throws if the slot filled between the preview and now — which is
-        // exactly the race this ordering exists to lose safely, because nothing
-        // has been written yet.
-        await this.slots.book(slot.id, tx);
+      return await this.db
+        .transaction(async (tx) => {
+          // Throws if the slot filled between the preview and now — which is
+          // exactly the race this ordering exists to lose safely, because nothing
+          // has been written yet.
+          await this.slots.book(slot.id, tx);
 
-        const created = await this.orders.create(
-          {
+          const created = await this.orders.create(
+            {
+              accountId,
+              vendorId: cart.vendorId!,
+              cartId: activeCart.id,
+              paymentMethod: method,
+              substitutionPreference,
+
+              address: {
+                id: address.id,
+                recipientName: address.recipientName,
+                recipientPhone: address.recipientPhone,
+                line1: address.line1,
+                line2: address.line2,
+                landmark: address.landmark,
+                city: address.city,
+                state: address.state,
+                pincode: address.pincode,
+                latitude: address.latitude,
+                longitude: address.longitude,
+                deliveryNote: address.deliveryNote,
+              },
+
+              slot: {
+                id: slot.id,
+                serviceDate: slot.serviceDate,
+                startsAt: slot.startsAt,
+                endsAt: slot.endsAt,
+              },
+
+              totals: {
+                itemsSubtotalPaise: cart.totals.subtotalPaise,
+                savingsPaise: cart.totals.savingsPaise,
+                deliveryFeePaise: cart.totals.deliveryFeePaise,
+                smallBasketFeePaise: cart.totals.smallBasketFeePaise,
+                packagingFeePaise: cart.totals.packagingFeePaise,
+                grandTotalPaise: cart.totals.grandTotalPaise,
+              },
+
+              lines: cart.lines.map((line) => ({
+                masterProductId: line.masterProductId,
+                vendorOfferId: line.vendorOfferId,
+                name: line.name,
+                slug: line.slug,
+                netQuantity: line.netQuantity,
+                uom: line.uom,
+                isVariableWeight: line.isVariableWeight,
+                hsnCode: line.hsnCode,
+                gstRateBp: line.gstRateBp,
+                quantity: line.quantity,
+                unitPricePaise: line.unitPricePaise,
+                mrpPaise: line.mrpPaise,
+                lineTotalPaise: line.lineTotalPaise,
+                lineMrpTotalPaise: line.lineMrpTotalPaise,
+              })),
+            },
+            tx,
+          );
+
+          // Stock is taken here, at checkout initiation (§2.5) — never at
+          // add-to-cart, where one shopper browsing would make an item look out
+          // of stock to everybody else.
+          //
+          // After the order exists so each hold can name it, and inside the same
+          // transaction so losing the race for the last packet unwinds the order
+          // and the slot with it. A hold kept for an order nobody wrote is stock
+          // nobody can sell and nobody can find.
+          await this.reserveEveryLine(
+            cart,
+            created.id,
+            activeCart.id,
             accountId,
-            vendorId: cart.vendorId!,
-            cartId: activeCart.id,
-            paymentMethod: PaymentMethod.COD,
-            substitutionPreference,
+            method,
+            tx,
+          );
 
-            address: {
-              id: address.id,
-              recipientName: address.recipientName,
-              recipientPhone: address.recipientPhone,
-              line1: address.line1,
-              line2: address.line2,
-              landmark: address.landmark,
-              city: address.city,
-              state: address.state,
-              pincode: address.pincode,
-              latitude: address.latitude,
-              longitude: address.longitude,
-              deliveryNote: address.deliveryNote,
-            },
+          // COD has no payment step, so the holds are settled the moment the
+          // order exists. Prepaid leaves them HELD until the gateway answers —
+          // which is what the TTL and the §2.5 sweeper are for, and why an
+          // abandoned payment returns the stock on its own.
+          if (needsGateway(method)) {
+            intent = await this.payments.start(
+              {
+                orderId: created.id,
+                accountId,
+                amountPaise: cart.totals.grandTotalPaise,
+                method,
+                orderNumber: created.orderNumber,
+                customerPhone: address.recipientPhone,
+              },
+              tx,
+            );
+          } else {
+            await this.inventory.confirmForOrder(created.id, tx);
+          }
 
-            slot: {
-              id: slot.id,
-              serviceDate: slot.serviceDate,
-              startsAt: slot.startsAt,
-              endsAt: slot.endsAt,
-            },
+          await this.carts.markConverted(activeCart.id, tx);
 
-            totals: {
-              itemsSubtotalPaise: cart.totals.subtotalPaise,
-              savingsPaise: cart.totals.savingsPaise,
-              deliveryFeePaise: cart.totals.deliveryFeePaise,
-              smallBasketFeePaise: cart.totals.smallBasketFeePaise,
-              packagingFeePaise: cart.totals.packagingFeePaise,
-              grandTotalPaise: cart.totals.grandTotalPaise,
-            },
-
-            lines: cart.lines.map((line) => ({
-              masterProductId: line.masterProductId,
-              vendorOfferId: line.vendorOfferId,
-              name: line.name,
-              slug: line.slug,
-              netQuantity: line.netQuantity,
-              uom: line.uom,
-              isVariableWeight: line.isVariableWeight,
-              hsnCode: line.hsnCode,
-              gstRateBp: line.gstRateBp,
-              quantity: line.quantity,
-              unitPricePaise: line.unitPricePaise,
-              mrpPaise: line.mrpPaise,
-              lineTotalPaise: line.lineTotalPaise,
-              lineMrpTotalPaise: line.lineMrpTotalPaise,
-            })),
-          },
-          tx,
-        );
-
-        // Stock is taken here, at checkout initiation (§2.5) — never at
-        // add-to-cart, where one shopper browsing would make an item look out
-        // of stock to everybody else.
-        //
-        // After the order exists so each hold can name it, and inside the same
-        // transaction so losing the race for the last packet unwinds the order
-        // and the slot with it. A hold kept for an order nobody wrote is stock
-        // nobody can sell and nobody can find.
-        await this.reserveEveryLine(cart, created.id, activeCart.id, accountId, tx);
-
-        // COD has no payment step, so the holds are settled the moment the
-        // order exists. Prepaid will leave them HELD until the gateway
-        // answers (P3.2), which is what the TTL and the sweeper are for.
-        await this.inventory.confirmForOrder(created.id, tx);
-
-        await this.carts.markConverted(activeCart.id, tx);
-
-        return created.id;
-      });
+          return created.id;
+        })
+        .then((orderId) => ({ orderId, intent }));
     } catch (error) {
       if (isDuplicateCartOrder(error)) {
         const winner = await this.orders.findByCart(activeCart.id);
-        if (winner) return winner.id;
+        if (winner) return { orderId: winner.id, intent: null };
       }
       throw error;
     }

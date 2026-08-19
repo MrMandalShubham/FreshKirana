@@ -53,7 +53,7 @@ None of these block writing code. All of them block go-live, and each has extern
 |---|---|---|---|---|---|---|
 | B1 | **WhatsApp BSP onboarding + Meta business verification + template approval** (§2.12) — your entire vendor operating model depends on this | 4–8 weeks | Week 1 | | | ☐ |
 | B2 | **TRAI DLT registration** (§2.12) — entity, sender ID, per-template. Mandatory for SMS in India | 3–6 weeks | Week 1 | | | ☐ |
-| B3 | **Payment gateway selection + contracting (OD-2)** — must satisfy all six §2.10.2 criteria; **auth/capture with downward-adjusted capture is the binding one** (§1.7.1) | 3–6 weeks | Week 1 | | | ☐ |
+| B3 | ~~Payment gateway selection~~ **decided 2026-08-19: Razorpay.** Contracting and KYC remain. ⚠️ Two §2.10.2 criteria — auth with downward-adjusted capture, and a ≥7-day hold — are **card capabilities that UPI does not have**, from any provider. Variable weight (§1.7.1) therefore captures the estimate and refunds the difference. Confirm **Route availability** on the account, and take **TCS under GST §52 on split settlement** to the CA | 3–6 weeks | Week 1 | | | ◐ |
 | B4 | **Master catalog data sourcing** — see C1 | 8–12 weeks | Week 1 | | | ☐ |
 | B5 | **Pilot vendor recruitment** — 15–25 stores in one pincode (§1.11 P1) | 6–10 weeks | Week 2 | | | ☐ |
 | B6 | **CA + counsel review of §3.7 and §3.6** — tax, invoicing, DPDP | 4–6 weeks round trip | Week 3 | | | ☐ |
@@ -109,7 +109,7 @@ Full table with owners and rationale is §8.1 of the main document. Condensed st
 | ID | Decision | Status |
 |---|---|---|
 | OD-1 | Backend language | ✅ **Closed** — TypeScript / NestJS |
-| OD-2 | Payment gateway | Open → B3 |
+| OD-2 | Payment gateway | **Decided: Razorpay** (2026-08-19) — contracting open under B3 |
 | OD-3 | WhatsApp BSP | Open → B1 |
 | OD-4 | 3PL aggregator partner | Open, Phase 4 |
 | OD-5 | Cloud provider and region | Open → **A2, blocking** |

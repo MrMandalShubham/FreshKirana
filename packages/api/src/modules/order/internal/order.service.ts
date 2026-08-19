@@ -6,6 +6,7 @@ import {
   PaymentStatus,
   formatOrderNumber,
   istDateKey,
+  needsGateway,
   taxWithinInclusivePaise,
 } from '@freshkirana/contracts';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
@@ -103,9 +104,12 @@ export class OrderService {
         cartId: input.cartId,
 
         // COD skips PENDING_PAYMENT entirely: there is no payment to wait for,
-        // so the store hears about it immediately (§2.6.1, §2.6.2). The order
-        // sits at payment PENDING until the rider collects.
-        status: OrderStatus.AWAITING_VENDOR,
+        // so the store hears about it immediately (§2.6.1, §2.6.2). Prepaid
+        // waits — telling a store to start packing before the money arrives is
+        // how a gateway failure becomes a shop's loss.
+        status: needsGateway(input.paymentMethod)
+          ? OrderStatus.PENDING_PAYMENT
+          : OrderStatus.AWAITING_VENDOR,
         paymentStatus: PaymentStatus.PENDING,
         paymentMethod: input.paymentMethod,
         substitutionPreference: input.substitutionPreference,

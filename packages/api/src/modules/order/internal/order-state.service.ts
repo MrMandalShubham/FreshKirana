@@ -13,7 +13,7 @@ import {
   customerTemplateFor,
   type OrderStatus,
   type OrderTransition,
-  type Role,
+  type TransitionActorRole,
   TransitionEffect,
   TransitionGuard,
   allowedTransitions,
@@ -31,7 +31,7 @@ import { order, orderStatusHistory } from '../schema';
 
 export interface TransitionActor {
   accountId: string | null;
-  role: Role;
+  role: TransitionActorRole;
 }
 
 export interface TransitionOptions {
@@ -205,7 +205,7 @@ export class OrderStateService {
    * the alternative is rendering every button and letting the server say no,
    * which teaches people that the app is broken.
    */
-  nextFor(status: OrderStatus, role: Role) {
+  nextFor(status: OrderStatus, role: TransitionActorRole) {
     return allowedTransitions(status, role).map((transition) => ({
       to: transition.to,
       requiresReason: (transition.guards ?? []).includes(TransitionGuard.REASON_REQUIRED),

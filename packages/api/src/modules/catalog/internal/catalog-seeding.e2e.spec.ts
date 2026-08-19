@@ -6,32 +6,13 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../../../app.module';
 import { loadEnv } from '../../../config/env';
-import { closeDatabase, createDatabase } from '../../../db';
+import { createDatabase } from '../../../db';
+import { requireDatabase } from '../../../testing/database';
 import type { ImportReport } from './catalog-import.service';
 
 loadEnv();
 
-async function databaseIsReachable(): Promise<boolean> {
-  if (!process.env['DATABASE_URL']) return false;
-  try {
-    const db = createDatabase();
-    await db.execute('select 1 from catalog.product_request limit 1');
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await closeDatabase().catch(() => undefined);
-  }
-}
-
-const dbUp = await databaseIsReachable();
-
-if (!dbUp) {
-  console.warn(
-    '\n  catalog seeding (e2e) SKIPPED - no migrated database.\n' +
-      '  Run: npm run build && npm run db:migrate\n',
-  );
-}
+const dbUp = await requireDatabase('catalog.product_request');
 
 describe.skipIf(!dbUp)('catalog seeding (e2e)', () => {
   let app: INestApplication;

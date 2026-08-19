@@ -17,6 +17,9 @@ export type { InboundOutcome } from './internal/vendor-order-flow.service';
 export { UsualBasketService } from './internal/usual-basket.service';
 export type { BuyAgainItem } from './internal/usual-basket.service';
 
+export { PaymentFlowService } from './internal/payment-flow.service';
+export type { WebhookOutcome } from './internal/payment-flow.service';
+
 export { OrderStateService } from './internal/order-state.service';
 export type { TransitionActor, TransitionOptions } from './internal/order-state.service';
 

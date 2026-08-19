@@ -3,6 +3,7 @@ import { AnalyticsModule } from '../analytics/analytics.module';
 import { IdentityModule } from '../identity/identity.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { NotificationModule } from '../notification/notification.module';
+import { PaymentModule } from '../payment/payment.module';
 import { ServiceabilityModule } from '../serviceability/serviceability.module';
 import { VendorModule } from '../vendor/vendor.module';
 import { OrderStateService } from './internal/order-state.service';
@@ -12,6 +13,11 @@ import {
   UsualBasketController,
   VendorOrderController,
 } from './internal/order.controller';
+import { PaymentFlowService } from './internal/payment-flow.service';
+import {
+  PaymentReconciliationController,
+  PaymentWebhookController,
+} from './internal/payment-webhook.controller';
 import { OrderService } from './internal/order.service';
 import { UsualBasketService } from './internal/usual-basket.service';
 import {
@@ -41,6 +47,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     ServiceabilityModule,
     NotificationModule,
     InventoryModule,
+    PaymentModule,
     VendorModule,
   ],
   controllers: [
@@ -51,13 +58,22 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     WhatsAppWebhookController,
     VendorSlaController,
     VendorMessagesController,
+    PaymentWebhookController,
+    PaymentReconciliationController,
   ],
   providers: [
     OrderService,
     OrderStateService,
     VendorOrderFlowService,
     UsualBasketService,
+    PaymentFlowService,
   ],
-  exports: [OrderService, OrderStateService, VendorOrderFlowService, UsualBasketService],
+  exports: [
+    OrderService,
+    OrderStateService,
+    VendorOrderFlowService,
+    UsualBasketService,
+    PaymentFlowService,
+  ],
 })
 export class OrderModule {}

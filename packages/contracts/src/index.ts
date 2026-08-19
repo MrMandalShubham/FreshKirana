@@ -18,6 +18,7 @@ export * from './notifications';
 export * from './order-status';
 export * from './order-transitions';
 export * from './payment-status';
+export * from './payments';
 export * from './roles';
 export * from './search';
 export * from './serviceability';

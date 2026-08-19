@@ -15,7 +15,10 @@ assertAuthModeIsSafe();
 const DEFAULT_PORT = 3000;
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  // `rawBody` keeps the untouched request bytes available alongside the parsed
+  // body. The payment webhook's signature is computed over those bytes, and a
+  // re-serialised JSON body can differ in whitespace and key order (§2.10.2).
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.useGlobalPipes(
     new ValidationPipe({

@@ -4,6 +4,7 @@ import { CartModule } from '../cart/cart.module';
 import { IdentityModule } from '../identity/identity.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { OrderModule } from '../order/order.module';
+import { PaymentModule } from '../payment/payment.module';
 import { ServiceabilityModule } from '../serviceability/serviceability.module';
 import { UserModule } from '../user/user.module';
 import { CheckoutController } from './internal/checkout.controller';
@@ -27,6 +28,7 @@ import { CheckoutService } from './internal/checkout.service';
     ServiceabilityModule,
     OrderModule,
     InventoryModule,
+    PaymentModule,
   ],
   controllers: [CheckoutController],
   providers: [CheckoutService],
