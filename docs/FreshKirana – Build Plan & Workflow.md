@@ -371,6 +371,7 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | Database | Cloud SQL (PostgreSQL 16 + PostGIS) | ✅ |
 | Migrations | Cloud Run job | ✅ |
 | **Scheduled work** (§1.9.4 SLA sweep) | **Cloud Run job + Cloud Scheduler** | ✅ P2.5a |
+| **Reservation expiry** (§2.5, every 60 s) | **Cloud Run job + Cloud Scheduler** | ✅ P3.1 |
 | Container images | Artifact Registry, built by Cloud Build | ✅ |
 | Secrets | Secret Manager | ✅ |
 | Deploy identity | Workload Identity Federation | ✅ |
@@ -431,7 +432,7 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | 2 | P2.6 | Order tracking **+ customer ordering screens** | ⏳ | | `b68995e` · CI green, deployed · 421 tests · timeline, notifications, and the cart/checkout/orders UI that P2.1–P2.3 left as API-only |
 | 2 | P2.7 | Reorder & Usual Basket | ⏳ | | `46fc3d8` · CI green, deployed · 453 tests · the §0.3 wedge, live · rule R3 satisfied in full |
 | — | 🎯 | **V0 MILESTONE** | ⏳ | | **All 7 parts built and deployed.** Gate: place 5 real orders end to end with a friendly vendor |
-| 3 | P3.1 | Inventory modes & reservations | ☐ | | |
+| 3 | P3.1 | Inventory modes & reservations | ⏳ | | `198c29f` · CI green, deployed · 480 tests · oversell closed · sweeper running every minute on GCP |
 | 3 | P3.2 | Payment gateway ⚙ | ☐ | | Needs B3 |
 | 3 | P3.3 | Payment failure recovery | ☐ | | |
 | 3 | P3.4 | COD risk & confirmation | ☐ | | |
@@ -511,6 +512,11 @@ Record every decision made during the build that isn't already in the spec. This
 | 2026-08-18 | P2.5 | The webhook is **idempotent on the provider's message id** | Providers retry; that is documented behaviour, not an edge case. "Accept" applied twice looks harmless right up until the button is "cancel" |
 | 2026-08-18 | P2.5 | An SLA breach goes **`AWAITING_VENDOR → REASSIGNING → CANCELLED`**, not straight to cancelled | Keeps "the store ignored us" distinguishable from "the customer changed their mind" in the audit trail, which is what §6.4 vendor scoring reads |
 | 2026-08-18 | P2.5 | The WhatsApp flow lives in **`order`**, not `notification` | The obvious home closes a cycle — and not a lint one: the module that talks to a messaging provider would also have to know what an order status means. The dependency runs one way, `order → notification` |
+| 2026-08-19 | **P3.1** | **One guarded `UPDATE`, and no `version` column** — deviating from §2.5's optimistic locking with bounded retry | Both the version column and the `SELECT … FOR UPDATE` fallback exist to make a *read-modify-write* safe, and there is no read: the guard lives in the `WHERE` clause, so Postgres checks availability and takes the stock in one statement under one row lock. Strictly stronger, with no version to carry, no retry loop to tune, and no retry storm on the one SKU everybody wants |
+| 2026-08-19 | P3.1 | Stock is reserved **at checkout, never at add-to-cart** (§2.5) | A cart hold makes one shopper browsing look like stock nobody else can have. §2.5 calls it the most common way to get this wrong |
+| 2026-08-19 | P3.1 | The idempotency key is **derived from the cart line**, not generated (rule R4) | A retried checkout reuses the same key and cannot take a second unit — two attempts at the same basket are the same intent. Enforced by a unique index, because a check-then-insert lets two concurrent retries both pass |
+| 2026-08-19 | P3.1 | The `reservation` table is the **ledger behind `stock_reserved`** | A counter says how much is held and nothing about why, so a counter that drifts cannot be reconciled against anything. One row per hold, attributable to an order |
+| 2026-08-19 | P3.1 | Stock is **consumed at `PACKED`**, not at delivery | That is when the goods physically leave the shelf. Both counters move together, or the shelf count drifts on every order |
 | 2026-08-19 | **P2.7** | **The usual basket is a SQL heuristic, and stays out of the AI backlog** | §2.17.1 guardrail 1. Frequency × median repurchase interval is the whole model, and it is enough. Filing it under "AI, later" launches a generic marketplace |
 | 2026-08-19 | P2.7 | **Median, not mean**, for the repurchase interval; two purchases minimum; dueness capped at 3× | Grocery histories are full of holidays and festival bulk-buys, and one drags an average far enough to ruin the prediction. A one-off in the basket every week teaches shoppers to distrust the list, and an abandoned product must not outrank the weekly atta by being enormously overdue |
 | 2026-08-19 | P2.7 | Every predicted item **carries its reason** — "usually every 7 days, last bought 8 days ago" | A bare list has to be audited item by item, which costs more attention than shopping would have |
@@ -540,8 +546,8 @@ Anything consciously postponed during a part, so it resurfaces instead of being 
 | 2026-08-18 | P2.2 | **Geocoding provider.** Addresses take a latitude and longitude from the client. Turning a typed address into a pin — and validating that the pin matches the text — needs a paid API (Google Maps, MapmyIndia). Until then the PWA must collect the pin from a map or the device, and a shopper who skips that has no serviceable address. | **Before pilot** — it is a program cost, not a build task |
 | 2026-08-18 | P2.2 | **Store ranking beyond distance.** §2.8.1 ranks serviceable stores by distance, catalog coverage of the customer's usual basket, *and* vendor quality score. The last two do not exist yet — the usual basket is P2.7 and SLA scores are P6.3 — so resolution ranks by distance alone. The signature already takes more. | **P2.7**, then **P6.3** |
 | 2026-08-18 | P2.2 | **Over-commit protection** (§2.8.2): remaining slots auto-close for a store that repeatedly breaches its pack SLA on the day. Needs SLA measurement, which arrives with the vendor flow. `setStatus(CLOSED)` is the mechanism it will call. | **P6.3** |
-| 2026-08-18 | **P2.3** | ⚠️ **Stock is checked at placement, not reserved.** Availability is confirmed as the order is written, which closes the ordinary case but not the race: two shoppers can still both take the last unit. Slot capacity *is* reserved atomically; product stock is not. | **P3.1** — this is precisely what that part exists for |
-| 2026-08-18 | P2.3 | **Client-supplied idempotency key.** Concurrent double-submits are safe (unique index on `cart_id`), but a retry *after* success is refused as an empty basket rather than returning the original order. A key on the request would make the retry return the order. | **P3.1**, which introduces idempotency keys for reservations |
+| ~~2026-08-18~~ | ~~P2.3~~ | ~~Stock is checked at placement, not reserved.~~ **Closed by P3.1** (`198c29f`): held atomically at checkout, with a TTL sweeper and idempotency keys. | ✅ Done |
+| 2026-08-18 | P2.3 | **Client-supplied idempotency key on `place`.** Reservations now carry keys (P3.1), but the *order* still does not: a retry after success is refused as an empty basket rather than returning the original order. Concurrent double-submits remain safe via the unique index on `cart_id`. | **P3.2**, alongside payment idempotency |
 | 2026-08-18 | P2.3 | **Prepaid payment.** `place` accepts COD only and refuses other methods with a 400 rather than accepting an order nobody can pay for. | **P3.2** |
 | 2026-08-18 | **P2.4** | **Automatic transitions have no trigger yet.** `PENDING_PAYMENT → AWAITING_VENDOR`, `REASSIGNING → AWAITING_VENDOR` and `DELIVERED → COMPLETED` are in the table with no actor but ops, because the things that should fire them — the payment webhook, the reassignment job, the return-window timer — do not exist. Ops can drive them by hand meanwhile. | **P3.2** (payment), **P2.5** (reassignment), **P3.5** (return window) |
 | 2026-08-18 | P2.4 | **COD payment status stays `PENDING` after delivery.** §2.6.2 says a COD order moves to `COD_COLLECTED` when the rider takes the cash; that transition belongs to the cod module and its reconciliation. | **P3.4** |
