@@ -222,3 +222,102 @@ resource "google_cloud_scheduler_job" "reservation_sweep" {
 
   depends_on = [google_project_service.required]
 }
+
+# ---------------------------------------------------------------------------
+# Payment reconciliation (spec §2.10.3, §2.11.3).
+#
+# Webhooks are lost — a deploy restarts an instance mid-request, a network
+# blips, a gateway has an incident. The result is an order in PENDING_PAYMENT
+# while the customer's money is already gone, and nothing about it looks like an
+# error from the inside. That is the worst failure this system has, and it is
+# silent, so something has to go and ask.
+# ---------------------------------------------------------------------------
+
+resource "google_cloud_run_v2_job" "payment_reconciliation" {
+  name     = "${local.name_prefix}-payment-reconciliation"
+  location = var.region
+  labels   = local.common_labels
+
+  deletion_protection = false
+
+  template {
+    template {
+      service_account = google_service_account.api.email
+      max_retries     = 0
+      timeout         = "300s"
+
+      containers {
+        image   = var.image != "" ? var.image : var.bootstrap_image
+        command = ["node"]
+        args    = ["packages/api/dist/jobs/payment-reconciliation.js"]
+
+        env {
+          name = "DATABASE_URL"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.database_url.secret_id
+              version = "latest"
+            }
+          }
+        }
+
+        env {
+          name  = "NODE_ENV"
+          value = var.node_env
+        }
+
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "512Mi"
+          }
+        }
+      }
+
+      volumes {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [google_sql_database_instance.main.connection_name]
+        }
+      }
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [template[0].template[0].containers[0].image]
+  }
+}
+
+resource "google_cloud_run_v2_job_iam_member" "scheduler_runs_payment_reconciliation" {
+  name     = google_cloud_run_v2_job.payment_reconciliation.name
+  location = google_cloud_run_v2_job.payment_reconciliation.location
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.scheduler.email}"
+}
+
+resource "google_cloud_scheduler_job" "payment_reconciliation" {
+  name        = "${local.name_prefix}-payment-reconciliation"
+  region      = var.region
+  description = "Finds payments the webhook never reported (§2.10.3)"
+
+  schedule  = var.payment_reconciliation_schedule
+  time_zone = "Asia/Kolkata"
+
+  attempt_deadline = "320s"
+
+  retry_config {
+    retry_count = 1
+  }
+
+  http_target {
+    http_method = "POST"
+    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.payment_reconciliation.name}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.scheduler.email
+      scope                 = "https://www.googleapis.com/auth/cloud-platform"
+    }
+  }
+
+  depends_on = [google_project_service.required]
+}

@@ -138,3 +138,9 @@ variable "reservation_sweep_schedule" {
   type        = string
   default     = "* * * * *"
 }
+
+variable "payment_reconciliation_schedule" {
+  description = "Cron for recovering payments whose webhook never arrived. Every five minutes: fast enough that a customer is not left waiting, slow enough not to hammer the gateway."
+  type        = string
+  default     = "*/5 * * * *"
+}

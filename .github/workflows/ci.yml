@@ -261,6 +261,7 @@ jobs:
       MIGRATE_JOB: freshkirana-staging-migrate
       SLA_SWEEP_JOB: freshkirana-staging-sla-sweep
       RESERVATION_SWEEP_JOB: freshkirana-staging-reservation-sweep
+      PAYMENT_RECONCILIATION_JOB: freshkirana-staging-payment-reconciliation
 
     steps:
       - uses: actions/checkout@v4
