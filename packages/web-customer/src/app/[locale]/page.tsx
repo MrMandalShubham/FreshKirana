@@ -1,6 +1,10 @@
 import Link from 'next/link';
+import { BuyAgain } from '@/components/BuyAgain';
 import { BottomNav, Header, LocaleSwitch } from '@/components/Chrome';
+import { UsualBasket } from '@/components/UsualBasket';
 import { fetchCategories } from '@/lib/api';
+import { fetchBuyAgain, fetchUsualBasket } from '@/lib/orders';
+import { isSignedIn } from '@/lib/session';
 import { type Locale, getDictionary, localisedName } from '@/i18n/dictionaries';
 
 /**
@@ -19,7 +23,15 @@ export default async function HomePage({
 }) {
   const { locale } = await params;
   const t = getDictionary(locale);
-  const categories = await fetchCategories();
+  const signedIn = await isSignedIn();
+
+  // Both are per-shopper, so neither exists for a visitor who has not signed
+  // in. Asking anyway would be two guaranteed 401s on every home render.
+  const [categories, usual, buyAgain] = await Promise.all([
+    fetchCategories(),
+    signedIn ? fetchUsualBasket() : Promise.resolve([]),
+    signedIn ? fetchBuyAgain() : Promise.resolve([]),
+  ]);
 
   return (
     <>
@@ -31,23 +43,27 @@ export default async function HomePage({
       <main id="main" className="container">
         {/*
           "Your usual basket" and "Buy again" sit ABOVE categories, per §4.2 and
-          §0.3 — they are the differentiator, not a convenience. They stay as
-          placeholders until order history exists (P2.7), but the position is
-          reserved now so the page is never redesigned around them later.
+          §0.3 — they are the differentiator, not a convenience. Both hide
+          themselves when empty rather than showing an apology: a new customer
+          should see a shop, not two empty promises.
         */}
-        <section className="section" aria-labelledby="usual">
-          <h2 className="section-title" id="usual">
-            {t.usualBasket}
-          </h2>
-          <p className="empty">{t.comingSoon}</p>
-        </section>
+        {usual.length > 0 && (
+          <section className="section" aria-labelledby="usual">
+            <h2 className="section-title" id="usual">
+              {t.usualBasket}
+            </h2>
+            <UsualBasket items={usual} locale={locale} />
+          </section>
+        )}
 
-        <section className="section" aria-labelledby="again">
-          <h2 className="section-title" id="again">
-            {t.buyAgain}
-          </h2>
-          <p className="empty">{t.comingSoon}</p>
-        </section>
+        {buyAgain.length > 0 && (
+          <section className="section" aria-labelledby="again">
+            <h2 className="section-title" id="again">
+              {t.buyAgain}
+            </h2>
+            <BuyAgain items={buyAgain} locale={locale} />
+          </section>
+        )}
 
         <section className="section" aria-labelledby="cats">
           <h2 className="section-title" id="cats">

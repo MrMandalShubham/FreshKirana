@@ -144,6 +144,14 @@ const en = {
     'Real sign-in with an OTP is not built yet. This continues as a test customer.',
   continueAsTestCustomer: 'Continue as a test customer',
   signInUnavailable: 'Sign-in is not available in this environment yet.',
+
+  // --- Usual basket and buy again (P2.7) ---
+  addAllToCart: 'Add all {count} to basket',
+  someItemsSkipped:
+    '{count} could not be added — the shop is out, or stocks them elsewhere.',
+  usuallyEvery: 'Usually every {interval} days · last bought {days} days ago',
+  boughtBefore: 'Bought {days} days ago',
+  boughtTimes: 'bought {count} times',
 } as const;
 
 /**
@@ -276,6 +284,12 @@ const hi: Dictionary = {
     'ओटीपी से असली साइन इन अभी नहीं बना है। यह टेस्ट ग्राहक के रूप में आगे बढ़ता है।',
   continueAsTestCustomer: 'टेस्ट ग्राहक के रूप में जारी रखें',
   signInUnavailable: 'इस वातावरण में साइन इन अभी उपलब्ध नहीं है।',
+
+  addAllToCart: 'सभी {count} टोकरी में डालें',
+  someItemsSkipped: '{count} नहीं जोड़ पाए — दुकान में खत्म है, या कहीं और मिलता है।',
+  usuallyEvery: 'आमतौर पर हर {interval} दिन · पिछली बार {days} दिन पहले',
+  boughtBefore: '{days} दिन पहले खरीदा',
+  boughtTimes: '{count} बार खरीदा',
 };
 
 const DICTIONARIES: Record<Locale, Dictionary> = { en, hi };

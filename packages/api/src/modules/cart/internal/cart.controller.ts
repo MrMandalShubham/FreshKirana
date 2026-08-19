@@ -14,7 +14,17 @@ import {
   SubstitutionPreference,
 } from '@freshkirana/contracts';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { AnalyticsService } from '../../analytics/contracts';
 import { CurrentUser, Public } from '../../identity/contracts';
 import { CartService, type CartOwner } from './cart.service';
@@ -22,6 +32,19 @@ import { CartService, type CartOwner } from './cart.service';
 export class AddItemDto {
   @IsString() vendorOfferId!: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) quantity?: number;
+}
+
+export class BulkAddItemDto {
+  @IsString() vendorOfferId!: string;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) quantity?: number;
+}
+
+export class AddManyDto {
+  @IsArray()
+  @ArrayMaxSize(50)
+  @ValidateNested({ each: true })
+  @Type(() => BulkAddItemDto)
+  items!: BulkAddItemDto[];
 }
 
 export class UpdateQuantityDto {
@@ -99,6 +122,40 @@ export class CartController {
     });
 
     return view;
+  }
+
+  /**
+   * One tap, several items — "add my usual basket" (§0.3, §4.2).
+   *
+   * Answers 201 even when some items could not be added: the response says what
+   * went in and what did not, because a basket that is nine-tenths right is a
+   * success the shopper can finish, not a failure.
+   */
+  @Public()
+  @Post('items/bulk')
+  async addMany(
+    @Body() dto: AddManyDto,
+    @Headers('x-cart-token') cartToken?: string,
+    @CurrentUser() principal?: Principal,
+    @Headers('x-session-id') sessionId?: string,
+  ) {
+    const owner = this.ownerFrom(principal, cartToken);
+    const result = await this.cart.addMany(owner, dto.items);
+
+    // Rule R1. This is the §0.3 wedge's conversion metric: how often a
+    // predicted basket is actually taken, and how much of it survives.
+    void this.analytics.emit(AnalyticsEvent.USUAL_BASKET_ACCEPTED, {
+      accountId: principal?.accountId ?? null,
+      anonId: cartToken ?? 'anonymous',
+      sessionId: sessionId ?? 'unknown',
+      properties: {
+        requested: dto.items.length,
+        added: result.added.length,
+        skipped: result.skipped.length,
+      },
+    });
+
+    return result;
   }
 
   @Public()

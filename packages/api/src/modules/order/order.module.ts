@@ -8,9 +8,11 @@ import { OrderStateService } from './internal/order-state.service';
 import {
   OrderController,
   OrderTransitionController,
+  UsualBasketController,
   VendorOrderController,
 } from './internal/order.controller';
 import { OrderService } from './internal/order.service';
+import { UsualBasketService } from './internal/usual-basket.service';
 import {
   VendorMessagesController,
   VendorSlaController,
@@ -41,13 +43,19 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
   ],
   controllers: [
     OrderController,
+    UsualBasketController,
     VendorOrderController,
     OrderTransitionController,
     WhatsAppWebhookController,
     VendorSlaController,
     VendorMessagesController,
   ],
-  providers: [OrderService, OrderStateService, VendorOrderFlowService],
-  exports: [OrderService, OrderStateService, VendorOrderFlowService],
+  providers: [
+    OrderService,
+    OrderStateService,
+    VendorOrderFlowService,
+    UsualBasketService,
+  ],
+  exports: [OrderService, OrderStateService, VendorOrderFlowService, UsualBasketService],
 })
 export class OrderModule {}

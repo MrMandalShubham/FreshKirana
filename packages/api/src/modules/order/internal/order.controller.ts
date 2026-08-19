@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   AnalyticsEvent,
   Audience,
@@ -14,6 +23,7 @@ import { AnalyticsService } from '../../analytics/contracts';
 import { CurrentUser, Roles, VendorScopeGuard } from '../../identity/contracts';
 import { OrderStateService } from './order-state.service';
 import { OrderService } from './order.service';
+import { UsualBasketService } from './usual-basket.service';
 
 export class ListOrdersQueryDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(50) limit?: number;
@@ -234,5 +244,77 @@ export class OrderTransitionController {
       if (held.has(role)) return role;
     }
     return Role.OPS;
+  }
+}
+
+/**
+ * "Your usual basket" and "Buy again" (spec §0.3, §2.17.1, §4.2).
+ *
+ * Its own controller at `/me`, not under `/me/orders`: a prediction is not an
+ * order, and `/me/orders/usual-basket` would sit in the same namespace as
+ * `/me/orders/:orderId` — one rename away from a route that quietly matches an
+ * order id instead.
+ */
+@Controller('me')
+export class UsualBasketController {
+  constructor(
+    private readonly usualBasket: UsualBasketService,
+    private readonly analytics: AnalyticsService,
+  ) {}
+
+  /**
+   * "Your usual basket" — the §0.3 wedge.
+   *
+   * Returns the offers to add, not only the products: the prediction is about
+   * *what* somebody buys, and a basket needs something purchasable. Each comes
+   * back with the reason it was predicted, so the screen can say "about every
+   * 7 days, and it has been 8" rather than presenting a list to be audited.
+   */
+  @Get('usual-basket')
+  async usual(
+    @CurrentUser() principal: Principal,
+    @Headers('x-session-id') sessionId?: string,
+  ) {
+    const prediction = await this.usualBasket.predict(principal.accountId);
+    const offers = await this.usualBasket.lastOffersFor(
+      principal.accountId,
+      prediction.items.map((item) => item.masterProductId),
+    );
+
+    const items = prediction.items
+      .map((item) => {
+        const offer = offers.get(item.masterProductId);
+        return offer ? { ...item, ...offer } : null;
+      })
+      .filter((item) => item !== null);
+
+    // Rule R1. The denominator for USUAL_BASKET_ACCEPTED: a conversion rate
+    // needs to know how often the basket was even shown.
+    void this.analytics.emit(AnalyticsEvent.USUAL_BASKET_SHOWN, {
+      accountId: principal.accountId,
+      anonId: 'account',
+      sessionId: sessionId ?? 'unknown',
+      properties: { itemCount: items.length, strategy: prediction.strategy },
+    });
+
+    return { strategy: prediction.strategy, items };
+  }
+
+  /** "Buy again" — everything bought before, most recent first (§4.2). */
+  @Get('buy-again')
+  async buyAgain(
+    @CurrentUser() principal: Principal,
+    @Headers('x-session-id') sessionId?: string,
+  ) {
+    const items = await this.usualBasket.buyAgain(principal.accountId);
+
+    void this.analytics.emit(AnalyticsEvent.REORDER_CLICKED, {
+      accountId: principal.accountId,
+      anonId: 'account',
+      sessionId: sessionId ?? 'unknown',
+      properties: { itemCount: items.length },
+    });
+
+    return items;
   }
 }

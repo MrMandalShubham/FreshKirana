@@ -4,6 +4,7 @@ import { IdentityModule } from '../identity/identity.module';
 import { VendorModule } from '../vendor/vendor.module';
 import { OfferController } from './internal/offer.controller';
 import { OfferService } from './internal/offer.service';
+import { RuleSubstituteRanker } from './internal/substitute-ranker.service';
 
 /**
  * Offer module — vendor price, stock and availability (spec §2.4.1).
@@ -17,7 +18,7 @@ import { OfferService } from './internal/offer.service';
 @Module({
   imports: [IdentityModule, CatalogModule, VendorModule],
   controllers: [OfferController],
-  providers: [OfferService],
-  exports: [OfferService],
+  providers: [OfferService, RuleSubstituteRanker],
+  exports: [OfferService, RuleSubstituteRanker],
 })
 export class OfferModule {}

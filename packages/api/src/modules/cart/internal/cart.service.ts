@@ -61,6 +61,15 @@ export interface CartLineView {
   isAvailable: boolean;
 }
 
+/** Why an item could not join the basket. */
+export type SkipReason =
+  'DIFFERENT_STORE' | 'OUT_OF_STOCK' | 'NO_LONGER_LISTED' | 'UNAVAILABLE';
+
+export interface SkippedItem {
+  vendorOfferId: string;
+  reason: SkipReason;
+}
+
 export interface CartView {
   id: string;
   vendorId: string | null;
@@ -195,6 +204,53 @@ export class CartService {
 
     await this.touch(current.id);
     return this.render(current.id);
+  }
+
+  /**
+   * Adds several items at once — the one-tap "add my usual basket" (§4.2).
+   *
+   * **Partial success by design.** A basket is pinned to one store (D2), and a
+   * predicted basket is assembled from what somebody bought over months,
+   * possibly at different shops, some of it now out of stock. Refusing the
+   * whole request because item nine is unavailable turns one tap into a puzzle;
+   * silently dropping it means they find out at the door.
+   *
+   * So it adds what it can and *names* what it could not, for the caller to
+   * show. Anything skipped is a thing the shopper may still want to look for.
+   */
+  async addMany(
+    owner: CartOwner,
+    items: ReadonlyArray<{ vendorOfferId: string; quantity?: number }>,
+  ): Promise<{ cart: CartView; added: string[]; skipped: SkippedItem[] }> {
+    this.assertOwner(owner);
+
+    const added: string[] = [];
+    const skipped: SkippedItem[] = [];
+
+    for (const item of items) {
+      try {
+        await this.addItem(owner, item);
+        added.push(item.vendorOfferId);
+      } catch (error) {
+        skipped.push({
+          vendorOfferId: item.vendorOfferId,
+          reason: this.skipReason(error),
+        });
+      }
+    }
+
+    return { cart: await this.view(owner), added, skipped };
+  }
+
+  /** Why one item of a bulk add did not make it, in a word the UI can branch on. */
+  private skipReason(error: unknown): SkipReason {
+    const response = (error as { response?: { code?: string } } | null)?.response;
+    if (response?.code === 'CART_VENDOR_CONFLICT') return 'DIFFERENT_STORE';
+
+    if (error instanceof NotFoundException) return 'NO_LONGER_LISTED';
+    if (error instanceof ConflictException) return 'OUT_OF_STOCK';
+
+    return 'UNAVAILABLE';
   }
 
   async updateQuantity(

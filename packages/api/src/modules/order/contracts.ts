@@ -14,6 +14,9 @@ export type { CreateOrderInput, CreateOrderLineInput } from './internal/order.se
 export { VendorOrderFlowService } from './internal/vendor-order-flow.service';
 export type { InboundOutcome } from './internal/vendor-order-flow.service';
 
+export { UsualBasketService } from './internal/usual-basket.service';
+export type { BuyAgainItem } from './internal/usual-basket.service';
+
 export { OrderStateService } from './internal/order-state.service';
 export type { TransitionActor, TransitionOptions } from './internal/order-state.service';
 

@@ -30,14 +30,25 @@ export class DevAuthService {
     private readonly tokens: TokenService,
   ) {}
 
+  /**
+   * A token for a seeded account holding `role`.
+   *
+   * `phone` asks for a *distinct* account instead of the shared seeded one.
+   * Tests that depend on an account's own history — purchase prediction most of
+   * all — cannot use a customer every other suite is also ordering as, and
+   * working around that in each suite has already cost more than this option.
+   */
   async loginAs(
     role: Role,
     vendorId: string = SEED_VENDOR_A,
+    phone?: string,
   ): Promise<{ token: string; accountId: string; role: Role; vendorId: string | null }> {
     const scopeType = ROLE_SCOPE[role];
     const scopeId = scopeType === ScopeType.VENDOR ? vendorId : null;
 
-    const accountId = await this.ensureAccount(role);
+    const accountId = phone
+      ? await this.ensureAccountWithPhone(phone, role)
+      : await this.ensureAccount(role);
     await this.accounts.grantRole({ accountId, role, scopeType, scopeId });
 
     return {
@@ -83,6 +94,18 @@ export class DevAuthService {
     });
 
     return { token: await this.tokens.issue(accountId), vendorId: SEED_VENDOR_B };
+  }
+
+  private async ensureAccountWithPhone(phone: string, role: Role): Promise<string> {
+    const existing = await this.accounts.findByPhone(phone);
+    if (existing) return existing.id;
+
+    const created = await this.accounts.createAccount({
+      phone,
+      displayName: `${displayNameFor(role)} (${phone})`,
+    });
+
+    return created.id;
   }
 
   private async ensureAccount(role: Role): Promise<string> {

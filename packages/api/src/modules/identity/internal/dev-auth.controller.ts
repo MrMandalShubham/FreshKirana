@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ROLES, type Role } from '@freshkirana/contracts';
-import { IsIn, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsOptional, IsString, Matches } from 'class-validator';
 import { DevAuthService } from './dev-auth.service';
 import { Public } from './decorators';
 
@@ -12,6 +12,16 @@ export class DevLoginDto {
   @IsOptional()
   @IsString()
   vendorId?: string;
+
+  /**
+   * Ask for a distinct account rather than the shared seeded one.
+   *
+   * Needed by tests whose subject is an account's own history — the usual
+   * basket cannot be predicted from a customer every suite is ordering as.
+   */
+  @IsOptional()
+  @Matches(/^\+?[0-9a-zA-Z_-]{6,40}$/)
+  phone?: string;
 }
 
 /**
@@ -41,6 +51,6 @@ export class DevAuthController {
   @Public()
   @Post('login-as')
   async loginAs(@Body() dto: DevLoginDto) {
-    return this.devAuth.loginAs(dto.role, dto.vendorId);
+    return this.devAuth.loginAs(dto.role, dto.vendorId, dto.phone);
   }
 }

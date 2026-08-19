@@ -125,6 +125,32 @@ export interface OrderDetail extends Order {
   history: Array<{ toStatus: string; reason: string | null; createdAt: string }>;
 }
 
+export interface UsualBasketItem {
+  masterProductId: string;
+  vendorOfferId: string;
+  vendorId: string;
+  name: string;
+  quantity: number;
+  netQuantity: number;
+  uom: string;
+  purchaseCount: number;
+  medianIntervalDays: number | null;
+  daysSinceLastPurchase: number;
+  confidence: number;
+}
+
+export interface BuyAgainItem {
+  masterProductId: string;
+  vendorOfferId: string;
+  name: string;
+  slug: string;
+  netQuantity: number;
+  uom: string;
+  quantity: number;
+  timesOrdered: number;
+  lastOrderedAt: string;
+}
+
 export interface InboxItem {
   id: string;
   template: string;
@@ -180,6 +206,23 @@ export async function fetchOrder(orderId: string): Promise<OrderDetail | null> {
     `/me/orders/${encodeURIComponent(orderId)}`,
   );
   return result.data;
+}
+
+/**
+ * The predicted basket (§0.3).
+ *
+ * Empty for anyone not signed in, and for anyone without a history — a new
+ * customer has no usual basket, and inventing one would be worse than an
+ * honest absence.
+ */
+export async function fetchUsualBasket(): Promise<UsualBasketItem[]> {
+  const result = await getPrivateJson<{ items: UsualBasketItem[] }>('/me/usual-basket');
+  return result.data?.items ?? [];
+}
+
+export async function fetchBuyAgain(): Promise<BuyAgainItem[]> {
+  const result = await getPrivateJson<BuyAgainItem[]>('/me/buy-again');
+  return result.data ?? [];
 }
 
 export async function fetchInbox(): Promise<{ items: InboxItem[]; unread: number }> {

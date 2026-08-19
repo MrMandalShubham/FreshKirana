@@ -1,10 +1,16 @@
-﻿import { Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
+import { RuleRiskScorer } from './internal/risk-scorer.service';
 
 /**
- * Cod module - COD risk scoring, confirmation via WhatsApp/IVR/OTP, recovery.
+ * COD module — risk scoring, confirmation, recovery (spec §2.10.4).
  *
- * Owns the `cod` PostgreSQL schema. Other modules may import only from
- * `./contracts`; `./schema` and `./internal` are private (spec 2.1.1, rule R2).
+ * Owns the `cod` PostgreSQL schema, which it does not use yet: the risk
+ * *scorer* is here from P2.7 because rule R3 requires the three §2.17.2
+ * interfaces to exist with rule implementations behind them. The confirmation
+ * flow and its tables arrive with P3.4.
  */
-@Module({})
+@Module({
+  providers: [RuleRiskScorer],
+  exports: [RuleRiskScorer],
+})
 export class CodModule {}

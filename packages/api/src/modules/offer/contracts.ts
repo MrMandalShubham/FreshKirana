@@ -9,5 +9,8 @@
  */
 
 export { OfferService } from './internal/offer.service';
+
+/** The §2.17.2 SubstituteRanker. Rules today, a model on the §2.17.3 trigger. */
+export { RuleSubstituteRanker } from './internal/substitute-ranker.service';
 export { OfferStatus } from './internal/offer.dto';
 export type { VendorOfferRow } from './schema';

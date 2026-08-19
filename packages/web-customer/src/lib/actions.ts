@@ -24,6 +24,8 @@ export interface ActionResult {
   ok: boolean;
   error?: string;
   code?: string;
+  /** Items a bulk add could not take. Reported, never silently dropped. */
+  skipped?: number;
 }
 
 const ok: ActionResult = { ok: true };
@@ -104,6 +106,45 @@ export async function addToCart(formData: FormData): Promise<ActionResult> {
 
   revalidatePath('/', 'layout');
   return ok;
+}
+
+/**
+ * One tap: the whole usual basket into the cart (§0.3, §4.2).
+ *
+ * Two calls rather than one endpoint, deliberately. The cart knows nothing
+ * about prediction and the prediction knows nothing about baskets; joining them
+ * here keeps both modules free of the other, and the shopper still taps once.
+ *
+ * Partial success is a success: a basket that is nine-tenths right is something
+ * they can finish, and the skipped count tells them to go and look for the rest.
+ */
+export async function addUsualBasket(): Promise<ActionResult> {
+  const prediction = await sendJson<{
+    items: Array<{ vendorOfferId: string; quantity: number }>;
+  }>('/me/usual-basket', { method: 'GET' });
+
+  if (!prediction.ok) return failed(prediction);
+
+  const items = prediction.data?.items ?? [];
+  if (items.length === 0) return { ok: false, error: 'Nothing to add yet' };
+
+  const result = await sendJson<{ added: string[]; skipped: unknown[] }>(
+    '/cart/items/bulk',
+    {
+      method: 'POST',
+      body: {
+        items: items.map((item) => ({
+          vendorOfferId: item.vendorOfferId,
+          quantity: item.quantity,
+        })),
+      },
+    },
+  );
+
+  if (!result.ok) return failed(result);
+
+  revalidatePath('/', 'layout');
+  return { ok: true, skipped: result.data?.skipped.length ?? 0 };
 }
 
 export async function updateCartQuantity(formData: FormData): Promise<ActionResult> {
