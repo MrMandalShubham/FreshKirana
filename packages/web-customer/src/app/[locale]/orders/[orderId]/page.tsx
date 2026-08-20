@@ -3,9 +3,10 @@ import { notFound, redirect } from 'next/navigation';
 import { BottomNav, Header } from '@/components/Chrome';
 import { CancelOrder } from '@/components/CancelOrder';
 import { OrderTimeline } from '@/components/OrderTimeline';
+import { CodConfirm } from '@/components/CodConfirm';
 import { PaymentRecovery } from '@/components/PaymentRecovery';
 import { inr } from '@/lib/money';
-import { fetchOrder, fetchRecoveryOffer } from '@/lib/orders';
+import { fetchCodConfirmation, fetchOrder, fetchRecoveryOffer } from '@/lib/orders';
 import { isSignedIn } from '@/lib/session';
 import { type Locale, getDictionary } from '@/i18n/dictionaries';
 
@@ -33,11 +34,25 @@ export default async function OrderPage({
 
   const canCancel = order.nextActions.some((action) => action.to === 'CANCELLED');
 
-  // Only asked for when it could matter. An order that is packed or delivered
-  // has nothing to recover, and a request per order view would cost every
-  // shopper a round trip for a screen almost none of them will see.
-  const recovery =
-    order.status === 'PENDING_PAYMENT' ? await fetchRecoveryOffer(order.id) : null;
+  /*
+   * PENDING_PAYMENT means two different things, and the screen must not guess.
+   *
+   * A prepaid order is there because a payment failed (§2.10.3). A cash order
+   * is there because §2.10.4 wants the customer to vouch for it before any shop
+   * starts packing — there is no payment behind it to retry, and offering "pay
+   * cash on delivery instead" on an order that already is cash would be
+   * nonsense. It was worse than nonsense: that button used to release the order
+   * to the store, walking around the confirmation entirely.
+   *
+   * Asked for only when it could matter. A packed or delivered order has
+   * nothing pending, and a request per order view would cost every shopper a
+   * round trip for a block almost none of them will see.
+   */
+  const waiting = order.status === 'PENDING_PAYMENT';
+  const isCash = order.paymentMethod === 'COD';
+
+  const recovery = waiting && !isCash ? await fetchRecoveryOffer(order.id) : null;
+  const codConfirmation = waiting && isCash ? await fetchCodConfirmation(order.id) : null;
 
   return (
     <>
@@ -46,6 +61,15 @@ export default async function OrderPage({
       <main id="main" className="container">
         <p className="muted">{order.orderNumber}</p>
         <h1 className="section-title">{order.label ?? order.status}</h1>
+
+        {codConfirmation?.pending && (
+          <CodConfirm
+            orderId={order.id}
+            confirmation={codConfirmation}
+            phone={order.recipientPhone}
+            locale={locale}
+          />
+        )}
 
         {recovery && (
           <PaymentRecovery

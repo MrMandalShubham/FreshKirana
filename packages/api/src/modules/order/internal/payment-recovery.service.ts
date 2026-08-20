@@ -65,6 +65,17 @@ export class PaymentRecoveryService {
       return { canRetry: false, canConvertToCod: false };
     }
 
+    // A cash order in PENDING_PAYMENT is not a failed payment (P3.4). It is
+    // waiting for the customer to confirm it under §2.10.4, and there is no
+    // gateway attempt behind it — so every offer here would be nonsense: "try
+    // paying again" for a payment that never started, and "pay cash on delivery
+    // instead" for an order that already is. Worse than nonsense, in fact: the
+    // second button used to release the order to the store, walking straight
+    // around the confirmation this state exists to enforce.
+    if (order.paymentMethod === PaymentMethod.COD) {
+      return { canRetry: false, canConvertToCod: false };
+    }
+
     const latest = await this.payments.latestAttempt(orderId);
     const canRetry = latest ? this.payments.canRetryAfter(latest) : true;
 
@@ -91,6 +102,13 @@ export class PaymentRecoveryService {
         message: 'This order is not waiting for payment',
         code: 'NOT_AWAITING_PAYMENT',
         status: order.status,
+      });
+    }
+
+    if (order.paymentMethod === PaymentMethod.COD) {
+      throw new ConflictException({
+        message: 'This is a cash order. There is no payment to retry.',
+        code: 'NOT_A_PREPAID_ORDER',
       });
     }
 
@@ -156,6 +174,22 @@ export class PaymentRecoveryService {
         message: 'This order is not waiting for payment',
         code: 'NOT_AWAITING_PAYMENT',
         status: order.status,
+      });
+    }
+
+    /*
+     * Already cash (P3.4).
+     *
+     * This path confirms the reservations and moves the order to
+     * AWAITING_VENDOR, so calling it on a cash order awaiting §2.10.4
+     * confirmation released it to the store without the customer ever
+     * confirming — the entire risk gate, walked around by pressing the other
+     * button. Such an order is finished through the COD flow, not this one.
+     */
+    if (order.paymentMethod === PaymentMethod.COD) {
+      throw new ConflictException({
+        message: 'This order is already cash on delivery.',
+        code: 'ALREADY_COD',
       });
     }
 

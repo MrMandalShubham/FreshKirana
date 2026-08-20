@@ -174,6 +174,23 @@ const en = {
   paymentTakingEffect:
     'Payment received. Confirming your order — this takes a few seconds.',
   backToOrder: 'View the order',
+
+  // --- Cash on delivery confirmation (P3.4) ---
+  codConfirmTitle: 'Confirm your cash order',
+  codConfirmHelp:
+    'Your items and delivery slot are held. The shop starts packing once you confirm.',
+  codConfirmYes: 'Yes, I will take it',
+  codConfirmNo: 'Cancel this order',
+  codConfirming: 'Confirming…',
+  codCancelling: 'Cancelling…',
+  codOtpHelp: 'We sent a {length}-digit code to {phone}. Enter it to confirm this order.',
+  codOtpLabel: 'Confirmation code',
+  codOtpSubmit: 'Confirm',
+  codOtpWrong: 'That code is not right. {left} tries left.',
+  codOtpNoTries: 'Too many wrong codes. Please contact support.',
+  codOtpExpired: 'This confirmation has expired.',
+  codExpiresAt: 'Confirm before {time}',
+  codConfirmedNotice: 'Confirmed. The shop has been told.',
 } as const;
 
 /**
@@ -332,6 +349,23 @@ const hi: Dictionary = {
   paymentClosed: 'पेमेंट पूरा नहीं हुआ। आप फिर कोशिश कर सकते हैं।',
   paymentTakingEffect: 'पेमेंट मिल गया। ऑर्डर पक्का हो रहा है — कुछ सेकंड लगेंगे।',
   backToOrder: 'ऑर्डर देखें',
+
+  codConfirmTitle: 'अपना नकद ऑर्डर पक्का करें',
+  codConfirmHelp:
+    'आपका सामान और डिलीवरी का समय रोका हुआ है। आपके पक्का करते ही दुकान पैक करना शुरू करेगी।',
+  codConfirmYes: 'हाँ, मैं लूँगा',
+  codConfirmNo: 'यह ऑर्डर रद्द करें',
+  codConfirming: 'पक्का किया जा रहा है…',
+  codCancelling: 'रद्द किया जा रहा है…',
+  codOtpHelp:
+    'हमने {phone} पर {length} अंकों का कोड भेजा है। उसे डालकर ऑर्डर पक्का करें।',
+  codOtpLabel: 'पुष्टि कोड',
+  codOtpSubmit: 'पक्का करें',
+  codOtpWrong: 'यह कोड सही नहीं है। {left} कोशिशें बाकी हैं।',
+  codOtpNoTries: 'बहुत बार गलत कोड डाला गया। कृपया सहायता से संपर्क करें।',
+  codOtpExpired: 'इस पुष्टि की मियाद खत्म हो गई।',
+  codExpiresAt: '{time} से पहले पक्का करें',
+  codConfirmedNotice: 'पक्का हो गया। दुकान को बता दिया गया है।',
 };
 
 const DICTIONARIES: Record<Locale, Dictionary> = { en, hi };

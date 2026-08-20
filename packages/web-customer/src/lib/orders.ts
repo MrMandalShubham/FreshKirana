@@ -107,6 +107,8 @@ export interface Order {
   slotStartsAt: string;
   slotEndsAt: string;
   recipientName: string;
+  /** Where a COD confirmation code was sent. Shown masked, never in full. */
+  recipientPhone: string;
   addressLine1: string;
   addressCity: string;
   addressPincode: string;
@@ -123,6 +125,14 @@ export interface Order {
 export interface OrderDetail extends Order {
   timeline: CustomerTimeline;
   history: Array<{ toStatus: string; reason: string | null; createdAt: string }>;
+}
+
+/** Whether a cash order is waiting on the customer, and how (§2.10.4). */
+export interface CodConfirmation {
+  pending: boolean;
+  method?: 'QUICK_REPLY' | 'OTP';
+  expiresAt?: string;
+  attempts?: number;
 }
 
 export interface RecoveryOffer {
@@ -216,6 +226,20 @@ export async function fetchRecoveryOffer(orderId: string): Promise<RecoveryOffer
   );
 
   return result.data ?? { canRetry: false, canConvertToCod: false };
+}
+
+/**
+ * Whether this cash order still needs confirming (§2.10.4).
+ *
+ * Returns the method and the deadline and nothing else — in particular not the
+ * code, which exists only in the message that carried it.
+ */
+export async function fetchCodConfirmation(orderId: string): Promise<CodConfirmation> {
+  const result = await getPrivateJson<CodConfirmation>(
+    `/me/orders/${encodeURIComponent(orderId)}/cod`,
+  );
+
+  return result.data ?? { pending: false };
 }
 
 export async function fetchOrders(): Promise<Order[]> {

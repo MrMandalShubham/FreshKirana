@@ -308,6 +308,78 @@ export async function convertOrderToCod(formData: FormData): Promise<ActionResul
   return ok;
 }
 
+// ---------------------------------------------------------------------------
+// Cash on delivery confirmation (P3.4)
+// ---------------------------------------------------------------------------
+
+export interface VerifyCodResult extends ActionResult {
+  /** Wrong-code tries remaining, when that is why it failed. */
+  attemptsLeft?: number;
+  reason?: string;
+}
+
+export async function confirmCodOrder(formData: FormData): Promise<ActionResult> {
+  const orderId = String(formData.get('orderId') ?? '');
+
+  const result = await sendJson(`/me/orders/${encodeURIComponent(orderId)}/cod/confirm`, {
+    method: 'POST',
+  });
+
+  if (!result.ok) return failed(result);
+
+  revalidatePath('/', 'layout');
+  return ok;
+}
+
+export async function declineCodOrder(formData: FormData): Promise<ActionResult> {
+  const orderId = String(formData.get('orderId') ?? '');
+
+  const result = await sendJson(`/me/orders/${encodeURIComponent(orderId)}/cod/decline`, {
+    method: 'POST',
+  });
+
+  if (!result.ok) return failed(result);
+
+  revalidatePath('/', 'layout');
+  return ok;
+}
+
+/**
+ * Checks the code the customer read off their phone.
+ *
+ * A wrong code is a 201 carrying `ok: false`, not an error — "that is not
+ * right, three tries left" is information they need, and an exception carries
+ * it badly.
+ */
+export async function verifyCodOtp(formData: FormData): Promise<VerifyCodResult> {
+  const orderId = String(formData.get('orderId') ?? '');
+  const code = String(formData.get('code') ?? '').trim();
+
+  const result = await sendJson<{
+    ok: boolean;
+    reason?: string;
+    attemptsLeft?: number;
+  }>(`/me/orders/${encodeURIComponent(orderId)}/cod/verify`, {
+    method: 'POST',
+    body: { code },
+  });
+
+  if (!result.ok) return failed(result);
+
+  if (result.data?.ok) {
+    revalidatePath('/', 'layout');
+    return ok;
+  }
+
+  return {
+    ok: false,
+    ...(result.data?.reason ? { reason: result.data.reason } : {}),
+    ...(result.data?.attemptsLeft !== undefined
+      ? { attemptsLeft: result.data.attemptsLeft }
+      : {}),
+  };
+}
+
 export async function markNotificationsRead(): Promise<ActionResult> {
   const result = await sendJson('/me/notifications/read', { method: 'POST' });
   if (!result.ok) return failed(result);

@@ -887,6 +887,52 @@ describe.skipIf(!dbUp)('COD risk and confirmation (e2e)', () => {
     });
   });
 
+  describe('the confirmation cannot be walked around', () => {
+    it('offers no payment recovery on a cash order', async () => {
+      // A held cash order sits in PENDING_PAYMENT with no payment attempt, so
+      // P3.3's recovery screen read it as "this payment failed" and offered
+      // both "try paying again" and "pay cash on delivery instead" — on an
+      // order that already is cash on delivery.
+      await makeLargeOrdersMedium();
+      const shopper = await newCustomer();
+
+      const order = await placeCod(shopper, 35_000);
+
+      const res = await as(shopper.token)(
+        http().get(`/me/orders/${order.id}/payment/recovery`),
+      ).expect(200);
+
+      expect(res.body).toEqual({ canRetry: false, canConvertToCod: false });
+    });
+
+    it('refuses to convert a cash order to cash on delivery', async () => {
+      // The whole §2.10.4 gate, walked around with one tap: `convertToCod`
+      // confirms the reservations and moves the order to AWAITING_VENDOR, so a
+      // customer asked for a code could skip it by pressing the other button.
+      await makeLargeOrdersHigh();
+      const shopper = await newCustomer();
+
+      const order = await placeCod(shopper, 35_000);
+
+      await as(shopper.token)(
+        http().post(`/me/orders/${order.id}/payment/convert-to-cod`),
+      ).expect(409);
+
+      expect(await statusOf(shopper, order.id)).toBe(OrderStatus.PENDING_PAYMENT);
+    });
+
+    it('refuses a payment retry on a cash order', async () => {
+      await makeLargeOrdersMedium();
+      const shopper = await newCustomer();
+
+      const order = await placeCod(shopper, 35_000);
+
+      await as(shopper.token)(http().post(`/me/orders/${order.id}/payment/retry`)).expect(
+        409,
+      );
+    });
+  });
+
   describe('when nobody answers', () => {
     async function ageConfirmation(orderId: string) {
       const db = createDatabase();
