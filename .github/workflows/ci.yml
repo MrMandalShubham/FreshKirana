@@ -263,6 +263,7 @@ jobs:
       SLA_SWEEP_JOB: freshkirana-staging-sla-sweep
       RESERVATION_SWEEP_JOB: freshkirana-staging-reservation-sweep
       PAYMENT_RECONCILIATION_JOB: freshkirana-staging-payment-reconciliation
+      COD_SWEEP_JOB: freshkirana-staging-cod-confirmation-sweep
 
     steps:
       - uses: actions/checkout@v4
@@ -303,12 +304,22 @@ jobs:
       # Background jobs run the same image as the API. Without this they stay
       # pinned to whatever image they were created with, and a scheduled sweep
       # would quietly go on executing code from weeks ago.
+      #
+      # Every job, not just the first one. This step covered only the SLA sweep
+      # for three parts, so the reservation sweep was still running P3.1's build
+      # and payment reconciliation P3.2's — which meant P3.3's TTL cancellation,
+      # added to `reconcilePending`, had never once executed on GCP. A stale job
+      # fails silently, by doing last month's work perfectly.
       - name: Point scheduled jobs at the new image
         run: |
-          gcloud run jobs update "$SLA_SWEEP_JOB" \
-            --region "$REGION" \
-            --image "${{ steps.image.outputs.image }}" \
-            --quiet
+          for job in "$SLA_SWEEP_JOB" "$RESERVATION_SWEEP_JOB" \
+                     "$PAYMENT_RECONCILIATION_JOB" "$COD_SWEEP_JOB"; do
+            echo "Updating $job"
+            gcloud run jobs update "$job" \
+              --region "$REGION" \
+              --image "${{ steps.image.outputs.image }}" \
+              --quiet
+          done
 
       - name: Deploy API revision
         run: |
