@@ -10,6 +10,7 @@ import { PaymentService } from '../../payment/contracts';
 import { OrderStateService } from './order-state.service';
 import { OrderService } from './order.service';
 import { PaymentRecoveryService } from './payment-recovery.service';
+import { VendorOrderFlowService } from './vendor-order-flow.service';
 
 export interface WebhookOutcome {
   handled: boolean;
@@ -44,6 +45,7 @@ export class PaymentFlowService {
     private readonly state: OrderStateService,
     private readonly inventory: InventoryService,
     private readonly recovery: PaymentRecoveryService,
+    private readonly vendorFlow: VendorOrderFlowService,
   ) {}
 
   /**
@@ -189,6 +191,20 @@ export class PaymentFlowService {
       { accountId: null, role: SYSTEM_ACTOR },
       { reason: 'Payment captured' },
     );
+
+    /*
+     * Tell the store.
+     *
+     * P3.2 deferred the announcement from checkout to capture — "for prepaid
+     * the announcement moves to capture" — and then never made it here, so a
+     * paid order reached AWAITING_VENDOR and no shop was told. The SLA sweep
+     * hid it: the store got a reminder for an order they had never heard of,
+     * and then a breach cancelled it.
+     *
+     * Outside the transaction and unawaited for the same reason checkout does
+     * it that way: a messaging outage must not undo a payment we have taken.
+     */
+    void this.vendorFlow.announceNewOrder(orderId);
 
     return { handled: true, reason: 'ORDER_CONFIRMED', orderId, status: order.status };
   }

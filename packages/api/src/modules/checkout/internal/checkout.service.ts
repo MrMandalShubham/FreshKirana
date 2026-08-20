@@ -19,7 +19,11 @@ import type { Database } from '../../../db';
 import { CartService, type CartView } from '../../cart/contracts';
 import { InventoryService } from '../../inventory/contracts';
 import { PaymentService } from '../../payment/contracts';
-import { OrderService, VendorOrderFlowService } from '../../order/contracts';
+import {
+  CodFlowService,
+  OrderService,
+  VendorOrderFlowService,
+} from '../../order/contracts';
 import {
   ServiceAreaService,
   SlotService,
@@ -40,6 +44,20 @@ export interface CheckoutPreview {
   totals: CartTotals;
   /** Empty means the order can be placed. Each entry is a reason it cannot. */
   blockers: CheckoutBlocker[];
+  /**
+   * Whether cash on delivery may be chosen (§2.10.4).
+   *
+   * Here rather than discovered on submit: §2.10.4 says BLOCKED is "shown
+   * transparently at checkout", and a payment method that disappears at the
+   * last step reads as a bug rather than a decision.
+   */
+  cod: {
+    available: boolean;
+    /** Why not, in words a customer can read. Empty when it is available. */
+    reasons: string[];
+    /** What confirming will cost them: NONE, QUICK_REPLY or OTP. */
+    confirmation: string;
+  };
 }
 
 export interface CheckoutBlocker {
@@ -70,6 +88,7 @@ export class CheckoutService {
     private readonly slots: SlotService,
     private readonly orders: OrderService,
     private readonly vendorFlow: VendorOrderFlowService,
+    private readonly codFlow: CodFlowService,
     private readonly inventory: InventoryService,
     private readonly payments: PaymentService,
   ) {}
@@ -147,6 +166,17 @@ export class CheckoutService {
       blockers.push({ code: 'SLOT_REQUIRED', message: 'Choose a delivery slot' });
     }
 
+    // Scored on the address the customer actually chose, because a blocked
+    // pincode is a property of where it is going, not of who is buying.
+    const cod = address
+      ? await this.codFlow.assess({
+          accountId,
+          orderTotalPaise: cart.totals.grandTotalPaise,
+          addressPincode: address.pincode,
+          paymentMethod: PaymentMethod.COD,
+        })
+      : null;
+
     return {
       cart,
       address: address
@@ -161,6 +191,11 @@ export class CheckoutService {
       slot,
       totals: cart.totals,
       blockers,
+      cod: {
+        available: cod?.allowed ?? true,
+        reasons: cod && !cod.allowed ? cod.reasons : [],
+        confirmation: cod?.method ?? 'NONE',
+      },
     };
   }
 
@@ -220,6 +255,28 @@ export class CheckoutService {
       cart.substitutionPreference ??
       SubstitutionPreference.AUTO_SUBSTITUTE;
 
+    /*
+     * How much to trust this cash order (§2.10.4).
+     *
+     * Before the write, because the answer decides the order's opening status
+     * and AWAITING_VENDOR cannot be walked back. Deterministic rules mean this
+     * agrees with what the preview already told the customer.
+     */
+    const codAssessment = await this.codFlow.assess({
+      accountId,
+      orderTotalPaise: cart.totals.grandTotalPaise,
+      addressPincode: address.pincode,
+      paymentMethod: method,
+    });
+
+    if (!codAssessment.allowed) {
+      throw new ConflictException({
+        message: 'Cash on delivery is not available for this order',
+        code: 'COD_NOT_AVAILABLE',
+        reasons: codAssessment.reasons,
+      });
+    }
+
     const { orderId, intent } = await this.writeOrder(accountId, {
       cart,
       cartId: activeCart.id,
@@ -227,16 +284,24 @@ export class CheckoutService {
       slot,
       substitutionPreference,
       method,
+      requiresCodConfirmation: codAssessment.method !== 'NONE',
     });
 
     // Only once the money is certain. Telling a store to start packing a
     // prepaid order before the gateway confirms is how a failed payment
-    // becomes a shop's loss — for prepaid the announcement moves to capture.
+    // becomes a shop's loss — for prepaid the announcement happens at capture.
     if (!needsGateway(method)) {
-      // Outside the transaction, deliberately. A messaging outage must not undo
-      // an order: the store not hearing about it is recoverable — the §1.9.4
-      // sweep chases it — while an order that does not exist is not.
-      void this.vendorFlow.announceNewOrder(orderId);
+      // Cash is not certain merely because it was chosen: §2.10.4 asks how much
+      // this order should be trusted, and a risky one waits for the customer to
+      // vouch for it before any shop starts packing.
+      const { releasedToVendor } = await this.codFlow.onPlaced(orderId, codAssessment);
+
+      if (releasedToVendor) {
+        // Outside the transaction, deliberately. A messaging outage must not
+        // undo an order: the store not hearing about it is recoverable — the
+        // §1.9.4 sweep chases it — while an order that does not exist is not.
+        void this.vendorFlow.announceNewOrder(orderId);
+      }
     }
 
     const order = await this.orders.findForAccount(accountId, orderId);
@@ -305,6 +370,7 @@ export class CheckoutService {
       slot: SlotView;
       substitutionPreference: string;
       method: PaymentMethod;
+      requiresCodConfirmation: boolean;
     },
   ): Promise<{ orderId: string; intent: PaymentIntent | null }> {
     const { cart, address, slot, substitutionPreference, method } = context;
@@ -329,6 +395,7 @@ export class CheckoutService {
               cartId: activeCart.id,
               paymentMethod: method,
               substitutionPreference,
+              requiresCodConfirmation: context.requiresCodConfirmation,
 
               address: {
                 id: address.id,
@@ -398,10 +465,11 @@ export class CheckoutService {
             tx,
           );
 
-          // COD has no payment step, so the holds are settled the moment the
-          // order exists. Prepaid leaves them HELD until the gateway answers —
-          // which is what the TTL and the §2.5 sweeper are for, and why an
-          // abandoned payment returns the stock on its own.
+          // Holds stay provisional while anything is still unsettled, and are
+          // settled the moment nothing is. Prepaid waits for the gateway; cash
+          // that §2.10.4 wants confirmed waits for the customer. Both are what
+          // the TTL and the §2.5 sweeper exist for — an order nobody comes back
+          // to returns its stock on its own.
           if (needsGateway(method)) {
             intent = await this.payments.start(
               {
@@ -414,7 +482,7 @@ export class CheckoutService {
               },
               tx,
             );
-          } else {
+          } else if (!context.requiresCodConfirmation) {
             await this.inventory.confirmForOrder(created.id, tx);
           }
 

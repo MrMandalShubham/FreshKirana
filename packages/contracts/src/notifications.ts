@@ -57,6 +57,10 @@ export const NotificationTemplate = {
   // --- Customer ---
   /** A link to finish paying, after the first attempt failed (§2.10.3). */
   PAYMENT_LINK: 'PAYMENT_LINK',
+  /** "Confirm this cash order", with yes/no buttons (§2.10.4, MEDIUM band). */
+  COD_CONFIRM: 'COD_CONFIRM',
+  /** A one-time code, for the band where a tapped button is not enough. */
+  COD_OTP: 'COD_OTP',
   ORDER_CONFIRMED: 'ORDER_CONFIRMED',
   ORDER_DISPATCHED_NOTICE: 'ORDER_DISPATCHED_NOTICE',
   ORDER_DELIVERED_NOTICE: 'ORDER_DELIVERED_NOTICE',
@@ -91,6 +95,29 @@ export function isVendorReply(value: string): value is VendorReply {
   return (VENDOR_REPLIES as readonly string[]).includes(value);
 }
 
+/**
+ * What a customer can tap on a COD confirmation (§2.10.4).
+ *
+ * Separate from `VendorReply` on purpose. Both arrive on the same inbound
+ * webhook, and a shared `CONFIRM`/`CANCEL` vocabulary would make "who tapped
+ * this?" a question answered by guessing — a store tapping ACCEPT and a
+ * customer tapping YES mean different things and move different transitions.
+ */
+export const CustomerReply = {
+  /** Yes, I will take it and pay cash. */
+  CONFIRM: 'CONFIRM',
+  /** No — cancel it. Cheaper now than as an RTO. */
+  DECLINE: 'DECLINE',
+} as const;
+
+export type CustomerReply = (typeof CustomerReply)[keyof typeof CustomerReply];
+
+export const CUSTOMER_REPLIES = Object.values(CustomerReply);
+
+export function isCustomerReply(value: string): value is CustomerReply {
+  return (CUSTOMER_REPLIES as readonly string[]).includes(value);
+}
+
 /** Whether a message may be held until quiet hours end (§2.12). */
 export const NotificationUrgency = {
   /** Order-critical. Sent whatever the hour. */
@@ -110,6 +137,10 @@ export const TEMPLATE_URGENCY: Record<NotificationTemplate, NotificationUrgency>
   ORDER_PACKED_CONFIRM: NotificationUrgency.CRITICAL,
   HANDOVER_CONFIRM: NotificationUrgency.CRITICAL,
   PAYMENT_LINK: NotificationUrgency.CRITICAL,
+  // Both have a window measured in minutes, so quiet hours cannot apply: an
+  // order held overnight for politeness is an order cancelled by its own timer.
+  COD_CONFIRM: NotificationUrgency.CRITICAL,
+  COD_OTP: NotificationUrgency.CRITICAL,
   ORDER_CONFIRMED: NotificationUrgency.CRITICAL,
   ORDER_DISPATCHED_NOTICE: NotificationUrgency.CRITICAL,
   ORDER_DELIVERED_NOTICE: NotificationUrgency.CRITICAL,

@@ -12,6 +12,7 @@ export type { Paise } from './money';
 export * from './analytics';
 export * from './cart';
 export * from './catalog';
+export * from './cod';
 export * from './intelligence';
 export * from './inventory';
 export * from './notifications';

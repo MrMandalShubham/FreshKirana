@@ -38,6 +38,14 @@ export interface CreateOrderInput {
   paymentMethod: PaymentMethod;
   substitutionPreference: string;
 
+  /**
+   * Cash that §2.10.4 wants vouched for before any shop packs it.
+   *
+   * Passed in rather than scored here: the scoring needs the order total, and
+   * the order total is what this method is in the middle of computing.
+   */
+  requiresCodConfirmation?: boolean;
+
   address: {
     id: string;
     recipientName: string;
@@ -103,13 +111,25 @@ export class OrderService {
         vendorId: input.vendorId,
         cartId: input.cartId,
 
-        // COD skips PENDING_PAYMENT entirely: there is no payment to wait for,
-        // so the store hears about it immediately (§2.6.1, §2.6.2). Prepaid
-        // waits — telling a store to start packing before the money arrives is
-        // how a gateway failure becomes a shop's loss.
-        status: needsGateway(input.paymentMethod)
-          ? OrderStatus.PENDING_PAYMENT
-          : OrderStatus.AWAITING_VENDOR,
+        /*
+         * PENDING_PAYMENT means "not released to the store, because the money
+         * question is unsettled" (§2.6.1, §2.6.2). Three ways to be there:
+         *
+         *  - prepaid, waiting for capture — telling a store to start packing
+         *    before the money arrives is how a gateway failure becomes a shop's
+         *    loss;
+         *  - cash that §2.10.4 wants confirmed before anyone packs it;
+         *  - and otherwise cash goes straight through, because there is nothing
+         *    to wait for.
+         *
+         * Decided here rather than corrected afterwards: AWAITING_VENDOR cannot
+         * be walked back, and "the store already saw it" is not a reversible
+         * fact.
+         */
+        status:
+          needsGateway(input.paymentMethod) || input.requiresCodConfirmation
+            ? OrderStatus.PENDING_PAYMENT
+            : OrderStatus.AWAITING_VENDOR,
         paymentStatus: PaymentStatus.PENDING,
         paymentMethod: input.paymentMethod,
         substitutionPreference: input.substitutionPreference,

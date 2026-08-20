@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import {
   GST_RATE_BP,
   InventoryMode,
+  NotificationTemplate,
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
@@ -350,6 +351,33 @@ describe.skipIf(!dbUp)('payment (e2e)', () => {
       const held = await inventory.forOrder(order.id);
       expect(held[0]?.status).toBe(ReservationStatus.CONFIRMED);
       expect(held[0]?.expiresAt).toBeNull();
+    });
+
+    it('tells the store, which has heard nothing until now', async () => {
+      // P3.2 moved the announcement from checkout to capture and never landed
+      // it here, so a paid order reached AWAITING_VENDOR with no shop told.
+      // The SLA sweep hid it: the store got a *reminder* for an order they had
+      // never heard of, and a breach then cancelled it. Fixed in P3.4.
+      const order = await placePrepaid(await makeOffer());
+
+      const { body, signature } = webhook(
+        'payment.captured',
+        order.payment!.providerOrderId,
+      );
+      await post(body, signature).expect(201);
+      await new Promise((resolve) => setTimeout(resolve, 900));
+
+      const messages = await http()
+        .get(`/vendor/${vendorId}/messages`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .query({ limit: 100 })
+        .expect(200);
+
+      const told = (messages.body as Array<{ template: string; orderId: string }>).some(
+        (m) => m.orderId === order.id && m.template === NotificationTemplate.ORDER_NEW,
+      );
+
+      expect(told).toBe(true);
     });
 
     it('records the capture against the payment', async () => {

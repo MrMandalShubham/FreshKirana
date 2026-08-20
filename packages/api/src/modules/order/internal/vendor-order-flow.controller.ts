@@ -4,6 +4,7 @@ import { Type } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 import { Public, Roles, VendorScopeGuard } from '../../identity/contracts';
 import { NotificationService } from '../../notification/contracts';
+import { InboundReplyService } from './inbound-reply.service';
 import { VendorOrderFlowService } from './vendor-order-flow.service';
 
 export class OutboxQueryDto {
@@ -20,7 +21,9 @@ export class OutboxQueryDto {
  */
 @Controller('webhooks/whatsapp')
 export class WhatsAppWebhookController {
-  constructor(private readonly flow: VendorOrderFlowService) {}
+  // The router, not the vendor flow: stores and customers both tap buttons on
+  // this one webhook, and which vocabulary arrived decides what happens next.
+  constructor(private readonly inbound: InboundReplyService) {}
 
   /**
    * Always 200.
@@ -32,7 +35,7 @@ export class WhatsAppWebhookController {
   @Public()
   @Post()
   async receive(@Body() body: unknown) {
-    return this.flow.handleInbound(body);
+    return this.inbound.handle(body);
   }
 }
 

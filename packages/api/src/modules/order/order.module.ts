@@ -7,6 +7,13 @@ import { NotificationModule } from '../notification/notification.module';
 import { PaymentModule } from '../payment/payment.module';
 import { ServiceabilityModule } from '../serviceability/serviceability.module';
 import { VendorModule } from '../vendor/vendor.module';
+import { CodFlowService } from './internal/cod-flow.service';
+import {
+  CodConfirmationController,
+  CodOverrideController,
+  CodSweepController,
+} from './internal/cod-flow.controller';
+import { InboundReplyService } from './internal/inbound-reply.service';
 import { OrderStateService } from './internal/order-state.service';
 import {
   OrderController,
@@ -71,6 +78,9 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     PaymentReconciliationController,
     PaymentRecoveryController,
     PaymentLinkController,
+    CodConfirmationController,
+    CodOverrideController,
+    CodSweepController,
   ],
   providers: [
     OrderService,
@@ -79,6 +89,8 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     UsualBasketService,
     PaymentFlowService,
     PaymentRecoveryService,
+    CodFlowService,
+    InboundReplyService,
   ],
   exports: [
     OrderService,
@@ -87,6 +99,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     UsualBasketService,
     PaymentFlowService,
     PaymentRecoveryService,
+    CodFlowService,
   ],
 })
 export class OrderModule {}

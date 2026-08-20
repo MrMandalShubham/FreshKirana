@@ -6,6 +6,7 @@ import {
   OrderStatus,
   Role,
   VendorReply,
+  isVendorReply,
   hasBreached,
   needsReminder,
 } from '@freshkirana/contracts';
@@ -136,7 +137,9 @@ export class VendorOrderFlowService {
       return { handled: false, reason: 'NO_MATCHING_ORDER' };
     }
 
-    const target = this.statusFor(reply.reply);
+    // Narrowed here rather than at the parse: both vocabularies arrive on this
+    // webhook, and a customer's CONFIRM is routed elsewhere before it gets here.
+    const target = isVendorReply(reply.reply) ? this.statusFor(reply.reply) : null;
     if (!target) {
       await this.notifications.recordOutcome(record.id, 'UNSUPPORTED_REPLY');
       return { handled: false, reason: 'UNSUPPORTED_REPLY' };

@@ -23,6 +23,19 @@ import type { SlotView } from '../../serviceability/contracts';
 
 loadEnv();
 
+/**
+ * A phone nobody else is using.
+ *
+ * `/dev/login-as` with no phone hands back one account for the whole database,
+ * and P3.4 scores placement against that account's history — which the suites
+ * that test failed deliveries fill with RTOs. A shared customer meant this
+ * suite's orders were eventually held for a COD confirmation nobody sends.
+ */
+const freshPhone = () =>
+  `+919${Math.floor(Math.random() * 1e9)
+    .toString()
+    .padStart(9, '0')}`;
+
 const dbUp = await requireDatabase('"order".order_status_history');
 
 if (!dbUp) {
@@ -126,7 +139,7 @@ describe.skipIf(!dbUp)('order tracking (e2e)', () => {
 
     const customer = await http()
       .post('/dev/login-as')
-      .send({ role: Role.CUSTOMER })
+      .send({ role: Role.CUSTOMER, phone: freshPhone() })
       .expect(201);
     customerToken = (customer.body as { token: string }).token;
 

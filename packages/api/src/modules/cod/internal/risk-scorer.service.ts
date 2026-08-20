@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import {
   CodRiskBand,
+  type CodThresholds,
   PaymentMethod,
   type RiskAssessment,
   type RiskInput,
   type RiskScorer,
 } from '@freshkirana/contracts';
+import { CodConfigService } from './cod-config.service';
 
 /**
  * How much to trust a cash-on-delivery order (spec §2.10.4, §2.17.2).
@@ -21,38 +23,47 @@ import {
  * refused cash on delivery is owed an explanation, and "the model said so" is
  * not one.
  *
- * The confirmation flow this feeds — thresholds, WhatsApp confirmation, the
- * ops overrides — is P3.4. This is the scoring underneath it, in place from
- * now so that part has something to call.
+ * The thresholds come from `CodConfigService` rather than the environment, so
+ * they change without a deploy (§2.10.4). P3.4 moved them; the scoring shape is
+ * unchanged from P2.7.
  */
 @Injectable()
 export class RuleRiskScorer implements RiskScorer {
-  /** Thresholds are configuration (§7.5): a pilot city tunes them weekly. */
-  private get thresholds() {
-    return {
-      highValuePaise: this.fromEnv('COD_HIGH_VALUE_PAISE', 300_000),
-      veryHighValuePaise: this.fromEnv('COD_VERY_HIGH_VALUE_PAISE', 500_000),
-      rtoCountBlocked: this.fromEnv('COD_RTO_BLOCK_COUNT', 3),
-    };
-  }
+  constructor(private readonly config: CodConfigService) {}
 
-  score(input: RiskInput): Promise<RiskAssessment> {
+  async score(input: RiskInput): Promise<RiskAssessment> {
     // Prepaid carries no collection risk: the money is already ours.
     if (input.paymentMethod !== PaymentMethod.COD) {
-      return Promise.resolve({
+      return {
         band: CodRiskBand.LOW,
         score: 0,
         reasons: ['Prepaid — nothing to collect'],
-      });
+      };
     }
 
-    const limits = this.thresholds;
+    const limits = await this.config.current();
     const reasons: string[] = [];
     let score = 0;
 
+    /*
+     * A blocked pincode is not a score, it is an answer.
+     *
+     * These are set because a whole area is undeliverable or has an RTO rate
+     * that makes cash unworkable there — a customer with a perfect history
+     * cannot make the area deliverable, so no amount of good history should
+     * add up to an exception.
+     */
+    if (limits.blockedPincodes.includes(input.addressPincode)) {
+      return {
+        band: CodRiskBand.BLOCKED,
+        score: 100,
+        reasons: ['Cash on delivery is not available in this area'],
+      };
+    }
+
     // Returns are the signal that actually predicts returns. Everything else
     // here is a proxy for not knowing the customer yet.
-    if (input.rtoCount >= limits.rtoCountBlocked) {
+    if (input.rtoCount >= limits.rtoBlockCount) {
       reasons.push(`${input.rtoCount} orders returned undelivered`);
       score += 60;
     } else if (input.rtoCount > 0) {
@@ -79,25 +90,17 @@ export class RuleRiskScorer implements RiskScorer {
 
     const bounded = Math.max(0, Math.min(100, score));
 
-    return Promise.resolve({
-      band: this.bandFor(bounded),
+    return {
+      band: this.bandFor(bounded, limits),
       score: bounded,
       reasons: reasons.length > 0 ? reasons : ['Nothing unusual'],
-    });
+    };
   }
 
-  private bandFor(score: number): string {
-    if (score >= 70) return CodRiskBand.BLOCKED;
-    if (score >= 40) return CodRiskBand.HIGH;
-    if (score >= 20) return CodRiskBand.MEDIUM;
+  private bandFor(score: number, limits: CodThresholds): CodRiskBand {
+    if (score >= limits.blockedScore) return CodRiskBand.BLOCKED;
+    if (score >= limits.highScore) return CodRiskBand.HIGH;
+    if (score >= limits.mediumScore) return CodRiskBand.MEDIUM;
     return CodRiskBand.LOW;
-  }
-
-  private fromEnv(name: string, fallback: number): number {
-    const raw = process.env[name];
-    if (raw === undefined) return fallback;
-
-    const parsed = Number(raw);
-    return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
   }
 }

@@ -162,3 +162,9 @@ variable "storefront_base_url" {
   type        = string
   default     = ""
 }
+
+variable "cod_confirmation_sweep_schedule" {
+  description = "Cron for cancelling unconfirmed cash orders (§2.10.4). Every two minutes: the window is measured in tens of minutes, so this only needs to be fine enough that 'expired' and 'cancelled' are close together."
+  type        = string
+  default     = "*/2 * * * *"
+}

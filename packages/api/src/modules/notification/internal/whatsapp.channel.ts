@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
+  type CustomerReply,
   NotificationChannel,
   type NotificationTemplate,
+  isCustomerReply,
   isVendorReply,
   type VendorReply,
 } from '@freshkirana/contracts';
@@ -12,7 +14,7 @@ export interface OutboundMessage {
   template: NotificationTemplate;
   payload: Record<string, unknown>;
   /** Buttons the recipient can tap. Empty for a message with no reply. */
-  quickReplies?: readonly VendorReply[];
+  quickReplies?: readonly (VendorReply | CustomerReply)[];
 }
 
 export interface SendResult {
@@ -25,8 +27,14 @@ export interface SendResult {
 export interface InboundReply {
   providerMessageId: string;
   fromPhone: string;
-  /** Null when the sender typed rather than tapped. */
-  reply: VendorReply | null;
+  /**
+   * Null when the sender typed rather than tapped.
+   *
+   * Either vocabulary: stores and customers both tap buttons, and they arrive
+   * on the same webhook. Which one this is determines what happens next, so the
+   * raw token is carried through rather than narrowed here.
+   */
+  reply: VendorReply | CustomerReply | null;
   /** Our own message id, when the provider echoes what was replied to. */
   inReplyToProviderMessageId?: string;
   raw: Record<string, unknown>;
@@ -90,12 +98,15 @@ export class MockWhatsAppChannel extends WhatsAppChannel {
 
     if (!candidate?.messageId || !candidate.from) return null;
 
+    const tapped = candidate.reply ?? '';
+
     return {
       providerMessageId: candidate.messageId,
       fromPhone: candidate.from,
-      reply: isVendorReply(candidate.reply ?? '')
-        ? (candidate.reply as VendorReply)
-        : null,
+      reply:
+        isVendorReply(tapped) || isCustomerReply(tapped)
+          ? (tapped as VendorReply | CustomerReply)
+          : null,
       inReplyToProviderMessageId: candidate.inReplyTo,
       raw: (body ?? {}) as Record<string, unknown>,
     };

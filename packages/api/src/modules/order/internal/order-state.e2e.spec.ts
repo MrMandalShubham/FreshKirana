@@ -17,6 +17,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../../../app.module';
 import { loadEnv } from '../../../config/env';
 import { createDatabase } from '../../../db';
+import { createTestCustomer } from '../../../testing/customer';
 import { requireDatabase } from '../../../testing/database';
 import type { SlotView } from '../../serviceability/contracts';
 
@@ -79,8 +80,25 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
     return (res.body as { token: string }).token;
   }
 
-  /** Places a fresh COD order and returns it in AWAITING_VENDOR. */
+  /**
+   * Places a COD order and returns it in AWAITING_VENDOR.
+   *
+   * Each order comes from a shopper with no history (P3.4).
+   *
+   * Placement now reads the account's past: §2.10.4 holds a cash order from
+   * somebody with returned deliveries rather than sending it to the store. This
+   * suite manufactures exactly that history on purpose, so reusing one customer
+   * meant later orders were placed by a high-risk account and stopped behaving
+   * like the ordinary ones these tests describe.
+   *
+   * The suite-level handles are repointed rather than returned, so every
+   * existing call site keeps reading the order it just placed.
+   */
   async function placeOrder(): Promise<OrderView> {
+    const shopper = await createTestCustomer(app, NEARBY);
+    customerToken = shopper.token;
+    addressId = shopper.addressId;
+
     await as(customerToken)(http().delete('/cart')).expect(200);
     await as(customerToken)(http().post('/cart/items'))
       .send({ vendorOfferId: offerId, quantity: 1 })
@@ -133,7 +151,11 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
     await app.init();
 
     adminToken = await login(Role.ADMIN);
-    customerToken = await login(Role.CUSTOMER);
+    // Not the shared dev customer: `/dev/login-as` with no phone hands back one
+    // account for the whole database, and this suite walks orders into RTO and
+    // RETURNED. Those accumulate across every run, so §2.10.4 eventually holds
+    // its orders for a confirmation nobody sends.
+    customerToken = (await createTestCustomer(app, NEARBY)).token;
     riderToken = await login(Role.RIDER);
     opsToken = await login(Role.OPS);
 
@@ -249,6 +271,8 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
   describe('the happy path, end to end', () => {
     let orderId: string;
 
+    // One order, walked across the whole block on purpose: the history
+    // assertion below reads the trail the earlier tests left.
     beforeAll(async () => {
       orderId = (await placeOrder()).id;
     });

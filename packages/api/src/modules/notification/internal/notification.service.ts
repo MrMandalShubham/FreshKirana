@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
+  type CustomerReply,
   MessageStatus,
   NotificationChannel,
   type NotificationTemplate,
@@ -21,7 +22,15 @@ export interface SendInput {
   toPhone: string;
   template: NotificationTemplate;
   payload?: Record<string, unknown>;
-  quickReplies?: readonly VendorReply[];
+  /**
+   * Buttons on the message.
+   *
+   * Both vocabularies, because both audiences get buttons and the channel does
+   * not care which — a store taps ACCEPT, a customer taps CONFIRM, and the
+   * difference is what the *order* module does with the reply, not how it is
+   * rendered.
+   */
+  quickReplies?: readonly (VendorReply | CustomerReply)[];
   accountId?: string | null;
   vendorId?: string | null;
   orderId?: string | null;

@@ -55,6 +55,27 @@ export const AnalyticsEvent = {
   /** The shopper took cash on delivery rather than abandoning the order. */
   PAYMENT_CONVERTED_TO_COD: 'payment_converted_to_cod',
   PAYMENT_SUCCEEDED: 'payment_succeeded',
+
+  /**
+   * Cash on delivery (§2.10.4).
+   *
+   * The band distribution is the only way to tell a threshold change from a
+   * change in who is ordering. Tighten the rules and this moves immediately;
+   * RTO moves weeks later, by which time the cause is unrecoverable.
+   */
+  COD_RISK_SCORED: 'cod_risk_scored',
+  /** COD was refused at checkout. The friction this costs is real. */
+  COD_BLOCKED: 'cod_blocked',
+  COD_CONFIRMATION_SENT: 'cod_confirmation_sent',
+  COD_CONFIRMED: 'cod_confirmed',
+  COD_DECLINED: 'cod_declined',
+  /** Nobody answered. High numbers here mean the window is too short. */
+  COD_CONFIRMATION_EXPIRED: 'cod_confirmation_expired',
+  /** An operator overrode the rules. Rare by design; watched for that reason. */
+  COD_OVERRIDDEN: 'cod_overridden',
+  /** Thresholds changed without a deploy — the event that dates the others. */
+  COD_THRESHOLDS_CHANGED: 'cod_thresholds_changed',
+
   ORDER_PLACED: 'order_placed',
   RESERVATION_FAILED: 'reservation_failed',
 

@@ -8,4 +8,21 @@
 /** The §2.17.2 RiskScorer. Rules by preference, not as a placeholder (§2.17.1). */
 export { RuleRiskScorer } from './internal/risk-scorer.service';
 
-export { CodRiskBand } from '@freshkirana/contracts';
+/** Thresholds ops change without a deploy (§2.10.4). */
+export { CodConfigService } from './internal/cod-config.service';
+
+/** The confirmation ceremony and its audit trail. */
+export { CodConfirmationService } from './internal/cod-confirmation.service';
+export type {
+  OpenedConfirmation,
+  VerifyOutcome,
+} from './internal/cod-confirmation.service';
+
+export { OverrideConfirmationDto, VerifyOtpDto } from './internal/cod.dto';
+
+export {
+  CodConfirmationMethod,
+  CodConfirmationStatus,
+  CodRiskBand,
+  confirmationFor,
+} from '@freshkirana/contracts';
