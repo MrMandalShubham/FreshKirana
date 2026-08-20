@@ -8,6 +8,8 @@ import {
   type PaymentProvider,
   type PaymentSnapshot,
   PaymentStatus,
+  type RefundRequest,
+  type RefundResult,
 } from '@freshkirana/contracts';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
@@ -173,6 +175,56 @@ export class LiveRazorpayProvider implements PaymentProvider {
         `Could not fetch ${providerOrderId} from Razorpay: ${String(error)}`,
       );
       return null;
+    }
+  }
+
+  /**
+   * Sends money back (§1.8.2).
+   *
+   * `POST /payments/{id}/refund` with `speed: 'normal'` — Razorpay also offers
+   * `optimum`, which fronts the money instantly for a fee. Not worth it here:
+   * §1.8.2 already promises 3–7 working days, so paying extra buys nothing the
+   * customer was told to expect.
+   *
+   * The idempotency header is what makes a retried cancellation safe. Every
+   * other failure in this class costs a request; this one would refund twice.
+   */
+  async refund(input: RefundRequest): Promise<RefundResult> {
+    try {
+      const response = (await this.call(
+        `/payments/${encodeURIComponent(input.providerPaymentId)}/refund`,
+        {
+          method: 'POST',
+          headers: { 'x-razorpay-idempotency': input.idempotencyKey },
+          body: {
+            amount: input.amountPaise,
+            speed: 'normal',
+            ...(input.notes ? { notes: input.notes } : {}),
+          },
+        },
+      )) as { id?: string; amount?: number; status?: string };
+
+      return {
+        providerRefundId: response.id ?? '',
+        // Razorpay answers `pending` while it settles and `processed` when
+        // done. Neither is a failure, and treating `pending` as one would have
+        // support chasing refunds that are simply in flight.
+        status: response.status === 'processed' ? 'COMPLETED' : 'PROCESSING',
+        amountPaise: response.amount ?? input.amountPaise,
+      };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Refund failed for ${input.providerPaymentId}: ${reason}`);
+
+      // Returned rather than thrown: a refund the gateway refused is a thing
+      // for a human to look at, not an exception that loses the record of
+      // having tried.
+      return {
+        providerRefundId: '',
+        status: 'FAILED',
+        amountPaise: input.amountPaise,
+        failureReason: reason,
+      };
     }
   }
 

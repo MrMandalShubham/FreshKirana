@@ -1,5 +1,6 @@
 import { Logger, Module } from '@nestjs/common';
 import { PaymentService } from './internal/payment.service';
+import { RefundService } from './internal/refund.service';
 import { LiveRazorpayProvider } from './internal/razorpay.live-provider';
 import { MockRazorpayProvider, PAYMENT_PROVIDER } from './internal/razorpay.provider';
 
@@ -16,6 +17,7 @@ import { MockRazorpayProvider, PAYMENT_PROVIDER } from './internal/razorpay.prov
 @Module({
   providers: [
     PaymentService,
+    RefundService,
     MockRazorpayProvider,
     LiveRazorpayProvider,
     {
@@ -47,6 +49,6 @@ import { MockRazorpayProvider, PAYMENT_PROVIDER } from './internal/razorpay.prov
       inject: [LiveRazorpayProvider, MockRazorpayProvider],
     },
   ],
-  exports: [PaymentService, MockRazorpayProvider],
+  exports: [PaymentService, RefundService, MockRazorpayProvider],
 })
 export class PaymentModule {}

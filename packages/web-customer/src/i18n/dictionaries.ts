@@ -191,6 +191,21 @@ const en = {
   codOtpExpired: 'This confirmation has expired.',
   codExpiresAt: 'Confirm before {time}',
   codConfirmedNotice: 'Confirmed. The shop has been told.',
+
+  // --- Refunds and cancellations (P3.5) ---
+  refunds: 'Refund',
+  refundInitiated: 'On its way back',
+  refundProcessing: 'With your bank',
+  refundCompleted: 'Refunded',
+  refundFailed: 'Could not be sent — we are on it',
+  refundExpected: 'Expected in {min}–{max} working days',
+  refundToOriginal: 'Back to how you paid',
+  refundToBank: 'To your bank account',
+  refundToStoreCredit: 'As store credit',
+  cancelRefundNotice: '{amount} will be refunded.',
+  cancelFeeNotice:
+    'A cancellation fee of {amount} applies — the shop has already packed this.',
+  cancelNothingToRefund: 'Nothing has been charged, so there is nothing to refund.',
 } as const;
 
 /**
@@ -366,6 +381,19 @@ const hi: Dictionary = {
   codOtpExpired: 'इस पुष्टि की मियाद खत्म हो गई।',
   codExpiresAt: '{time} से पहले पक्का करें',
   codConfirmedNotice: 'पक्का हो गया। दुकान को बता दिया गया है।',
+
+  refunds: 'रिफंड',
+  refundInitiated: 'वापस भेजा जा रहा है',
+  refundProcessing: 'आपके बैंक के पास',
+  refundCompleted: 'वापस हो गया',
+  refundFailed: 'भेजा नहीं जा सका — हम देख रहे हैं',
+  refundExpected: '{min}–{max} कार्यदिवस में मिलने की उम्मीद',
+  refundToOriginal: 'जैसे दिया था वैसे वापस',
+  refundToBank: 'आपके बैंक खाते में',
+  refundToStoreCredit: 'स्टोर क्रेडिट के रूप में',
+  cancelRefundNotice: '{amount} वापस किया जाएगा।',
+  cancelFeeNotice: '{amount} रद्दीकरण शुल्क लगेगा — दुकान ने इसे पैक कर दिया है।',
+  cancelNothingToRefund: 'कोई पैसा नहीं लिया गया, इसलिए वापस करने को कुछ नहीं है।',
 };
 
 const DICTIONARIES: Record<Locale, Dictionary> = { en, hi };

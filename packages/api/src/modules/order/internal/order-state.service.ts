@@ -11,8 +11,10 @@ import {
   Audience,
   NotificationChannel,
   customerTemplateFor,
-  type OrderStatus,
+  OrderStatus,
   type OrderTransition,
+  RefundReason,
+  Role,
   type TransitionActorRole,
   TransitionEffect,
   TransitionGuard,
@@ -27,6 +29,7 @@ import type { Database, Transaction } from '../../../db';
 import { InventoryService } from '../../inventory/contracts';
 import { NotificationService } from '../../notification/contracts';
 import { SlotService } from '../../serviceability/contracts';
+import { RefundFlowService } from './refund-flow.service';
 import { order, orderStatusHistory } from '../schema';
 
 export interface TransitionActor {
@@ -60,6 +63,7 @@ export class OrderStateService {
     private readonly slots: SlotService,
     private readonly notifications: NotificationService,
     private readonly inventory: InventoryService,
+    private readonly refundFlow: RefundFlowService,
   ) {}
 
   /**
@@ -140,6 +144,25 @@ export class OrderStateService {
     // messaging failure must not undo a status change that already happened,
     // and the customer's screen should not wait on a provider round trip.
     void this.tellTheCustomer(result.order);
+
+    /*
+     * A cancellation may owe money back (§1.8.1, §1.8.2).
+     *
+     * Here rather than in each caller, because there are five ways an order
+     * gets cancelled — the customer, the store, ops, the SLA sweep, the
+     * payment-window sweep — and a refund that depends on which one fired is a
+     * refund that will be missed by whichever path somebody forgets. §1.8.1
+     * says "initiated automatically", and automatic means from the transition
+     * itself.
+     *
+     * Awaited, unlike the notification: the refund service records the
+     * obligation before it moves any money, and a caller that returns before
+     * that row exists can report "cancelled" for an order whose refund was
+     * never written down. It never throws.
+     */
+    if (to === OrderStatus.CANCELLED) {
+      await this.refundFlow.onCancelled(orderId, reasonFor(actor.role), from);
+    }
 
     return result;
   }
@@ -305,4 +328,21 @@ export class OrderStateService {
     if (!found) throw new NotFoundException(`Order ${orderId} not found`);
     return found;
   }
+}
+
+/**
+ * Which reason code a cancellation carries (§1.8.2, §1.8.4).
+ *
+ * Kept distinct because they allocate liability differently and feed different
+ * numbers: a store that cancels after accepting is a §6.4 vendor-score problem,
+ * and a customer who cancels before that is not a problem at all.
+ */
+function reasonFor(role: TransitionActorRole): RefundReason {
+  if (role === Role.CUSTOMER) return RefundReason.CUSTOMER_CANCELLED;
+  if (role === Role.VENDOR_OWNER || role === Role.VENDOR_STAFF) {
+    return RefundReason.VENDOR_CANCELLED;
+  }
+  // Ops, the SLA sweep, the payment window. All of them are the platform
+  // deciding rather than either party, which is what SYSTEM means here.
+  return RefundReason.SYSTEM_CANCELLED;
 }

@@ -27,7 +27,22 @@ export function getPool(connectionString = requireDatabaseUrl()): Pool {
     // instances, well inside Postgres' default 100 connection limit.
     max: 10,
     idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 10_000,
+
+    /**
+     * How long to wait for a connection before giving up.
+     *
+     * Ten seconds in production, where a database that slow is a problem worth
+     * failing fast on — a request queued behind a sick pool is a request the
+     * customer has already given up on.
+     *
+     * Longer under Vitest, because the test path is not the production path:
+     * every connection crosses the public internet to Mumbai through the Cloud
+     * SQL Auth Proxy, and establishing one occasionally takes longer than ten
+     * seconds on an ordinary home connection. That is latency, not sickness —
+     * `max_connections` on the instance is 100 and fewer than ten are ever in
+     * use — and failing a fifteen-minute gate over it teaches nothing.
+     */
+    connectionTimeoutMillis: process.env['VITEST'] ? 30_000 : 10_000,
 
     /**
      * Keep idle connections alive at the TCP level.

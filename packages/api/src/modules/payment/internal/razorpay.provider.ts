@@ -8,6 +8,8 @@ import {
   type PaymentProvider,
   type PaymentSnapshot,
   PaymentStatus,
+  type RefundRequest,
+  type RefundResult,
 } from '@freshkirana/contracts';
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 
@@ -46,6 +48,9 @@ export class MockRazorpayProvider implements PaymentProvider {
    * paid, the webhook never arrived, and reconciliation has to find out.
    */
   private readonly ledger = new Map<string, PaymentSnapshot>();
+
+  /** Keyed by idempotency key, so a retry cannot pay somebody twice (R4). */
+  private readonly refunds = new Map<string, RefundResult>();
 
   private get webhookSecret(): string {
     // Never defaulted silently in production — the boot-time config check
@@ -160,11 +165,43 @@ export class MockRazorpayProvider implements PaymentProvider {
   }
 
   /**
+   * Sends money back (§1.8.2).
+   *
+   * Keyed by idempotency key, so a retried refund returns the first one rather
+   * than issuing a second. That is the property that matters most here: every
+   * other mistake in this file costs a test, and this one would cost real
+   * money twice.
+   *
+   * Answers `PROCESSING`, like the real gateway. A mock that returned
+   * `COMPLETED` would let the whole system be built around an assumption the
+   * real one breaks — refunds settle over days, not in a request.
+   */
+  refund(input: RefundRequest): Promise<RefundResult> {
+    const already = this.refunds.get(input.idempotencyKey);
+    if (already) return Promise.resolve(already);
+
+    const result: RefundResult = {
+      providerRefundId: `rfnd_mock${randomUUID().replaceAll('-', '').slice(0, 12)}`,
+      status: 'PROCESSING',
+      amountPaise: input.amountPaise,
+    };
+
+    this.refunds.set(input.idempotencyKey, result);
+    return Promise.resolve(result);
+  }
+
+  /**
    * Test seam: the customer paid, and the webhook is about to go missing.
    *
    * Not part of `PaymentProvider` — the live implementation has no equivalent,
    * because the real gateway's ledger is the real gateway's.
    */
+  /** Test seam: the gateway finished a refund it had accepted. */
+  pretendRefundSettled(idempotencyKey: string): void {
+    const existing = this.refunds.get(idempotencyKey);
+    if (existing) this.refunds.set(idempotencyKey, { ...existing, status: 'COMPLETED' });
+  }
+
   pretendCustomerPaid(providerOrderId: string, providerPaymentId?: string): void {
     const existing = this.ledger.get(providerOrderId);
     if (!existing) return;

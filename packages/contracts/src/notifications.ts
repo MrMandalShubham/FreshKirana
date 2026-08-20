@@ -66,6 +66,9 @@ export const NotificationTemplate = {
   ORDER_DELIVERED_NOTICE: 'ORDER_DELIVERED_NOTICE',
   ORDER_DELIVERY_FAILED_NOTICE: 'ORDER_DELIVERY_FAILED_NOTICE',
   ORDER_CANCELLED_NOTICE: 'ORDER_CANCELLED_NOTICE',
+  /** Money is on its way back, and roughly when (§1.8.2). */
+  REFUND_INITIATED: 'REFUND_INITIATED',
+  REFUND_COMPLETED: 'REFUND_COMPLETED',
 } as const;
 
 export type NotificationTemplate =
@@ -146,6 +149,10 @@ export const TEMPLATE_URGENCY: Record<NotificationTemplate, NotificationUrgency>
   ORDER_DELIVERED_NOTICE: NotificationUrgency.CRITICAL,
   ORDER_DELIVERY_FAILED_NOTICE: NotificationUrgency.CRITICAL,
   ORDER_CANCELLED_NOTICE: NotificationUrgency.CRITICAL,
+  // Somebody is waiting on money they are owed. Holding this until morning to
+  // be polite is exactly the wrong trade.
+  REFUND_INITIATED: NotificationUrgency.CRITICAL,
+  REFUND_COMPLETED: NotificationUrgency.CRITICAL,
   PAYOUT_STATEMENT: NotificationUrgency.ROUTINE,
   LOW_STOCK_DIGEST: NotificationUrgency.ROUTINE,
 };

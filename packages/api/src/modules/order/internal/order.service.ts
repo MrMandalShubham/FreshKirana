@@ -230,6 +230,30 @@ export class OrderService {
   }
 
   /**
+   * Moves the order's payment axis (§2.6.2).
+   *
+   * Separate from fulfilment status on purpose, and maintained separately for
+   * the same reason: a delivered order can be refunded, and a cash order is
+   * fulfilled long before it is captured. The column existed from P2.3 and
+   * nothing wrote to it after creation until P3.5 — so every prepaid order read
+   * as PENDING however thoroughly it had been paid, which is invisible right up
+   * until something asks "how much of this money is ours?".
+   */
+  async setPaymentStatus(
+    orderId: string,
+    status: PaymentStatus,
+    tx: Transaction | Database = this.db,
+  ) {
+    const rows = await tx
+      .update(order)
+      .set({ paymentStatus: status, updatedAt: new Date() })
+      .where(eq(order.id, orderId))
+      .returning();
+
+    return rows[0] ?? null;
+  }
+
+  /**
    * Switches an order to cash on delivery (§2.10.3).
    *
    * The total does not change — only who is owed it and when. `codCollectable`

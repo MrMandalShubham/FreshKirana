@@ -94,6 +94,36 @@ export interface PaymentProvider {
    * this system has.
    */
   fetchPayment(providerOrderId: string): Promise<PaymentSnapshot | null>;
+
+  /**
+   * Sends money back down the rail it came up (§1.8.2).
+   *
+   * Takes the *payment* id rather than the order id: a refund reverses one
+   * specific capture, and an order that was retried has more than one payment
+   * row with only one of them captured.
+   *
+   * `amountPaise` is explicit rather than implied, because a partial refund is
+   * the normal case in grocery — a missing item, an underweight line — and a
+   * method that refunded "the payment" would make the common case the awkward
+   * one.
+   */
+  refund(input: RefundRequest): Promise<RefundResult>;
+}
+
+export interface RefundRequest {
+  providerPaymentId: string;
+  amountPaise: number;
+  /** Rule R4. The provider must reject a repeat rather than pay twice. */
+  idempotencyKey: string;
+  notes?: Record<string, string>;
+}
+
+export interface RefundResult {
+  providerRefundId: string;
+  /** Providers settle asynchronously; `PROCESSING` is the normal answer. */
+  status: 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  amountPaise: number;
+  failureReason?: string;
 }
 
 /**

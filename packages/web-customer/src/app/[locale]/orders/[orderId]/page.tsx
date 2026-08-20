@@ -5,8 +5,15 @@ import { CancelOrder } from '@/components/CancelOrder';
 import { OrderTimeline } from '@/components/OrderTimeline';
 import { CodConfirm } from '@/components/CodConfirm';
 import { PaymentRecovery } from '@/components/PaymentRecovery';
+import { Refunds } from '@/components/Refunds';
 import { inr } from '@/lib/money';
-import { fetchCodConfirmation, fetchOrder, fetchRecoveryOffer } from '@/lib/orders';
+import {
+  fetchCancellationPreview,
+  fetchCodConfirmation,
+  fetchOrder,
+  fetchRecoveryOffer,
+  fetchRefunds,
+} from '@/lib/orders';
 import { isSignedIn } from '@/lib/session';
 import { type Locale, getDictionary } from '@/i18n/dictionaries';
 
@@ -53,6 +60,12 @@ export default async function OrderPage({
 
   const recovery = waiting && !isCash ? await fetchRecoveryOffer(order.id) : null;
   const codConfirmation = waiting && isCash ? await fetchCodConfirmation(order.id) : null;
+
+  // Both cheap, and both only asked for when they could say something: a
+  // refund list for an order with no refunds, and the cost of a cancellation
+  // nobody can make, are round trips spent on nothing.
+  const refunds = await fetchRefunds(order.id);
+  const cancellationPreview = canCancel ? await fetchCancellationPreview(order.id) : null;
 
   return (
     <>
@@ -133,7 +146,11 @@ export default async function OrderPage({
           </p>
         </section>
 
-        {canCancel && <CancelOrder orderId={order.id} locale={locale} />}
+        <Refunds refunds={refunds} locale={locale} />
+
+        {canCancel && (
+          <CancelOrder orderId={order.id} locale={locale} preview={cancellationPreview} />
+        )}
 
         <Link className="link-button" href={`/${locale}/orders`}>
           {t.allOrders}

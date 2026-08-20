@@ -14,6 +14,11 @@ import {
   CodSweepController,
 } from './internal/cod-flow.controller';
 import { InboundReplyService } from './internal/inbound-reply.service';
+import { RefundFlowService } from './internal/refund-flow.service';
+import {
+  AdminRefundController,
+  CustomerRefundController,
+} from './internal/refund.controller';
 import { OrderStateService } from './internal/order-state.service';
 import {
   OrderController,
@@ -81,6 +86,8 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     CodConfirmationController,
     CodOverrideController,
     CodSweepController,
+    CustomerRefundController,
+    AdminRefundController,
   ],
   providers: [
     OrderService,
@@ -91,6 +98,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     PaymentRecoveryService,
     CodFlowService,
     InboundReplyService,
+    RefundFlowService,
   ],
   exports: [
     OrderService,
@@ -100,6 +108,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     PaymentFlowService,
     PaymentRecoveryService,
     CodFlowService,
+    RefundFlowService,
   ],
 })
 export class OrderModule {}

@@ -179,6 +179,19 @@ export class PaymentFlowService {
   ): Promise<WebhookOutcome> {
     await this.inventory.confirmForOrder(orderId);
 
+    /*
+     * The payment axis (§2.6.2).
+     *
+     * The column has existed since P2.3 and nothing wrote to it after the order
+     * was created, so every prepaid order read as PENDING however thoroughly it
+     * had been paid. Invisible until something asks how much of this money is
+     * ours — which P3.5 does, and P5's ledger will do far more sharply.
+     *
+     * Set before the status transition, so an order that is AWAITING_VENDOR is
+     * never momentarily also unpaid.
+     */
+    await this.orders.setPaymentStatus(orderId, PaymentStatus.CAPTURED);
+
     if (current !== OrderStatus.PENDING_PAYMENT) {
       // Already moved on — a reconciliation pass racing the webhook, or ops
       // pushing it through by hand. The money is recorded either way.

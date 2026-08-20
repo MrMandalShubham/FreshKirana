@@ -156,5 +156,66 @@ export const paymentEvent = paymentSchema.table(
   ],
 );
 
+/**
+ * One refund, at whatever stage it has reached (spec §1.8.2).
+ *
+ * A row per refund rather than a running total on the payment, for the same
+ * reason `payment` is a row per *attempt*: an order can be refunded more than
+ * once — a missing item today, an underweight line tomorrow — and a single
+ * total says how much went back without saying why any of it did. The moment a
+ * customer asks "what was this ₹80 for?", a total cannot answer.
+ *
+ * Amounts are integer paise, like every other amount in this system.
+ */
+export const refund = paymentSchema.table(
+  'refund',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+
+    /** Owned by the order module. Validated through contracts, never joined. */
+    orderId: uuid('order_id').notNull(),
+    accountId: uuid('account_id').notNull(),
+    /** Null for a cash order: there was no payment to reverse. */
+    paymentId: uuid('payment_id'),
+
+    amountPaise: integer('amount_paise').notNull(),
+    reason: text('reason').notNull(),
+    route: text('route').notNull(),
+    status: text('status').notNull(),
+
+    /** The line this refund is for, when it is for one line (§1.7.1, §1.8.3). */
+    orderLineId: uuid('order_line_id'),
+
+    providerRefundId: text('provider_refund_id'),
+    failureReason: text('failure_reason'),
+
+    /**
+     * Rule R4, and the reason a double-tap cannot pay somebody twice.
+     *
+     * Derived rather than generated, so a retried cancellation reuses the same
+     * key: "cancel order X" is one intent however many times it is submitted.
+     */
+    idempotencyKey: text('idempotency_key').notNull(),
+
+    /** Who decided. Null when the rules did, set for a goodwill refund. */
+    issuedBy: uuid('issued_by'),
+    note: text('note'),
+
+    initiatedAt: timestamp('initiated_at', { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('refund_idempotency_key').on(table.idempotencyKey),
+    index('refund_order_idx').on(table.orderId),
+    index('refund_account_idx').on(table.accountId),
+    // The sweep that chases refunds the gateway has not confirmed.
+    index('refund_status_idx').on(table.status, table.initiatedAt),
+  ],
+);
+
 export type PaymentRow = typeof payment.$inferSelect;
+export type RefundRow = typeof refund.$inferSelect;
 export type PaymentEventRow = typeof paymentEvent.$inferSelect;

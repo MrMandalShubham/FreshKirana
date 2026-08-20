@@ -12,10 +12,14 @@
 export { PaymentService } from './internal/payment.service';
 export type { AppliedPayment, StartPaymentInput } from './internal/payment.service';
 
+/** Money going back (§1.8.2). */
+export { RefundService } from './internal/refund.service';
+export type { IssueRefundInput, RefundView } from './internal/refund.service';
+
 export { PAYMENT_PROVIDER, MockRazorpayProvider } from './internal/razorpay.provider';
 export { LiveRazorpayProvider } from './internal/razorpay.live-provider';
 
-export type { PaymentRow, PaymentEventRow } from './schema';
+export type { PaymentRow, PaymentEventRow, RefundRow } from './schema';
 
 export {
   PAYMENT_WINDOW_MINUTES,

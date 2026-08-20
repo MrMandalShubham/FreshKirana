@@ -135,6 +135,28 @@ export interface CodConfirmation {
   attempts?: number;
 }
 
+/** Money going back, and roughly when (§1.8.2). */
+export interface Refund {
+  id: string;
+  amountPaise: number;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  route: 'ORIGINAL_METHOD' | 'BANK_TRANSFER' | 'STORE_CREDIT';
+  reason: string;
+  expectedByMinDays: number;
+  expectedByMaxDays: number;
+  initiatedAt: string;
+  completedAt: string | null;
+}
+
+/** What cancelling right now would cost and return (§1.8.1). */
+export interface CancellationPreview {
+  feePaise: number;
+  refundPaise: number;
+  route: string;
+  expectedByMinDays: number;
+  expectedByMaxDays: number;
+}
+
 export interface RecoveryOffer {
   canRetry: boolean;
   canConvertToCod: boolean;
@@ -240,6 +262,30 @@ export async function fetchCodConfirmation(orderId: string): Promise<CodConfirma
   );
 
   return result.data ?? { pending: false };
+}
+
+export async function fetchRefunds(orderId: string): Promise<Refund[]> {
+  const result = await getPrivateJson<Refund[]>(
+    `/me/orders/${encodeURIComponent(orderId)}/refunds`,
+  );
+
+  return result.data ?? [];
+}
+
+/**
+ * What cancelling would cost, asked before the shopper commits.
+ *
+ * §1.8.1 allows cancelling from PACKED "with a warning", and a warning that
+ * arrives after the tap is not a warning.
+ */
+export async function fetchCancellationPreview(
+  orderId: string,
+): Promise<CancellationPreview | null> {
+  const result = await getPrivateJson<CancellationPreview>(
+    `/me/orders/${encodeURIComponent(orderId)}/cancellation-preview`,
+  );
+
+  return result.data;
 }
 
 export async function fetchOrders(): Promise<Order[]> {

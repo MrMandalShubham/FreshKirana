@@ -98,8 +98,19 @@ export const AnalyticsEvent = {
 
   // Post-order
   ORDER_CANCELLED: 'order_cancelled',
+  /**
+   * Refunds (§1.8.2, §1.8.3).
+   *
+   * The first two were declared in P0 and had nothing emitting them until now.
+   * The refund-to-order-value ratio is the §1.8.3 abuse signal and cannot be
+   * reconstructed after the fact — a refund that was never counted is invisible
+   * to the review meant to catch a pattern.
+   */
   REFUND_INITIATED: 'refund_initiated',
   REFUND_COMPLETED: 'refund_completed',
+  /** The gateway refused it. Somebody is owed money and has not got it. */
+  REFUND_FAILED: 'refund_failed',
+  ORDER_CANCELLED_WITH_FEE: 'order_cancelled_with_fee',
   REORDER_CLICKED: 'reorder_clicked',
   RATING_SUBMITTED: 'rating_submitted',
   SUPPORT_TICKET_CREATED: 'support_ticket_created',

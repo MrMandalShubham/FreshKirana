@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from 'react';
 import { cancelOrder, type ActionResult } from '@/lib/actions';
+import { inr } from '@/lib/money';
+import type { CancellationPreview } from '@/lib/orders';
 import { type Locale, getDictionary } from '@/i18n/dictionaries';
 
 /**
@@ -10,7 +12,16 @@ import { type Locale, getDictionary } from '@/i18n/dictionaries';
  * Behind a confirmation step, because this is irreversible and sits on a screen
  * people open to *check* on an order. One stray tap should not end it.
  */
-export function CancelOrder({ orderId, locale }: { orderId: string; locale: Locale }) {
+export function CancelOrder({
+  orderId,
+  locale,
+  preview,
+}: {
+  orderId: string;
+  locale: Locale;
+  /** What cancelling costs and returns (§1.8.1). Null when nothing was paid. */
+  preview?: CancellationPreview | null;
+}) {
   const t = getDictionary(locale);
   const [confirming, setConfirming] = useState(false);
 
@@ -34,6 +45,25 @@ export function CancelOrder({ orderId, locale }: { orderId: string; locale: Loca
   return (
     <form action={formAction} className="cancel-order">
       <input type="hidden" name="orderId" value={orderId} />
+
+      {/*
+       * §1.8.1 allows cancelling from PACKED "with a warning". This is the
+       * warning, and it is shown *before* the confirm button rather than after
+       * — a warning that arrives after the tap is not a warning.
+       */}
+      {preview && preview.feePaise > 0 && (
+        <p className="notice warning">
+          {t.cancelFeeNotice.replace('{amount}', inr(preview.feePaise))}
+        </p>
+      )}
+
+      {preview && (
+        <p className="muted">
+          {preview.refundPaise > 0
+            ? t.cancelRefundNotice.replace('{amount}', inr(preview.refundPaise))
+            : t.cancelNothingToRefund}
+        </p>
+      )}
 
       <label className="field">
         <span>{t.cancelReason}</span>

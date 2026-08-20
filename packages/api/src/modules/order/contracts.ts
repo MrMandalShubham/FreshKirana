@@ -17,6 +17,8 @@ export type { InboundOutcome } from './internal/vendor-order-flow.service';
 export { UsualBasketService } from './internal/usual-basket.service';
 export type { BuyAgainItem } from './internal/usual-basket.service';
 
+export { RefundFlowService } from './internal/refund-flow.service';
+
 export { CodFlowService } from './internal/cod-flow.service';
 export type { CodAssessment } from './internal/cod-flow.service';
 
