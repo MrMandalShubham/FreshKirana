@@ -3,8 +3,9 @@ import { notFound, redirect } from 'next/navigation';
 import { BottomNav, Header } from '@/components/Chrome';
 import { CancelOrder } from '@/components/CancelOrder';
 import { OrderTimeline } from '@/components/OrderTimeline';
+import { PaymentRecovery } from '@/components/PaymentRecovery';
 import { inr } from '@/lib/money';
-import { fetchOrder } from '@/lib/orders';
+import { fetchOrder, fetchRecoveryOffer } from '@/lib/orders';
 import { isSignedIn } from '@/lib/session';
 import { type Locale, getDictionary } from '@/i18n/dictionaries';
 
@@ -32,6 +33,12 @@ export default async function OrderPage({
 
   const canCancel = order.nextActions.some((action) => action.to === 'CANCELLED');
 
+  // Only asked for when it could matter. An order that is packed or delivered
+  // has nothing to recover, and a request per order view would cost every
+  // shopper a round trip for a screen almost none of them will see.
+  const recovery =
+    order.status === 'PENDING_PAYMENT' ? await fetchRecoveryOffer(order.id) : null;
+
   return (
     <>
       <Header locale={locale} />
@@ -39,6 +46,15 @@ export default async function OrderPage({
       <main id="main" className="container">
         <p className="muted">{order.orderNumber}</p>
         <h1 className="section-title">{order.label ?? order.status}</h1>
+
+        {recovery && (
+          <PaymentRecovery
+            orderId={order.id}
+            amountPaise={order.grandTotalPaise}
+            offer={recovery}
+            locale={locale}
+          />
+        )}
 
         <OrderTimeline timeline={order.timeline} locale={locale} />
 

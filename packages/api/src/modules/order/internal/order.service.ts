@@ -2,7 +2,7 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   OrderLineStatus,
   OrderStatus,
-  type PaymentMethod,
+  PaymentMethod,
   PaymentStatus,
   formatOrderNumber,
   istDateKey,
@@ -207,6 +207,52 @@ export class OrderService {
       .where(eq(order.status, status))
       .orderBy(asc(order.placedAt))
       .limit(Math.min(limit, 500));
+  }
+
+  /**
+   * Switches an order to cash on delivery (§2.10.3).
+   *
+   * The total does not change — only who is owed it and when. `codCollectable`
+   * becomes the amount the rider takes at the door, which until now was zero
+   * because the money was supposed to arrive before dispatch.
+   */
+  async convertToCod(orderId: string, tx: Transaction | Database = this.db) {
+    const rows = await tx
+      .update(order)
+      .set({
+        paymentMethod: PaymentMethod.COD,
+        codCollectablePaise: sql`${order.grandTotalPaise}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(order.id, orderId))
+      .returning();
+
+    return rows[0] ?? null;
+  }
+
+  /**
+   * How this customer has behaved, for the §2.10.4 risk rules.
+   *
+   * Counted from orders rather than kept as a running total on the account: a
+   * counter drifts, and the one number that must not drift is how many times
+   * somebody has refused delivery.
+   */
+  async historyCountsFor(accountId: string): Promise<{
+    completed: number;
+    returned: number;
+  }> {
+    const rows = await this.db
+      .select({
+        completed: sql<number>`count(*) filter (where ${order.status} in ('DELIVERED', 'COMPLETED'))::int`,
+        returned: sql<number>`count(*) filter (where ${order.status} in ('RTO', 'RETURNED', 'DELIVERY_FAILED'))::int`,
+      })
+      .from(order)
+      .where(eq(order.accountId, accountId));
+
+    return {
+      completed: Number(rows[0]?.completed ?? 0),
+      returned: Number(rows[0]?.returned ?? 0),
+    };
   }
 
   /** The order placed from this cart, if there is one. Backs idempotent placing. */

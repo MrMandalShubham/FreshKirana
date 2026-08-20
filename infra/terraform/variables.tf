@@ -150,3 +150,15 @@ variable "razorpay_key_id" {
   type        = string
   default     = ""
 }
+
+# A variable rather than google_cloud_run_v2_service.web.uri, which would be a
+# dependency cycle: the storefront already reads the API's URI for API_BASE, and
+# the API cannot read the storefront's back. Set it from the `web_url` output
+# after the first apply. Empty produces a relative-looking link, which is wrong
+# in a WhatsApp message but harmless — the recovery screen inside the app still
+# works, so a missing value costs the link, not the order.
+variable "storefront_base_url" {
+  description = "Public URL of the customer PWA, used to build payment recovery links (§2.10.3). Take it from the web_url output."
+  type        = string
+  default     = ""
+}

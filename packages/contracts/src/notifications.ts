@@ -55,6 +55,8 @@ export const NotificationTemplate = {
   LOW_STOCK_DIGEST: 'LOW_STOCK_DIGEST',
 
   // --- Customer ---
+  /** A link to finish paying, after the first attempt failed (§2.10.3). */
+  PAYMENT_LINK: 'PAYMENT_LINK',
   ORDER_CONFIRMED: 'ORDER_CONFIRMED',
   ORDER_DISPATCHED_NOTICE: 'ORDER_DISPATCHED_NOTICE',
   ORDER_DELIVERED_NOTICE: 'ORDER_DELIVERED_NOTICE',
@@ -107,6 +109,7 @@ export const TEMPLATE_URGENCY: Record<NotificationTemplate, NotificationUrgency>
   SUBSTITUTION_PROPOSE: NotificationUrgency.CRITICAL,
   ORDER_PACKED_CONFIRM: NotificationUrgency.CRITICAL,
   HANDOVER_CONFIRM: NotificationUrgency.CRITICAL,
+  PAYMENT_LINK: NotificationUrgency.CRITICAL,
   ORDER_CONFIRMED: NotificationUrgency.CRITICAL,
   ORDER_DISPATCHED_NOTICE: NotificationUrgency.CRITICAL,
   ORDER_DELIVERED_NOTICE: NotificationUrgency.CRITICAL,

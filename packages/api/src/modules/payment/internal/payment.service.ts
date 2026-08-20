@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
 import {
   PAYMENT_WINDOW_MINUTES,
   type PaymentEvent,
@@ -8,7 +8,8 @@ import {
   PaymentStatus,
   isSettled,
 } from '@freshkirana/contracts';
-import { and, asc, eq, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, lt, sql } from 'drizzle-orm';
+import { randomBytes } from 'node:crypto';
 import { DATABASE } from '../../../db/db.module';
 import type { Database, Transaction } from '../../../db';
 import { payment, paymentEvent } from '../schema';
@@ -52,8 +53,12 @@ export class PaymentService {
   async start(
     input: StartPaymentInput,
     tx: Transaction | Database = this.db,
+    attempt = 1,
   ): Promise<PaymentIntent> {
-    const idempotencyKey = `order:${input.orderId}`;
+    // Keyed by *attempt*, not by order. A key of `order:{id}` would make the
+    // first try the only try — the same mechanism that stops a double charge
+    // would refuse the retry §2.10.3 depends on.
+    const idempotencyKey = `order:${input.orderId}:attempt:${attempt}`;
 
     const existing = await tx
       .select()
@@ -83,6 +88,8 @@ export class PaymentService {
         method: input.method,
         status: PaymentStatus.PENDING,
         idempotencyKey,
+        attempt,
+        recoveryToken: newRecoveryToken(),
         expiresAt: new Date(Date.now() + PAYMENT_WINDOW_MINUTES * 60_000),
       })
       .returning();
@@ -277,10 +284,140 @@ export class PaymentService {
       .orderBy(asc(paymentEvent.createdAt));
   }
 
+  /**
+   * Offers another go after a failure (§2.10.3).
+   *
+   * Refused while an attempt is still live: two open intents for one order mean
+   * a customer can pay twice, and no amount of reconciliation afterwards makes
+   * that a good experience. So a retry is only allowed once the previous
+   * attempt has failed or its window has passed.
+   */
+  async retry(input: StartPaymentInput): Promise<PaymentIntent> {
+    const latest = await this.latestAttempt(input.orderId);
+
+    if (latest && !this.canRetryAfter(latest)) {
+      throw new ConflictException({
+        message: 'That payment is still open. Finish it, or wait for it to expire.',
+        code: 'PAYMENT_STILL_OPEN',
+        paymentId: latest.id,
+      });
+    }
+
+    // A dead attempt's link must stop working the moment a new one exists,
+    // or a shopper with two WhatsApp messages can open the wrong one.
+    if (latest) await this.revokeRecoveryToken(latest.id);
+
+    return this.start(input, this.db, (latest?.attempt ?? 0) + 1);
+  }
+
+  /** The most recent attempt for an order, whatever became of it. */
+  async latestAttempt(orderId: string) {
+    const rows = await this.db
+      .select()
+      .from(payment)
+      .where(eq(payment.orderId, orderId))
+      .orderBy(desc(payment.attempt))
+      .limit(1);
+
+    return rows[0] ?? null;
+  }
+
+  /**
+   * Whether a fresh attempt is allowed.
+   *
+   * Captured is final. Anything still pending inside its window is live, and a
+   * second intent alongside it is how somebody pays twice.
+   */
+  canRetryAfter(latest: { status: string; expiresAt: Date | null }): boolean {
+    if (latest.status === PaymentStatus.CAPTURED) return false;
+    if (latest.status === PaymentStatus.FAILED) return true;
+
+    return latest.expiresAt !== null && latest.expiresAt.getTime() <= Date.now();
+  }
+
+  /**
+   * Resolves a "finish paying" link.
+   *
+   * The token is a bearer credential — whoever holds it can pay this order — so
+   * it answers only while the attempt is still live, and says nothing about the
+   * customer beyond what the payment screen needs.
+   */
+  async resolveRecoveryToken(token: string) {
+    const rows = await this.db
+      .select()
+      .from(payment)
+      .where(eq(payment.recoveryToken, token))
+      .limit(1);
+
+    const found = rows[0];
+    if (!found) return null;
+
+    const expired = found.expiresAt !== null && found.expiresAt.getTime() <= Date.now();
+
+    if (expired || isSettled(found.status as PaymentStatus)) {
+      return { payment: found, usable: false as const };
+    }
+
+    return { payment: found, usable: true as const };
+  }
+
+  async revokeRecoveryToken(paymentId: string): Promise<void> {
+    await this.db
+      .update(payment)
+      .set({ recoveryToken: null, updatedAt: new Date() })
+      .where(eq(payment.id, paymentId));
+  }
+
+  /**
+   * Attempts whose window has closed without the money arriving (§2.10.3).
+   *
+   * The order they belong to is still sitting in PENDING_PAYMENT holding stock
+   * and a delivery slot, and nobody is coming back to it.
+   */
+  async expiredPending(now = new Date(), limit = 200) {
+    return this.db
+      .select()
+      .from(payment)
+      .where(
+        and(
+          eq(payment.status, PaymentStatus.PENDING),
+          isNotNull(payment.expiresAt),
+          lt(payment.expiresAt, now),
+        ),
+      )
+      .orderBy(asc(payment.expiresAt))
+      .limit(limit);
+  }
+
+  /** Marks an attempt dead once its window has passed. */
+  async markExpired(paymentId: string): Promise<void> {
+    await this.db
+      .update(payment)
+      .set({
+        status: PaymentStatus.FAILED,
+        failureReason: 'The payment window closed before the money arrived',
+        recoveryToken: null,
+        expiresAt: null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(payment.id, paymentId), eq(payment.status, PaymentStatus.PENDING)));
+  }
+
   private async noteOutcome(eventId: string, outcome: string): Promise<void> {
     await this.db
       .update(paymentEvent)
       .set({ outcome })
       .where(eq(paymentEvent.id, eventId));
   }
+}
+
+/**
+ * A link token.
+ *
+ * 32 random bytes, base64url. Long enough that guessing is not a strategy —
+ * anyone holding it can pay somebody else's order, so its only protections are
+ * its length and its expiry.
+ */
+function newRecoveryToken(): string {
+  return randomBytes(32).toString('base64url');
 }

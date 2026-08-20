@@ -152,6 +152,28 @@ const en = {
   usuallyEvery: 'Usually every {interval} days · last bought {days} days ago',
   boughtBefore: 'Bought {days} days ago',
   boughtTimes: 'bought {count} times',
+
+  // --- Payment recovery (P3.3) ---
+  paymentNotDone: 'Payment not completed',
+  paymentNotDoneHelp:
+    'Your basket and delivery slot are still held. Finish paying to confirm the order.',
+  payAgain: 'Try paying again',
+  payingAgain: 'Opening payment…',
+  payWithCash: 'Pay cash on delivery instead',
+  switchingToCash: 'Switching…',
+  cashNotAvailable: 'Cash on delivery is not available for this order.',
+  payNow: 'Pay {amount}',
+  paymentLinkDead: 'This payment link has expired.',
+  paymentLinkDeadHelp:
+    'Open the order in the app to try again. If nothing is paid, the order is cancelled and your basket released.',
+  paymentAmount: 'Amount to pay',
+  paymentGatewayMissing:
+    'Online payment is not configured in this environment yet, so this link cannot open a payment app.',
+  paymentOpening: 'Opening your payment app…',
+  paymentClosed: 'Payment was not completed. You can try again.',
+  paymentTakingEffect:
+    'Payment received. Confirming your order — this takes a few seconds.',
+  backToOrder: 'View the order',
 } as const;
 
 /**
@@ -290,6 +312,26 @@ const hi: Dictionary = {
   usuallyEvery: 'आमतौर पर हर {interval} दिन · पिछली बार {days} दिन पहले',
   boughtBefore: '{days} दिन पहले खरीदा',
   boughtTimes: '{count} बार खरीदा',
+
+  paymentNotDone: 'पेमेंट पूरा नहीं हुआ',
+  paymentNotDoneHelp:
+    'आपका सामान और डिलीवरी का समय अभी भी रोका हुआ है। ऑर्डर पक्का करने के लिए पेमेंट पूरा करें।',
+  payAgain: 'फिर से पेमेंट करें',
+  payingAgain: 'पेमेंट खोला जा रहा है…',
+  payWithCash: 'इसके बजाय डिलीवरी पर नकद दें',
+  switchingToCash: 'बदला जा रहा है…',
+  cashNotAvailable: 'इस ऑर्डर पर डिलीवरी पर नकद उपलब्ध नहीं है।',
+  payNow: '{amount} दें',
+  paymentLinkDead: 'इस पेमेंट लिंक की मियाद खत्म हो गई।',
+  paymentLinkDeadHelp:
+    'ऐप में ऑर्डर खोलकर फिर कोशिश करें। पेमेंट न होने पर ऑर्डर रद्द हो जाएगा और सामान छोड़ दिया जाएगा।',
+  paymentAmount: 'देने की राशि',
+  paymentGatewayMissing:
+    'इस वातावरण में ऑनलाइन पेमेंट अभी सेट नहीं है, इसलिए यह लिंक पेमेंट ऐप नहीं खोल सकता।',
+  paymentOpening: 'आपका पेमेंट ऐप खोला जा रहा है…',
+  paymentClosed: 'पेमेंट पूरा नहीं हुआ। आप फिर कोशिश कर सकते हैं।',
+  paymentTakingEffect: 'पेमेंट मिल गया। ऑर्डर पक्का हो रहा है — कुछ सेकंड लगेंगे।',
+  backToOrder: 'ऑर्डर देखें',
 };
 
 const DICTIONARIES: Record<Locale, Dictionary> = { en, hi };

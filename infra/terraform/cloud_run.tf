@@ -126,6 +126,21 @@ resource "google_cloud_run_v2_service" "api" {
         value = var.node_env
       }
 
+      /**
+       * Where a payment recovery link points (§2.10.3).
+       *
+       * The API sends the message, so it has to know the URL to put in it — a
+       * shopper cannot assemble a link from a base URL nobody sent them.
+       * Configuration rather than a constant because a hardcoded host would
+       * send staging customers to production, and a variable rather than the
+       * web service's own `uri` because that is a dependency cycle — the
+       * storefront already reads this service's URI for API_BASE.
+       */
+      env {
+        name  = "STOREFRONT_BASE_URL"
+        value = var.storefront_base_url
+      }
+
       # PORT is deliberately absent: Cloud Run injects it automatically and
       # rejects any attempt to set it. The application already reads
       # process.env.PORT with a 3000 fallback.

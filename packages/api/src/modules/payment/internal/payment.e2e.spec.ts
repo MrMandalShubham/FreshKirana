@@ -368,7 +368,11 @@ describe.skipIf(!dbUp)('payment (e2e)', () => {
   });
 
   describe('the money does not arrive', () => {
-    it('cancels the order and gives everything back', async () => {
+    it('holds the order open rather than cancelling it', async () => {
+      // Changed deliberately in P3.3: a declined payment is not somebody
+      // changing their mind, and cancelling on them loses a recoverable order.
+      // The stock stays held so there is still an order to recover — the
+      // §2.10.3 sweeper is what eventually takes it back.
       const offerId = await makeOffer(4);
       const order = await placePrepaid(offerId, 2);
 
@@ -378,14 +382,14 @@ describe.skipIf(!dbUp)('payment (e2e)', () => {
       );
       await post(body, signature).expect(201);
 
-      expect(await statusOf(order.id)).toBe(OrderStatus.CANCELLED);
+      expect(await statusOf(order.id)).toBe(OrderStatus.PENDING_PAYMENT);
 
       const stock = await http()
         .get(`/vendor/${vendorId}/offers/${offerId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect((stock.body as { stockReserved: number }).stockReserved).toBe(0);
+      expect((stock.body as { stockReserved: number }).stockReserved).toBe(2);
     });
 
     it('never lets a late failure undo a capture', async () => {

@@ -258,6 +258,56 @@ export async function cancelOrder(formData: FormData): Promise<ActionResult> {
   return ok;
 }
 
+// ---------------------------------------------------------------------------
+// Payment recovery (P3.3)
+// ---------------------------------------------------------------------------
+
+/**
+ * What a failed payment can be turned into.
+ *
+ * The intent comes back to the *server* action and is handed to the browser
+ * only as the two fields Razorpay Checkout needs. There is no path here that
+ * marks an order paid — that is the webhook's job, and putting it in reach of
+ * a browser would make "paid" something a customer could assert.
+ */
+export interface PaymentIntentResult extends ActionResult {
+  providerOrderId?: string;
+  keyId?: string;
+  amountPaise?: number;
+}
+
+export async function retryPayment(formData: FormData): Promise<PaymentIntentResult> {
+  const orderId = String(formData.get('orderId') ?? '');
+
+  const result = await sendJson<{ providerOrderId: string; amountPaise: number }>(
+    `/me/orders/${encodeURIComponent(orderId)}/payment/retry`,
+    { method: 'POST' },
+  );
+
+  if (!result.ok || !result.data) return failed(result);
+
+  return {
+    ok: true,
+    providerOrderId: result.data.providerOrderId,
+    amountPaise: result.data.amountPaise,
+    ...(process.env['RAZORPAY_KEY_ID'] ? { keyId: process.env['RAZORPAY_KEY_ID'] } : {}),
+  };
+}
+
+export async function convertOrderToCod(formData: FormData): Promise<ActionResult> {
+  const orderId = String(formData.get('orderId') ?? '');
+
+  const result = await sendJson(
+    `/me/orders/${encodeURIComponent(orderId)}/payment/convert-to-cod`,
+    { method: 'POST' },
+  );
+
+  if (!result.ok) return failed(result);
+
+  revalidatePath('/', 'layout');
+  return ok;
+}
+
 export async function markNotificationsRead(): Promise<ActionResult> {
   const result = await sendJson('/me/notifications/read', { method: 'POST' });
   if (!result.ok) return failed(result);

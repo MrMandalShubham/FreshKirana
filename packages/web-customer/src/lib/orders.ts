@@ -125,6 +125,12 @@ export interface OrderDetail extends Order {
   history: Array<{ toStatus: string; reason: string | null; createdAt: string }>;
 }
 
+export interface RecoveryOffer {
+  canRetry: boolean;
+  canConvertToCod: boolean;
+  codRefusedReason?: string;
+}
+
 export interface UsualBasketItem {
   masterProductId: string;
   vendorOfferId: string;
@@ -194,6 +200,22 @@ export async function fetchCheckoutPreview(params: {
   const suffix = query.toString() ? `?${query.toString()}` : '';
   const result = await getPrivateJson<CheckoutPreview>(`/checkout/preview${suffix}`);
   return result.data;
+}
+
+/**
+ * What a stuck order can still do (§2.10.3).
+ *
+ * Asked of the API rather than inferred from the status, so the screen offers
+ * the buttons that will actually work — the COD half depends on a risk score
+ * this side cannot compute, and a button that 409s teaches people the app is
+ * broken.
+ */
+export async function fetchRecoveryOffer(orderId: string): Promise<RecoveryOffer> {
+  const result = await getPrivateJson<RecoveryOffer>(
+    `/me/orders/${encodeURIComponent(orderId)}/payment/recovery`,
+  );
+
+  return result.data ?? { canRetry: false, canConvertToCod: false };
 }
 
 export async function fetchOrders(): Promise<Order[]> {

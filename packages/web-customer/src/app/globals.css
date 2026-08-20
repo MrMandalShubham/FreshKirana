@@ -527,6 +527,16 @@ a {
   color: var(--success, #1a7f37);
 }
 
+/*
+ * A payment that did not go through (§2.10.3). Reads as something to act on
+ * rather than something that went wrong: the order is still alive, and the
+ * shopper's stock and slot are still held.
+ */
+.notice.warning {
+  border-left-color: var(--warning, #b54708);
+  background: var(--warning-surface, #fffaeb);
+}
+
 .checkout-section {
   margin: 24px 0;
 }

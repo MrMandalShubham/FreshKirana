@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AnalyticsModule } from '../analytics/analytics.module';
+import { CodModule } from '../cod/cod.module';
 import { IdentityModule } from '../identity/identity.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { NotificationModule } from '../notification/notification.module';
@@ -14,6 +15,11 @@ import {
   VendorOrderController,
 } from './internal/order.controller';
 import { PaymentFlowService } from './internal/payment-flow.service';
+import {
+  PaymentLinkController,
+  PaymentRecoveryController,
+} from './internal/payment-recovery.controller';
+import { PaymentRecoveryService } from './internal/payment-recovery.service';
 import {
   PaymentReconciliationController,
   PaymentWebhookController,
@@ -49,6 +55,9 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     InventoryModule,
     PaymentModule,
     VendorModule,
+    // Switching a failed payment to cash is a credit decision, so it goes
+    // through the same §2.17.2 scorer P3.4's confirmation flow will use.
+    CodModule,
   ],
   controllers: [
     OrderController,
@@ -60,6 +69,8 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     VendorMessagesController,
     PaymentWebhookController,
     PaymentReconciliationController,
+    PaymentRecoveryController,
+    PaymentLinkController,
   ],
   providers: [
     OrderService,
@@ -67,6 +78,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     VendorOrderFlowService,
     UsualBasketService,
     PaymentFlowService,
+    PaymentRecoveryService,
   ],
   exports: [
     OrderService,
@@ -74,6 +86,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     VendorOrderFlowService,
     UsualBasketService,
     PaymentFlowService,
+    PaymentRecoveryService,
   ],
 })
 export class OrderModule {}

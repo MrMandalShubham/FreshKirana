@@ -9,6 +9,7 @@ import { InventoryService } from '../../inventory/contracts';
 import { PaymentService } from '../../payment/contracts';
 import { OrderStateService } from './order-state.service';
 import { OrderService } from './order.service';
+import { PaymentRecoveryService } from './payment-recovery.service';
 
 export interface WebhookOutcome {
   handled: boolean;
@@ -42,6 +43,7 @@ export class PaymentFlowService {
     private readonly orders: OrderService,
     private readonly state: OrderStateService,
     private readonly inventory: InventoryService,
+    private readonly recovery: PaymentRecoveryService,
   ) {}
 
   /**
@@ -119,7 +121,18 @@ export class PaymentFlowService {
       }
     }
 
-    return { considered: pending.length, recovered, failed };
+    // The other half of §2.10.3: payments nobody completed. Recovering a lost
+    // webhook and cancelling an abandoned checkout are the same sweep, because
+    // both ask "what actually happened to the money?" — and an order stuck in
+    // PENDING_PAYMENT holds stock and a delivery slot either way.
+    const expired = await this.recovery.cancelExpired();
+
+    return {
+      considered: pending.length,
+      recovered,
+      failed: failed + expired.failed,
+      cancelled: expired.cancelled,
+    };
   }
 
   // -------------------------------------------------------------------------
@@ -181,24 +194,34 @@ export class PaymentFlowService {
   }
 
   /**
-   * The payment failed.
+   * The payment failed — which is not the same as the order failing.
    *
-   * Cancelling releases the stock and the slot through the state machine's own
-   * effects — §2.10.3 offers a retry before it comes to this, and that retry
-   * lives in the checkout flow rather than here.
+   * §2.10.3 step 4: the order stays in PENDING_PAYMENT until its window closes,
+   * holding its stock and its slot, while the shopper is offered another go.
+   * A declined UPI payment is not somebody changing their mind; it is somebody
+   * who tried to pay and was told no by a bank, and cancelling on them turns a
+   * recoverable moment into a lost order.
+   *
+   * The sweeper cancels it if nothing comes of the offer.
    */
   private async onFailed(orderId: string, current: OrderStatus): Promise<WebhookOutcome> {
     if (current !== OrderStatus.PENDING_PAYMENT) {
       return { handled: true, reason: 'ALREADY_MOVED', orderId, status: current };
     }
 
-    const { order } = await this.state.transition(
-      orderId,
-      OrderStatus.CANCELLED,
-      { accountId: null, role: SYSTEM_ACTOR },
-      { reason: 'Payment failed' },
-    );
+    // Reaches them where they actually are: the common failure is a shopper who
+    // switched to their bank's app, hit a problem, and never came back to the
+    // browser tab.
+    await this.recovery.sendRecoveryLink(orderId).catch((error: unknown) => {
+      this.logger.warn(`Could not send the recovery link: ${String(error)}`);
+      return false;
+    });
 
-    return { handled: true, reason: 'ORDER_CANCELLED', orderId, status: order.status };
+    return {
+      handled: true,
+      reason: 'PAYMENT_FAILED_RECOVERY_OFFERED',
+      orderId,
+      status: current,
+    };
   }
 }

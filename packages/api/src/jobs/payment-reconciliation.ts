@@ -20,6 +20,7 @@ loadEnv();
 export async function runPaymentReconciliation(): Promise<{
   considered: number;
   recovered: number;
+  cancelled: number;
   failed: number;
 }> {
   const context = await NestFactory.createApplicationContext(AppModule, {
@@ -40,7 +41,8 @@ async function main(): Promise<void> {
 
   logger.log(
     `checked ${result.considered} pending payment(s): ` +
-      `${result.recovered} recovered, ${result.failed} failed`,
+      `${result.recovered} recovered, ${result.cancelled} cancelled as unpaid, ` +
+      `${result.failed} failed`,
   );
 
   // A recovery is not an error, but it *is* a webhook that did not arrive.

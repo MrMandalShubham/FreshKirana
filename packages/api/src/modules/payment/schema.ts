@@ -58,6 +58,26 @@ export const payment = paymentSchema.table(
      */
     idempotencyKey: text('idempotency_key').notNull(),
 
+    /**
+     * Which try this is for the order. 1, then 2, then 3.
+     *
+     * §2.10.3 treats a retry as the normal case: UPI failure is common and
+     * directly costs revenue, so a shopper whose first attempt fails is offered
+     * another. Numbering the attempts is what lets the idempotency key stay
+     * unique per try while still refusing to create two live intents at once.
+     */
+    attempt: integer('attempt').notNull().default(1),
+
+    /**
+     * An opaque handle for the "finish paying" link sent over WhatsApp.
+     *
+     * Random and stored rather than signed: it can be revoked by clearing the
+     * column, which a signed token cannot. It is a bearer credential — anyone
+     * holding it can pay this order — so it carries its own short expiry and is
+     * never reused across attempts.
+     */
+    recoveryToken: text('recovery_token'),
+
     /** After this the intent is dead and the stock hold expires with it. */
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     capturedAt: timestamp('captured_at', { withTimezone: true }),
@@ -71,6 +91,10 @@ export const payment = paymentSchema.table(
   },
   (table) => [
     uniqueIndex('payment_idempotency_key').on(table.idempotencyKey),
+    uniqueIndex('payment_recovery_token_key').on(table.recoveryToken),
+    // One row per attempt per order, so a retry cannot quietly overwrite the
+    // record of the attempt that failed.
+    uniqueIndex('payment_order_attempt_key').on(table.orderId, table.attempt),
     // Webhooks arrive knowing the gateway's handle and nothing of ours.
     uniqueIndex('payment_provider_order_key').on(table.provider, table.providerOrderId),
 

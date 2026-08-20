@@ -42,6 +42,18 @@ export const AnalyticsEvent = {
   PAYMENT_METHOD_SELECTED: 'payment_method_selected',
   PAYMENT_INITIATED: 'payment_initiated',
   PAYMENT_FAILED: 'payment_failed',
+  /**
+   * A second attempt was offered after a failure (§2.10.3).
+   *
+   * The denominator for whether recovery works at all: UPI failure is common
+   * and directly costs revenue, and without this the only visible number is
+   * how many orders were lost.
+   */
+  PAYMENT_RETRIED: 'payment_retried',
+  /** The recovery link was sent. */
+  PAYMENT_LINK_SENT: 'payment_link_sent',
+  /** The shopper took cash on delivery rather than abandoning the order. */
+  PAYMENT_CONVERTED_TO_COD: 'payment_converted_to_cod',
   PAYMENT_SUCCEEDED: 'payment_succeeded',
   ORDER_PLACED: 'order_placed',
   RESERVATION_FAILED: 'reservation_failed',

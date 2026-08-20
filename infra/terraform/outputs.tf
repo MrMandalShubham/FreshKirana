@@ -55,3 +55,13 @@ output "sla_sweep_job_name" {
   description = "Cloud Run job the scheduler executes for the §1.9.4 SLA sweep."
   value       = google_cloud_run_v2_job.sla_sweep.name
 }
+
+output "web_url" {
+  description = "Customer PWA. Feed this back as var.storefront_base_url so payment recovery links point somewhere real (§2.10.3)."
+  value       = google_cloud_run_v2_service.web.uri
+}
+
+output "webhook_url" {
+  description = "Public front door for gateway callbacks. Register this URL plus /webhooks/razorpay in the Razorpay dashboard."
+  value       = google_cloud_run_v2_service.webhooks.uri
+}

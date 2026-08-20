@@ -95,6 +95,23 @@ resource "google_cloud_run_v2_service" "web" {
         value = var.allow_dev_login ? "true" : "false"
       }
 
+      /**
+       * The Razorpay key *id*, for the checkout the browser opens (§2.10.3).
+       *
+       * A plain variable rather than a secret on purpose: this value is
+       * published to every browser that opens a payment, so treating it as a
+       * secret would be theatre. The key *secret* — the half that signs — never
+       * comes near this service, which is why the storefront cannot create or
+       * confirm a payment, only open one the API already made.
+       *
+       * Empty means no gateway here, and the pay screens say so rather than
+       * opening a checkout that cannot work.
+       */
+      env {
+        name  = "RAZORPAY_KEY_ID"
+        value = var.razorpay_key_id
+      }
+
       resources {
         limits = {
           cpu    = "1"
