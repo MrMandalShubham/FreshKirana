@@ -438,7 +438,8 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | 3 | P3.2 | Payment gateway (UPI) ⚙ | ⏳ | | `d9a6035` · CI green, deployed · 501 tests · B3 decided: **Razorpay** · real signature scheme, replay protection, reconciliation job live on GCP |
 | 3 | P3.3 | Payment failure recovery **+ the pay screens** | ⏳ | | `3720b14` · CI green, deployed · 549 tests · retry, WhatsApp link, COD conversion, TTL cancellation · **reversed P3.2's cancel-on-failure** and made the idempotency key per attempt |
 | 3 | P3.4 | COD risk & confirmation **+ the confirm screens** | ⏳ | | `3a52301` · `e713b79` · `5d0d66c` · CI green, deployed · 606 tests · four bands, WhatsApp + OTP, thresholds in a table (no deploy), full audit log · sweep verified executing on GCP · **fixed three shipped defects: prepaid orders never reached the store, three scheduled jobs ran months-old images, and the confirmation itself could be bypassed from the app** |
-| 3 | P3.5 | Refunds & cancellations **+ the refund screens** | ⏳ | | `PENDING` · §1.8.1 windows proven, automatic refund on cancel, partial refunds, customer-facing status · **fixed a shipped defect: `order.payment_status` had never been written since P2.3** |
+| 3 | P3.5 | Refunds & cancellations **+ the refund screens** | ⏳ | | `6da2613` · 645 tests · §1.8.1 windows proven, automatic refund on cancel, partial refunds, customer-facing status · **fixed a shipped defect: `order.payment_status` had never been written since P2.3** |
+| — | 🎯 | **PHASE 3 COMPLETE** | ⏳ | | 5 parts + 1 fix commit · 645 tests · inventory holds, UPI payments, failure recovery, COD risk, refunds · **four shipped defects found and fixed while building on top of them** |
 | 4 | P4.1 | Substitutions | ☐ | | |
 | 4 | P4.2 | Variable weight | ☐ | | |
 | 4 | P4.3 | Perishables & recall | ☐ | | |
