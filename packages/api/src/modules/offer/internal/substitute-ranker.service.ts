@@ -1,8 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  MAX_SUBSTITUTE_OPTIONS,
   type SubstituteCandidate,
   type SubstituteContext,
   type SubstituteRanker,
+  refuseSubstitution,
 } from '@freshkirana/contracts';
 import { and, eq, ne } from 'drizzle-orm';
 import { DATABASE } from '../../../db/db.module';
@@ -65,16 +67,35 @@ export class RuleSubstituteRanker implements SubstituteRanker {
         .catch(() => null);
       if (!product) continue;
 
-      // A different category is a different thing. Nobody accepts rice for oil.
-      if (product.categoryId !== wanted.categoryId) continue;
-      if (product.uom !== wanted.uom) continue;
+      /*
+       * The §1.7.2 safety rules, in one place.
+       *
+       * P2.7 built this ranker with only category, unit and a half-to-double
+       * size band — which would happily have offered chicken for paneer, a
+       * sealed pack for loose tomatoes, and a 2 kg bag for a 1 kg order. Those
+       * are not low-scoring matches to be sorted below better ones; they are
+       * refusals, and no amount of similarity elsewhere should outweigh them.
+       */
+      const refusal = refuseSubstitution({
+        original: {
+          categoryId: wanted.categoryId,
+          netQuantity: wanted.netQuantity,
+          uom: wanted.uom,
+          vegMark: wanted.vegMark,
+          isVariableWeight: wanted.isVariableWeight,
+        },
+        candidate: {
+          categoryId: product.categoryId,
+          netQuantity: product.netQuantity,
+          uom: product.uom,
+          vegMark: product.vegMark,
+          isVariableWeight: product.isVariableWeight,
+        },
+      });
+      if (refusal) continue;
 
       const sizeRatio =
         wanted.netQuantity > 0 ? product.netQuantity / wanted.netQuantity : 0;
-
-      // Half to double. Outside that it is not the same purchase, whatever the
-      // category says.
-      if (sizeRatio < 0.5 || sizeRatio > 2) continue;
 
       candidates.push({
         vendorOfferId: offer.id,
@@ -88,7 +109,16 @@ export class RuleSubstituteRanker implements SubstituteRanker {
       });
     }
 
-    return candidates.sort((a, b) => b.score - a.score).slice(0, 5);
+    /*
+     * Cheaper first among equally good sizes.
+     *
+     * §1.7.2 never charges more than the original without consent, so a dearer
+     * substitute costs the platform the difference. Offering the cheaper of two
+     * equal matches is therefore both the customer's preference and ours.
+     */
+    return candidates
+      .sort((a, b) => b.score - a.score || a.sellingPricePaise - b.sellingPricePaise)
+      .slice(0, MAX_SUBSTITUTE_OPTIONS);
   }
 
   /** Closest size wins. Exactly the same size is the ideal, and scores 1. */

@@ -236,8 +236,8 @@ export class PaymentRecoveryService {
    *
    * One order at a time, so a single bad row cannot strand the rest.
    */
-  async cancelExpired(now = new Date()) {
-    const expired = await this.payments.expiredPending(now);
+  async cancelExpired() {
+    const expired = await this.payments.expiredPending();
 
     let cancelled = 0;
     let failed = 0;

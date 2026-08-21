@@ -264,6 +264,7 @@ jobs:
       RESERVATION_SWEEP_JOB: freshkirana-staging-reservation-sweep
       PAYMENT_RECONCILIATION_JOB: freshkirana-staging-payment-reconciliation
       COD_SWEEP_JOB: freshkirana-staging-cod-confirmation-sweep
+      SUBSTITUTION_SWEEP_JOB: freshkirana-staging-substitution-sweep
 
     steps:
       - uses: actions/checkout@v4
@@ -313,7 +314,8 @@ jobs:
       - name: Point scheduled jobs at the new image
         run: |
           for job in "$SLA_SWEEP_JOB" "$RESERVATION_SWEEP_JOB" \
-                     "$PAYMENT_RECONCILIATION_JOB" "$COD_SWEEP_JOB"; do
+                     "$PAYMENT_RECONCILIATION_JOB" "$COD_SWEEP_JOB" \
+                     "$SUBSTITUTION_SWEEP_JOB"; do
             echo "Updating $job"
             gcloud run jobs update "$job" \
               --region "$REGION" \

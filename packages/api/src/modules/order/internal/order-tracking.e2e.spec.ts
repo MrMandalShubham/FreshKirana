@@ -293,7 +293,19 @@ describe.skipIf(!dbUp)('order tracking (e2e)', () => {
       const confirmed = view.timeline.steps.find((s) => s.step === 'CONFIRMED');
 
       expect(confirmed?.at).toBeTruthy();
-      expect(new Date(confirmed!.at!).getTime()).toBeLessThanOrEqual(Date.now());
+
+      /*
+       * Recent, not "no later than this machine's clock".
+       *
+       * The timestamp is written by Postgres and read here by Node — two
+       * different machines, whose clocks agree only approximately. Asserting
+       * `<= Date.now()` encoded the assumption that they agree exactly, and it
+       * failed the day this laptop drifted 2.7 seconds behind Cloud SQL. The
+       * property worth testing is that the step records *when it happened*, and
+       * a few minutes of tolerance says that without lying about clocks.
+       */
+      const recordedAt = new Date(confirmed!.at!).getTime();
+      expect(Math.abs(recordedAt - Date.now())).toBeLessThan(5 * 60_000);
     });
 
     it('runs to the door', async () => {

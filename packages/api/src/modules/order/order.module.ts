@@ -4,6 +4,7 @@ import { CodModule } from '../cod/cod.module';
 import { IdentityModule } from '../identity/identity.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { NotificationModule } from '../notification/notification.module';
+import { OfferModule } from '../offer/offer.module';
 import { PaymentModule } from '../payment/payment.module';
 import { ServiceabilityModule } from '../serviceability/serviceability.module';
 import { VendorModule } from '../vendor/vendor.module';
@@ -20,6 +21,12 @@ import {
   CustomerRefundController,
 } from './internal/refund.controller';
 import { OrderStateService } from './internal/order-state.service';
+import {
+  PickerSubstitutionController,
+  SubstitutionController,
+  SubstitutionSweepController,
+} from './internal/substitution.controller';
+import { SubstitutionService } from './internal/substitution.service';
 import {
   OrderController,
   OrderTransitionController,
@@ -70,6 +77,8 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     // Switching a failed payment to cash is a credit decision, so it goes
     // through the same §2.17.2 scorer P3.4's confirmation flow will use.
     CodModule,
+    // §1.7.2's ranked substitutes come from the offer module's RuleSubstituteRanker.
+    OfferModule,
   ],
   controllers: [
     OrderController,
@@ -88,6 +97,9 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     CodSweepController,
     CustomerRefundController,
     AdminRefundController,
+    PickerSubstitutionController,
+    SubstitutionController,
+    SubstitutionSweepController,
   ],
   providers: [
     OrderService,
@@ -99,6 +111,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     CodFlowService,
     InboundReplyService,
     RefundFlowService,
+    SubstitutionService,
   ],
   exports: [
     OrderService,
@@ -109,6 +122,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     PaymentRecoveryService,
     CodFlowService,
     RefundFlowService,
+    SubstitutionService,
   ],
 })
 export class OrderModule {}

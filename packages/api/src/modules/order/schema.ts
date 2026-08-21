@@ -6,6 +6,7 @@ import {
   doublePrecision,
   index,
   integer,
+  jsonb,
   pgSchema,
   text,
   timestamp,
@@ -277,6 +278,79 @@ export const orderStatusHistory = orderSchema.table(
   ],
 );
 
+/**
+ * One line that could not be filled, and what was done about it (spec §1.7.2).
+ *
+ * A row per *proposal*, not per line: a picker who offers a substitute the
+ * customer rejects may offer another, and an order that lost two items has two
+ * of these. Collapsing it onto the line would lose the history that answers
+ * "why did I get this?" — which is the only question anybody asks about a
+ * substitution.
+ *
+ * The options are snapshotted as JSON rather than referenced. They are what the
+ * customer was actually shown, and an offer that changes price or sells out an
+ * hour later must not rewrite what they were asked.
+ */
+export const substitution = orderSchema.table(
+  'substitution',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => order.id, { onDelete: 'cascade' }),
+    orderLineId: uuid('order_line_id')
+      .notNull()
+      .references(() => orderLine.id, { onDelete: 'cascade' }),
+    accountId: uuid('account_id').notNull(),
+
+    /** The preference in force when this was raised (§1.7.2). */
+    preference: text('preference').notNull(),
+    status: text('status').notNull(),
+
+    /** What the customer was shown, exactly as they saw it. */
+    options: jsonb('options').notNull().default([]),
+
+    /** The offer chosen, by whoever chose it. Null until something is. */
+    chosenVendorOfferId: uuid('chosen_vendor_offer_id'),
+    chosenName: text('chosen_name'),
+
+    /** What the line cost before, and what it costs now. */
+    originalLineTotalPaise: integer('original_line_total_paise').notNull(),
+    chargedLineTotalPaise: integer('charged_line_total_paise'),
+    refundPaise: integer('refund_paise').notNull().default(0),
+
+    /**
+     * Whether the customer agreed to pay more (§1.7.2).
+     *
+     * Recorded rather than inferred: "never charge more without explicit
+     * consent" is only enforceable if the consent is a fact somebody can point
+     * at afterwards.
+     */
+    consentedToHigherPrice: boolean('consented_to_higher_price').notNull().default(false),
+
+    /** After this, §1.7.2's fallback applies and the line is refunded. */
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('substitution_order_idx').on(table.orderId),
+    // One open proposal per line. Two live questions about the same item is how
+    // a customer answers one and gets the other.
+    uniqueIndex('substitution_open_line_key')
+      .on(table.orderLineId)
+      .where(sql`status = 'PROPOSED'`),
+    // The sweep that applies the timeout fallback.
+    index('substitution_pending_idx').on(table.status, table.expiresAt),
+  ],
+);
+
 export type OrderRow = typeof order.$inferSelect;
+export type SubstitutionRow = typeof substitution.$inferSelect;
 export type OrderLineRow = typeof orderLine.$inferSelect;
 export type OrderStatusHistoryRow = typeof orderStatusHistory.$inferSelect;

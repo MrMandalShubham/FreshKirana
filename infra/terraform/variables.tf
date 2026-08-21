@@ -168,3 +168,9 @@ variable "cod_confirmation_sweep_schedule" {
   type        = string
   default     = "*/2 * * * *"
 }
+
+variable "substitution_sweep_schedule" {
+  description = "Cron for refunding unanswered substitution questions (§1.7.2). Every minute: the window is ten minutes and a picker is waiting on the answer, so the gap between 'expired' and 'refunded' should be as small as the sweep is cheap."
+  type        = string
+  default     = "* * * * *"
+}

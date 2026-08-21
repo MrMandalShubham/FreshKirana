@@ -24,5 +24,6 @@ export * from './refunds';
 export * from './roles';
 export * from './search';
 export * from './serviceability';
+export * from './substitutions';
 export * from './tax';
 export * from './uom';

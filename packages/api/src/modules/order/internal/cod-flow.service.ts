@@ -309,8 +309,8 @@ export class CodFlowService {
    * confirm cannot have. One at a time, so a single bad row cannot strand the
    * rest of the sweep.
    */
-  async expireOverdue(now = new Date()) {
-    const overdue = await this.confirmations.overdue(now);
+  async expireOverdue() {
+    const overdue = await this.confirmations.overdue();
 
     let cancelled = 0;
     let failed = 0;

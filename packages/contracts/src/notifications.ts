@@ -219,7 +219,21 @@ export function hasBreached(placedAt: Date, sla: AcceptanceSla, now: Date): bool
 export const CUSTOMER_TEMPLATE_FOR_STATUS: Partial<Record<string, NotificationTemplate>> =
   {
     ACCEPTED: NotificationTemplate.ORDER_CONFIRMED,
-    SUBSTITUTION_PENDING: NotificationTemplate.SUBSTITUTION_PROPOSE,
+
+    /*
+     * SUBSTITUTION_PENDING is deliberately absent (P4.1).
+     *
+     * P2.6 mapped it to SUBSTITUTION_PROPOSE because nothing else sent that
+     * message yet. Now the §1.7.2 flow does — with the options the customer
+     * has to choose between — and a generic status notice alongside it is both
+     * a duplicate and a contradiction: §2.12 registers each template with the
+     * provider against a fixed variable list, and one name cannot carry both
+     * "here are three options" and "your order moved". In production exactly
+     * one of the two would render.
+     *
+     * The map's own comment already said this: tell people when something is
+     * expected of *them*, which is the flow's job and not a status change's.
+     */
     PACKED: NotificationTemplate.ORDER_PACKED_CONFIRM,
     DISPATCHED: NotificationTemplate.ORDER_DISPATCHED_NOTICE,
     DELIVERED: NotificationTemplate.ORDER_DELIVERED_NOTICE,

@@ -9,7 +9,7 @@ import {
   type RiskAssessment,
   type RiskInput,
 } from '@freshkirana/contracts';
-import { and, eq, lt } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import { type Database, createDatabase } from '../../../db';
 import { codConfirmation, codRiskDecision } from '../schema';
@@ -256,14 +256,14 @@ export class CodConfirmationService {
   }
 
   /** Ceremonies nobody answered. Their orders are still holding stock. */
-  async overdue(now = new Date(), limit = 200) {
+  async overdue(limit = 200) {
     return this.db
       .select()
       .from(codConfirmation)
       .where(
         and(
           eq(codConfirmation.status, CodConfirmationStatus.PENDING),
-          lt(codConfirmation.expiresAt, now),
+          sql`${codConfirmation.expiresAt} < now()`,
         ),
       )
       .limit(limit);

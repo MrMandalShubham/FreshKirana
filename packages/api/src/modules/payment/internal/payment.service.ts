@@ -8,7 +8,7 @@ import {
   PaymentStatus,
   isSettled,
 } from '@freshkirana/contracts';
-import { and, asc, desc, eq, isNotNull, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, sql } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import { DATABASE } from '../../../db/db.module';
 import type { Database, Transaction } from '../../../db';
@@ -240,7 +240,7 @@ export class PaymentService {
       .where(
         and(
           eq(payment.status, PaymentStatus.PENDING),
-          lt(payment.createdAt, new Date(Date.now() - minutes * 60_000)),
+          sql`${payment.createdAt} < now() - make_interval(mins => ${minutes}::int)`,
         ),
       )
       .orderBy(asc(payment.createdAt))
@@ -374,7 +374,7 @@ export class PaymentService {
    * The order they belong to is still sitting in PENDING_PAYMENT holding stock
    * and a delivery slot, and nobody is coming back to it.
    */
-  async expiredPending(now = new Date(), limit = 200) {
+  async expiredPending(limit = 200) {
     return this.db
       .select()
       .from(payment)
@@ -382,7 +382,7 @@ export class PaymentService {
         and(
           eq(payment.status, PaymentStatus.PENDING),
           isNotNull(payment.expiresAt),
-          lt(payment.expiresAt, now),
+          sql`${payment.expiresAt} < now()`,
         ),
       )
       .orderBy(asc(payment.expiresAt))

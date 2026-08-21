@@ -148,6 +148,13 @@
       "when": 1787231965055,
       "tag": "0020_light_falcon",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1787248068177,
+      "tag": "0021_brainy_lockjaw",
+      "breakpoints": true
     }
   ]
 }
