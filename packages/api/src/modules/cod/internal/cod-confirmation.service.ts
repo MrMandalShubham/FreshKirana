@@ -9,7 +9,7 @@ import {
   type RiskAssessment,
   type RiskInput,
 } from '@freshkirana/contracts';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import { type Database, createDatabase } from '../../../db';
 import { codConfirmation, codRiskDecision } from '../schema';
@@ -257,16 +257,22 @@ export class CodConfirmationService {
 
   /** Ceremonies nobody answered. Their orders are still holding stock. */
   async overdue(limit = 200) {
-    return this.db
-      .select()
-      .from(codConfirmation)
-      .where(
-        and(
-          eq(codConfirmation.status, CodConfirmationStatus.PENDING),
-          sql`${codConfirmation.expiresAt} < now()`,
-        ),
-      )
-      .limit(limit);
+    return (
+      this.db
+        .select()
+        .from(codConfirmation)
+        .where(
+          and(
+            eq(codConfirmation.status, CodConfirmationStatus.PENDING),
+            sql`${codConfirmation.expiresAt} < now()`,
+          ),
+        )
+        // Oldest first, and ordered at all: an unordered `LIMIT` returns an
+        // arbitrary slice, so a backlog larger than the limit can starve the
+        // same rows forever — and these are people waiting.
+        .orderBy(asc(codConfirmation.expiresAt))
+        .limit(limit)
+    );
   }
 }
 

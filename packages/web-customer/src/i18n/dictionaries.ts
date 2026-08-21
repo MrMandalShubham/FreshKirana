@@ -206,6 +206,25 @@ const en = {
   cancelFeeNotice:
     'A cancellation fee of {amount} applies — the shop has already packed this.',
   cancelNothingToRefund: 'Nothing has been charged, so there is nothing to refund.',
+  // --- The picker (P4.1) ---
+  vendorQueue: 'Orders to do',
+  vendorQueueNotice: 'Shop view — the full dashboard is coming later.',
+  vendorNoOrders: 'Nothing waiting. New orders appear here and on WhatsApp.',
+  vendorAccept: 'Accept this order',
+  vendorStartPicking: 'Start picking',
+  vendorMarkPacked: 'Packed',
+  vendorReadyForPickup: 'Ready for pickup',
+  vendorOutOfStock: 'Out of stock',
+  vendorMarking: 'Marking…',
+  vendorWorking: 'Working…',
+  vendorActionFailed: 'That did not go through. Please try again.',
+  vendorLineOutOfStock: 'Out of stock — asking the customer',
+  vendorLineSubstituted: 'Substituted',
+  vendorLineRefunded: 'Refunded',
+  vendorCollectCash: 'Collect on delivery',
+  vendorPrepaid: 'Already paid',
+  vendorBackToQueue: 'Back to orders',
+  vendorSignIn: 'Continue as shop staff',
 } as const;
 
 /**
@@ -394,6 +413,24 @@ const hi: Dictionary = {
   cancelRefundNotice: '{amount} वापस किया जाएगा।',
   cancelFeeNotice: '{amount} रद्दीकरण शुल्क लगेगा — दुकान ने इसे पैक कर दिया है।',
   cancelNothingToRefund: 'कोई पैसा नहीं लिया गया, इसलिए वापस करने को कुछ नहीं है।',
+  vendorQueue: 'करने वाले ऑर्डर',
+  vendorQueueNotice: 'दुकान का पेज — पूरा डैशबोर्ड बाद में आएगा।',
+  vendorNoOrders: 'अभी कुछ नहीं। नए ऑर्डर यहाँ और व्हाट्सऐप पर आएँगे।',
+  vendorAccept: 'यह ऑर्डर लें',
+  vendorStartPicking: 'सामान निकालना शुरू करें',
+  vendorMarkPacked: 'पैक हो गया',
+  vendorReadyForPickup: 'उठाने के लिए तैयार',
+  vendorOutOfStock: 'स्टॉक में नहीं',
+  vendorMarking: 'लगाया जा रहा है…',
+  vendorWorking: 'हो रहा है…',
+  vendorActionFailed: 'यह नहीं हो पाया। फिर कोशिश करें।',
+  vendorLineOutOfStock: 'स्टॉक में नहीं — ग्राहक से पूछा जा रहा है',
+  vendorLineSubstituted: 'बदल दिया गया',
+  vendorLineRefunded: 'पैसे वापस',
+  vendorCollectCash: 'डिलीवरी पर लेना है',
+  vendorPrepaid: 'पहले से भुगतान',
+  vendorBackToQueue: 'ऑर्डर पर वापस',
+  vendorSignIn: 'दुकान स्टाफ के रूप में जारी रखें',
 };
 
 const DICTIONARIES: Record<Locale, Dictionary> = { en, hi };

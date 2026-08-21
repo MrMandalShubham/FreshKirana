@@ -16,7 +16,7 @@ import {
   TIMEOUT_FALLBACK,
   priceSubstitution,
 } from '@freshkirana/contracts';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { AnalyticsService } from '../../analytics/contracts';
 import { NotificationService } from '../../notification/contracts';
 import { RuleSubstituteRanker } from '../../offer/contracts';
@@ -243,6 +243,10 @@ export class SubstitutionService {
           sql`${substitution.expiresAt} < now()`,
         ),
       )
+      // Oldest first, and ordered at all: an unordered `LIMIT` returns an
+      // arbitrary slice, so a backlog larger than the limit can starve the
+      // same rows forever — and these are people waiting.
+      .orderBy(asc(substitution.expiresAt))
       .limit(200);
 
     let refunded = 0;

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { BottomNav, Header } from '@/components/Chrome';
-import { signIn } from '@/lib/actions';
+import { signIn, signInAsVendor } from '@/lib/actions';
 import { devLoginAvailable, isSignedIn } from '@/lib/session';
 import { type Locale, getDictionary } from '@/i18n/dictionaries';
 
@@ -15,13 +15,20 @@ export const dynamic = 'force-dynamic';
  */
 export default async function SignInPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: Locale }>;
+  searchParams: Promise<{ vendor?: string }>;
 }) {
   const { locale } = await params;
+  const { vendor } = await searchParams;
   const t = getDictionary(locale);
 
-  if (await isSignedIn()) redirect(`/${locale}/cart`);
+  // A shop arriving from the picker screen (P4.1) is sent back there, not into
+  // somebody's basket.
+  if (await isSignedIn()) {
+    redirect(vendor ? `/${locale}/vendor/${vendor}` : `/${locale}/cart`);
+  }
 
   const available = devLoginAvailable();
 
@@ -36,12 +43,16 @@ export default async function SignInPage({
           <form
             action={async () => {
               'use server';
+              if (vendor) {
+                await signInAsVendor(locale, vendor);
+                return;
+              }
               await signIn(locale);
             }}
           >
             <p className="notice">{t.devSignInNotice}</p>
             <button className="button primary wide" type="submit">
-              {t.continueAsTestCustomer}
+              {vendor ? t.vendorSignIn : t.continueAsTestCustomer}
             </button>
           </form>
         ) : (

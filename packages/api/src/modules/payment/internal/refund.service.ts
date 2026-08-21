@@ -11,7 +11,7 @@ import {
   refundableAmountPaise,
   routeFor,
 } from '@freshkirana/contracts';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { DATABASE } from '../../../db/db.module';
 import type { Database, Transaction } from '../../../db';
 import { PAYMENT_PROVIDER } from './razorpay.provider';
@@ -244,19 +244,25 @@ export class RefundService {
    * an error from the inside.
    */
   async stale(olderThanMinutes = 60, limit = 200) {
-    return this.db
-      .select()
-      .from(refund)
-      .where(
-        and(
-          eq(refund.status, RefundStatus.PROCESSING),
-          // The database's clock, like every other sweep — `initiatedAt` is
-          // written by Postgres, and comparing it against this process's clock
-          // means two clocks, or on Cloud Run one per instance.
-          sql`${refund.initiatedAt} < now() - make_interval(mins => ${olderThanMinutes}::int)`,
-        ),
-      )
-      .limit(limit);
+    return (
+      this.db
+        .select()
+        .from(refund)
+        .where(
+          and(
+            eq(refund.status, RefundStatus.PROCESSING),
+            // The database's clock, like every other sweep — `initiatedAt` is
+            // written by Postgres, and comparing it against this process's clock
+            // means two clocks, or on Cloud Run one per instance.
+            sql`${refund.initiatedAt} < now() - make_interval(mins => ${olderThanMinutes}::int)`,
+          ),
+        )
+        // Oldest first, and ordered at all: an unordered `LIMIT` returns an
+        // arbitrary slice, so a backlog larger than the limit can starve the
+        // same rows forever — and these are people waiting.
+        .orderBy(asc(refund.initiatedAt))
+        .limit(limit)
+    );
   }
 
   async markCompleted(refundId: string): Promise<void> {

@@ -73,6 +73,37 @@ export async function signIn(locale: string): Promise<ActionResult> {
   redirect(`/${locale}/cart`);
 }
 
+/**
+ * Signs in as a shop's staff (P4.1).
+ *
+ * The vendor's real interface is WhatsApp (§0.3) and the full dashboard is
+ * P7.1. This exists because two consecutive parts — substitutions and variable
+ * weight — are *started by the picker*, so without a screen their confirmation
+ * tests are reachable only from a terminal.
+ *
+ * Development only, like the customer sign-in, and replaced by P8.6.
+ */
+export async function signInAsVendor(
+  locale: string,
+  vendorId: string,
+): Promise<ActionResult> {
+  if (!devLoginAvailable()) {
+    return { ok: false, error: 'Sign-in is not available in this environment' };
+  }
+
+  const result = await sendJson<{ token: string }>('/dev/login-as', {
+    method: 'POST',
+    body: { role: 'VENDOR_STAFF', vendorId },
+  });
+
+  if (!result.ok || !result.data?.token) return failed(result);
+
+  await setSessionToken(result.data.token);
+
+  revalidatePath('/', 'layout');
+  redirect(`/${locale}/vendor/${vendorId}`);
+}
+
 export async function signOut(locale: string): Promise<void> {
   await clearSessionToken();
   revalidatePath('/', 'layout');
@@ -378,6 +409,51 @@ export async function verifyCodOtp(formData: FormData): Promise<VerifyCodResult>
       ? { attemptsLeft: result.data.attemptsLeft }
       : {}),
   };
+}
+
+// ---------------------------------------------------------------------------
+// The picker (P4.1, §1.7.2)
+// ---------------------------------------------------------------------------
+
+/** Moves an order along, as the store. Accept, start picking, mark packed. */
+export async function vendorMoveOrder(formData: FormData): Promise<ActionResult> {
+  const vendorId = String(formData.get('vendorId') ?? '');
+  const orderId = String(formData.get('orderId') ?? '');
+  const to = String(formData.get('to') ?? '');
+
+  const result = await sendJson(
+    `/vendor/${encodeURIComponent(vendorId)}/orders/${encodeURIComponent(orderId)}/transitions`,
+    { method: 'POST', body: { to } },
+  );
+
+  if (!result.ok) return failed(result);
+
+  revalidatePath('/', 'layout');
+  return ok;
+}
+
+/**
+ * The shelf was empty (§1.7.2).
+ *
+ * What happens next is the customer's preference, not the picker's choice —
+ * this hands the fact over and the API decides. A picker who could choose would
+ * be deciding for somebody who already said what they wanted.
+ */
+export async function markLineOutOfStock(formData: FormData): Promise<ActionResult> {
+  const vendorId = String(formData.get('vendorId') ?? '');
+  const orderId = String(formData.get('orderId') ?? '');
+  const lineId = String(formData.get('lineId') ?? '');
+
+  const result = await sendJson(
+    `/vendor/${encodeURIComponent(vendorId)}/orders/${encodeURIComponent(orderId)}` +
+      `/lines/${encodeURIComponent(lineId)}/out-of-stock`,
+    { method: 'POST' },
+  );
+
+  if (!result.ok) return failed(result);
+
+  revalidatePath('/', 'layout');
+  return ok;
 }
 
 export async function markNotificationsRead(): Promise<ActionResult> {

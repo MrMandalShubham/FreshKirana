@@ -288,6 +288,19 @@ export async function fetchCancellationPreview(
   return result.data;
 }
 
+/**
+ * The store's queue (P4.1).
+ *
+ * Everything the shop still has to act on, newest last so the oldest — the one
+ * closest to breaching its §1.9.4 acceptance SLA — is at the top of the list.
+ */
+export async function fetchVendorOrders(vendorId: string): Promise<Order[]> {
+  const result = await getPrivateJson<Order[]>(
+    `/vendor/${encodeURIComponent(vendorId)}/orders?limit=50`,
+  );
+  return result.data ?? [];
+}
+
 export async function fetchOrders(): Promise<Order[]> {
   const result = await getPrivateJson<Order[]>('/me/orders?limit=20');
   return result.data ?? [];

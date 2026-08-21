@@ -17,12 +17,14 @@ import {
   istDateKey,
   istDayOfWeek,
 } from '@freshkirana/contracts';
+import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../../../app.module';
 import { loadEnv } from '../../../config/env';
 import { createTestCustomer, type TestCustomer } from '../../../testing/customer';
+import { createDatabase } from '../../../db';
 import { requireDatabase } from '../../../testing/database';
 import {
   MockRazorpayProvider,
@@ -206,6 +208,26 @@ describe.skipIf(!dbUp)('refunds and cancellations (e2e)', () => {
       }),
     );
     await app.init();
+
+    /*
+     * Clear this suite's own debris.
+     *
+     * A refund never reaches COMPLETED on its own — the gateway confirms with a
+     * webhook the mock has none of, which is a recorded P3.5 deferral. So every
+     * previous run of this file leaves its refunds sitting in PROCESSING, and
+     * the backlog eventually exceeds the sweep's own limit: the query then
+     * correctly returns the *oldest* two hundred and a freshly issued refund is
+     * legitimately not among them.
+     *
+     * Not a production concern — there the webhook completes them, and the
+     * ordering added alongside this means a real backlog drains oldest first
+     * rather than starving. It is a fixture problem, and it belongs here.
+     */
+    const db = createDatabase();
+    await db.execute(
+      sql`update payment.refund set status = 'COMPLETED', completed_at = now()
+          where status = 'PROCESSING' and initiated_at < now() - interval '30 minutes'`,
+    );
 
     provider = app.get<MockRazorpayProvider>(PAYMENT_PROVIDER);
     refunds = app.get(RefundService);
