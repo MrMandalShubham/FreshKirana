@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { markLineOutOfStock, vendorMoveOrder } from '@/lib/actions';
+import { markLineOutOfStock, vendorMoveOrder, weighLine } from '@/lib/actions';
 import type { OrderLine } from '@/lib/orders';
 import { type Locale, getDictionary } from '@/i18n/dictionaries';
 
@@ -43,6 +43,8 @@ export function PickingList({
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  /** Grams typed per line, keyed by line id. */
+  const [weights, setWeights] = useState<Record<string, string>>({});
 
   function move(to: string) {
     setNotice(null);
@@ -76,6 +78,39 @@ export function PickingList({
     });
   }
 
+  /**
+   * Records what the scale said (§1.7.1).
+   *
+   * A weight outside the product's band is not an error — it means the customer
+   * has been asked, and the picker should know that rather than see a red
+   * message and try again.
+   */
+  function submitWeight(lineId: string) {
+    const grams = Number(weights[lineId] ?? '');
+    if (!Number.isFinite(grams) || grams <= 0) return;
+
+    setNotice(null);
+    setBusy(lineId);
+
+    startTransition(async () => {
+      const form = new FormData();
+      form.set('vendorId', vendorId);
+      form.set('orderId', orderId);
+      form.set('lineId', lineId);
+      form.set('actualGrams', String(Math.round(grams)));
+
+      const result = await weighLine(form);
+      setBusy(null);
+
+      if (!result.ok) {
+        setNotice(result.error ?? t.vendorActionFailed);
+        return;
+      }
+
+      setNotice(result.needsConsent ? t.vendorWeightAsked : null);
+    });
+  }
+
   // Only the moves the state machine actually allows from here, so a button
   // that would 409 is never drawn (§2.6).
   const steps = nextActions.filter((action) => action.to in STEP_LABEL);
@@ -94,21 +129,57 @@ export function PickingList({
                 {line.name}
                 <span className="muted">
                   {' '}
-                  × {line.quantity} · {line.netQuantity}
-                  {line.uom}
+                  {line.isVariableWeight
+                    ? `${line.quantity}${line.uom}`
+                    : `× ${line.quantity} · ${line.netQuantity}${line.uom}`}
+                  {line.actualGrams !== null &&
+                    ` · ${t.vendorWeighed.replace('{grams}', String(line.actualGrams))}`}
                 </span>
               </span>
 
               {line.status === 'PENDING' ? (
                 canMarkOutOfStock ? (
-                  <button
-                    className="link-button danger"
-                    type="button"
-                    onClick={() => outOfStock(line.id)}
-                    disabled={pending}
-                  >
-                    {busy === line.id ? t.vendorMarking : t.vendorOutOfStock}
-                  </button>
+                  <span className="picker-actions">
+                    {/*
+                      Loose goods are weighed, packaged goods are not (§1.7.1).
+                      A field on a sealed bag would invite a number that has to
+                      be refused.
+                    */}
+                    {line.isVariableWeight && (
+                      <>
+                        <input
+                          className="input weight"
+                          value={weights[line.id] ?? ''}
+                          onChange={(event) =>
+                            setWeights((current) => ({
+                              ...current,
+                              [line.id]: event.target.value.replace(/\D/g, ''),
+                            }))
+                          }
+                          inputMode="numeric"
+                          placeholder={t.vendorGrams}
+                          aria-label={`${t.vendorGrams} — ${line.name}`}
+                        />
+                        <button
+                          className="link-button"
+                          type="button"
+                          onClick={() => submitWeight(line.id)}
+                          disabled={pending || !weights[line.id]}
+                        >
+                          {busy === line.id ? t.vendorWorking : t.vendorSaveWeight}
+                        </button>
+                      </>
+                    )}
+
+                    <button
+                      className="link-button danger"
+                      type="button"
+                      onClick={() => outOfStock(line.id)}
+                      disabled={pending}
+                    >
+                      {busy === line.id ? t.vendorMarking : t.vendorOutOfStock}
+                    </button>
+                  </span>
                 ) : null
               ) : (
                 <span className="muted">{lineOutcome(line.status, t)}</span>

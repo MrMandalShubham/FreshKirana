@@ -3,6 +3,8 @@ import { type Principal, Role } from '@freshkirana/contracts';
 import { CurrentUser, Roles, VendorScopeGuard } from '../../identity/contracts';
 import { AcceptSubstitutionDto } from './substitution.dto';
 import { SubstitutionService } from './substitution.service';
+import { WeighLineDto } from './weighing.dto';
+import { WeighingService } from './weighing.service';
 
 /**
  * The picker's side (spec §1.7.2).
@@ -16,7 +18,10 @@ import { SubstitutionService } from './substitution.service';
 @UseGuards(VendorScopeGuard)
 @Controller('vendor/:vendorId/orders/:orderId/lines/:lineId')
 export class PickerSubstitutionController {
-  constructor(private readonly substitutions: SubstitutionService) {}
+  constructor(
+    private readonly substitutions: SubstitutionService,
+    private readonly weighing: WeighingService,
+  ) {}
 
   @Post('out-of-stock')
   markOutOfStock(
@@ -25,6 +30,29 @@ export class PickerSubstitutionController {
     @Param('lineId') lineId: string,
   ) {
     return this.substitutions.raise({ orderId, orderLineId: lineId, vendorId });
+  }
+
+  /**
+   * What the scale said (P4.2, §1.7.1).
+   *
+   * On the same controller as marking a line out of stock because it is the
+   * same person doing the same job: standing at the shelf with the order,
+   * reporting what is actually there.
+   */
+  @Post('weight')
+  weigh(
+    @Param('vendorId') vendorId: string,
+    @Param('orderId') orderId: string,
+    @Param('lineId') lineId: string,
+    @Body() dto: WeighLineDto,
+  ) {
+    return this.weighing.weigh({
+      orderId,
+      orderLineId: lineId,
+      vendorId,
+      actualGrams: dto.actualGrams,
+      ...(dto.consented === undefined ? {} : { consented: dto.consented }),
+    });
   }
 }
 

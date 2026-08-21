@@ -192,6 +192,34 @@ export const orderLine = orderSchema.table(
     uom: text('uom').notNull(),
     isVariableWeight: boolean('is_variable_weight').notNull().default(false),
 
+    /**
+     * What the scale said, in grams (spec §1.7.1).
+     *
+     * Null until somebody weighs it, and null forever on a packaged line — a
+     * sealed 1 kg bag of atta is not weighed and pretending otherwise would put
+     * a fiction in the invoice.
+     *
+     * Integer grams for the same reason money is integer paise: a scale reads
+     * 0.94 kg and a float stores 0.9400000000000001. Grams are exact, and 1 g is
+     * finer than any shop scale in India resolves.
+     */
+    actualGrams: integer('actual_grams'),
+
+    /**
+     * Price per kilogram at the moment of weighing, in paise.
+     *
+     * Snapshotted onto the line rather than read back from the offer, because
+     * the offer's price can change between the order and the scale — and the
+     * customer agreed to the price they were shown, not the one in force when a
+     * picker happened to reach that shelf.
+     */
+    pricePerKgPaise: integer('price_per_kg_paise'),
+
+    /** The band this line was sold under. Snapshotted for the same reason. */
+    weightTolerancePct: integer('weight_tolerance_pct'),
+
+    weighedAt: timestamp('weighed_at', { withTimezone: true }),
+
     hsnCode: text('hsn_code').notNull(),
     gstRateBp: integer('gst_rate_bp').notNull(),
 

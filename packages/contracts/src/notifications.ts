@@ -66,6 +66,8 @@ export const NotificationTemplate = {
   ORDER_DELIVERED_NOTICE: 'ORDER_DELIVERED_NOTICE',
   ORDER_DELIVERY_FAILED_NOTICE: 'ORDER_DELIVERY_FAILED_NOTICE',
   ORDER_CANCELLED_NOTICE: 'ORDER_CANCELLED_NOTICE',
+  /** "Your tomatoes weighed 1.3 kg — is that all right?" (§1.7.1). */
+  WEIGHT_CONSENT: 'WEIGHT_CONSENT',
   /** Money is on its way back, and roughly when (§1.8.2). */
   REFUND_INITIATED: 'REFUND_INITIATED',
   REFUND_COMPLETED: 'REFUND_COMPLETED',
@@ -149,6 +151,9 @@ export const TEMPLATE_URGENCY: Record<NotificationTemplate, NotificationUrgency>
   ORDER_DELIVERED_NOTICE: NotificationUrgency.CRITICAL,
   ORDER_DELIVERY_FAILED_NOTICE: NotificationUrgency.CRITICAL,
   ORDER_CANCELLED_NOTICE: NotificationUrgency.CRITICAL,
+  // A picker is standing at a scale waiting for the answer, and the slot is
+  // running. Nothing about this can wait for morning.
+  WEIGHT_CONSENT: NotificationUrgency.CRITICAL,
   // Somebody is waiting on money they are owed. Holding this until morning to
   // be polite is exactly the wrong trade.
   REFUND_INITIATED: NotificationUrgency.CRITICAL,

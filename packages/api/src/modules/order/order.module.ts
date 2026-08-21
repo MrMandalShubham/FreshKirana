@@ -27,6 +27,7 @@ import {
   SubstitutionSweepController,
 } from './internal/substitution.controller';
 import { SubstitutionService } from './internal/substitution.service';
+import { WeighingService } from './internal/weighing.service';
 import {
   OrderController,
   OrderTransitionController,
@@ -112,6 +113,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     InboundReplyService,
     RefundFlowService,
     SubstitutionService,
+    WeighingService,
   ],
   exports: [
     OrderService,
@@ -123,6 +125,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     CodFlowService,
     RefundFlowService,
     SubstitutionService,
+    WeighingService,
   ],
 })
 export class OrderModule {}

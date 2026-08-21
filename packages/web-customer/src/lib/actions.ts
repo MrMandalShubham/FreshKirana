@@ -456,6 +456,51 @@ export async function markLineOutOfStock(formData: FormData): Promise<ActionResu
   return ok;
 }
 
+/**
+ * What the scale said (P4.2, §1.7.1).
+ *
+ * Returns the outcome rather than only success, because "that is outside the
+ * band, we have asked the customer" is the answer a picker most needs to see —
+ * and it is not a failure.
+ */
+export interface WeighResult extends ActionResult {
+  actualLineTotalPaise?: number;
+  deltaPaise?: number;
+  needsConsent?: boolean;
+  absorbed?: boolean;
+}
+
+export async function weighLine(formData: FormData): Promise<WeighResult> {
+  const vendorId = String(formData.get('vendorId') ?? '');
+  const orderId = String(formData.get('orderId') ?? '');
+  const lineId = String(formData.get('lineId') ?? '');
+  const actualGrams = Number(formData.get('actualGrams') ?? 0);
+  const consented = formData.get('consented') === 'true';
+
+  const result = await sendJson<{
+    actualLineTotalPaise: number;
+    deltaPaise: number;
+    needsConsent: boolean;
+    absorbed: boolean;
+  }>(
+    `/vendor/${encodeURIComponent(vendorId)}/orders/${encodeURIComponent(orderId)}` +
+      `/lines/${encodeURIComponent(lineId)}/weight`,
+    { method: 'POST', body: consented ? { actualGrams, consented } : { actualGrams } },
+  );
+
+  if (!result.ok || !result.data) return failed(result);
+
+  revalidatePath('/', 'layout');
+
+  return {
+    ok: true,
+    actualLineTotalPaise: result.data.actualLineTotalPaise,
+    deltaPaise: result.data.deltaPaise,
+    needsConsent: result.data.needsConsent,
+    absorbed: result.data.absorbed,
+  };
+}
+
 export async function markNotificationsRead(): Promise<ActionResult> {
   const result = await sendJson('/me/notifications/read', { method: 'POST' });
   if (!result.ok) return failed(result);

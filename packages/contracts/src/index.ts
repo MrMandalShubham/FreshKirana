@@ -27,3 +27,4 @@ export * from './serviceability';
 export * from './substitutions';
 export * from './tax';
 export * from './uom';
+export * from './weights';

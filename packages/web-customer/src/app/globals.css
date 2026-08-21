@@ -532,6 +532,25 @@ a {
  * rather than something that went wrong: the order is still alive, and the
  * shopper's stock and slot are still held.
  */
+/*
+ * The picker's per-line controls (P4.1, P4.2).
+ *
+ * A weight field and two actions have to sit on one row of a phone held in one
+ * hand, so they wrap rather than squeeze — a shop is doing this standing up.
+ */
+.picker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.input.weight {
+  width: 88px;
+  text-align: right;
+}
+
 .notice.warning {
   border-left-color: var(--warning, #b54708);
   background: var(--warning-surface, #fffaeb);

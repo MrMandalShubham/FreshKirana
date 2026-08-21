@@ -225,6 +225,13 @@ const en = {
   vendorPrepaid: 'Already paid',
   vendorBackToQueue: 'Back to orders',
   vendorSignIn: 'Continue as shop staff',
+
+  // --- Weighing (P4.2) ---
+  vendorGrams: 'grams',
+  vendorSaveWeight: 'Save weight',
+  vendorWeighed: 'weighed {grams}g',
+  vendorWeightAsked:
+    'That is outside the usual range, so we have asked the customer. Their answer decides.',
 } as const;
 
 /**
@@ -431,6 +438,12 @@ const hi: Dictionary = {
   vendorPrepaid: 'पहले से भुगतान',
   vendorBackToQueue: 'ऑर्डर पर वापस',
   vendorSignIn: 'दुकान स्टाफ के रूप में जारी रखें',
+
+  vendorGrams: 'ग्राम',
+  vendorSaveWeight: 'वज़न सेव करें',
+  vendorWeighed: '{grams} ग्राम तौला',
+  vendorWeightAsked:
+    'यह सामान्य सीमा से बाहर है, इसलिए हमने ग्राहक से पूछा है। उनका जवाब तय करेगा।',
 };
 
 const DICTIONARIES: Record<Locale, Dictionary> = { en, hi };

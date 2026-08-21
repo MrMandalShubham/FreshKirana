@@ -85,7 +85,16 @@ export const AnalyticsEvent = {
   SUBSTITUTION_PROPOSED: 'substitution_proposed',
   SUBSTITUTION_ACCEPTED: 'substitution_accepted',
   SUBSTITUTION_REJECTED: 'substitution_rejected',
+  /**
+   * A loose line was put on a scale (§1.7.1).
+   *
+   * Declared in P0 and emitted from P4.2. The delta distribution says whether a
+   * shop's scales and its picking are honest: consistent short weights are a
+   * §6.4 quality signal, and consistent over-tolerance is somebody guessing.
+   */
   WEIGHT_RECORDED: 'weight_recorded',
+  /** The weight fell outside the band, so the customer had to be asked. */
+  WEIGHT_CONSENT_REQUESTED: 'weight_consent_requested',
   ORDER_PACKED: 'order_packed',
   ORDER_DISPATCHED: 'order_dispatched',
   ORDER_DELIVERED: 'order_delivered',

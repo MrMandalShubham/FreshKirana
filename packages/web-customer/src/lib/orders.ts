@@ -91,6 +91,8 @@ export interface OrderLine {
   uom: string;
   netQuantity: number;
   isVariableWeight: boolean;
+  /** What the scale said, in grams. Null until somebody weighs it (§1.7.1). */
+  actualGrams: number | null;
   unitPricePaise: number;
   lineTotalPaise: number;
   status: string;
