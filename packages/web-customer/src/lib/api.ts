@@ -232,3 +232,43 @@ export async function browseCategory(categoryId: string): Promise<SearchResponse
     }
   );
 }
+
+/**
+ * Products for the home page shelves.
+ *
+ * There is no "best sellers" endpoint and there should not be a fake one — real
+ * ranking needs order volume per product, which is a §5 reporting concern. So
+ * this browses the first few categories and takes what is actually purchasable,
+ * which is the honest version of the same shelf: things this shop has today.
+ *
+ * Available items first, because a shelf of out-of-stock tiles is worse than a
+ * shorter shelf. Browsing runs in parallel — three sequential round trips to
+ * Cloud SQL would cost more than the shelf is worth.
+ */
+export async function fetchHomeShelf(
+  categoryIds: string[],
+  limit = 12,
+): Promise<SearchResultItem[]> {
+  // Eight, not three. Most categories in a real catalogue are thin, and three
+  // that happen to be empty leaves the shelf blank on a shop that has stock.
+  // They run in parallel, so the cost is one round trip either way.
+  const responses = await Promise.all(
+    categoryIds.slice(0, 8).map((id) => browseCategory(id)),
+  );
+
+  const seen = new Set<string>();
+  const items: SearchResultItem[] = [];
+
+  for (const response of responses) {
+    for (const item of response.items) {
+      // The same product can sit in more than one browsed category.
+      if (seen.has(item.masterProductId)) continue;
+      seen.add(item.masterProductId);
+      items.push(item);
+    }
+  }
+
+  return items
+    .sort((a, b) => Number(b.isAvailable) - Number(a.isAvailable))
+    .slice(0, limit);
+}

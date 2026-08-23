@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { BuyAgain } from '@/components/BuyAgain';
 import { BottomNav, Header } from '@/components/Chrome';
+import { HomeHero } from '@/components/HomeHero';
+import { ProductCard } from '@/components/ProductCard';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { UsualBasket } from '@/components/UsualBasket';
-import { fetchCategories } from '@/lib/api';
+import { fetchCategories, fetchHomeShelf } from '@/lib/api';
 import { fetchBuyAgain, fetchUsualBasket } from '@/lib/orders';
 import { getThemeChoice, isSignedIn } from '@/lib/session';
 import { glyphFor } from '@/lib/glyph';
@@ -17,6 +19,15 @@ import { type Locale, getDictionary, localisedName } from '@/i18n/dictionaries';
  * offer. It also means the build needs no running API, which is what CI has.
  */
 export const dynamic = 'force-dynamic';
+
+/**
+ * How many categories the rail carries.
+ *
+ * Staging returns 696 — mostly e2e debris, but a real city catalogue will run
+ * to dozens, and nobody browses a list that long. The rail shows a screenful
+ * and search covers the rest, which is how people find "toor dal" anyway.
+ */
+const CATEGORY_RAIL_LIMIT = 12;
 
 export default async function HomePage({
   params,
@@ -36,6 +47,10 @@ export default async function HomePage({
     signedIn ? fetchBuyAgain() : Promise.resolve([]),
   ]);
 
+  const rail = categories.slice(0, CATEGORY_RAIL_LIMIT);
+  // Depends on the categories, so it cannot join the batch above.
+  const shelf = await fetchHomeShelf(rail.map((category) => category.id));
+
   return (
     <>
       <a className="skip-link" href="#main">
@@ -44,32 +59,16 @@ export default async function HomePage({
       <Header locale={locale} />
 
       <main id="main" className="container">
-        {/*
-          "Your usual basket" and "Buy again" sit ABOVE categories, per §4.2 and
-          §0.3 — they are the differentiator, not a convenience. Both hide
-          themselves when empty rather than showing an apology: a new customer
-          should see a shop, not two empty promises.
-        */}
-        {usual.length > 0 && (
-          <section aria-labelledby="usual">
-            <div className="hero-card">
-              <h2 id="usual">{t.usualBasket}</h2>
-              <p className="hero-sub">
-                {t.usualBasketSub.replace('{count}', String(usual.length))}
-              </p>
-              <UsualBasket items={usual} locale={locale} />
-            </div>
-          </section>
-        )}
+        <HomeHero locale={locale} />
 
-        {buyAgain.length > 0 && (
-          <section className="section" aria-labelledby="again">
-            <h2 className="section-title" id="again">
-              {t.buyAgain}
-            </h2>
-            <BuyAgain items={buyAgain} locale={locale} />
-          </section>
-        )}
+        {/* Real promises, not coupon codes. There is no promotions engine, and
+            a chip reading "GREEN75" that does nothing is a lie on the home
+            page. These three are things the app actually does. */}
+        <ul className="promise-strip">
+          <li>{t.slotYouChoose}</li>
+          <li>{t.freeDeliveryAbove}</li>
+          <li>{t.weighedAtCounter}</li>
+        </ul>
 
         <section className="section" aria-labelledby="cats">
           <h2 className="section-title" id="cats">
@@ -80,7 +79,7 @@ export default async function HomePage({
             <p className="empty">{t.emptyCategory}</p>
           ) : (
             <div className="category-rail">
-              {categories.slice(0, CATEGORY_RAIL_LIMIT).map((category) => {
+              {rail.map((category) => {
                 const name = localisedName(category.name, category.nameI18n, locale);
                 return (
                   <Link
@@ -100,6 +99,54 @@ export default async function HomePage({
             </div>
           )}
         </section>
+
+        {/*
+          "Your usual basket" is the §0.3 wedge, so it outranks every shelf
+          below it. Both it and "Buy again" hide when empty rather than showing
+          an apology: a new shopper should see a shop, not two empty promises.
+        */}
+        {usual.length > 0 && (
+          <section aria-labelledby="usual">
+            <div className="hero-card">
+              <h2 id="usual">{t.usualBasket}</h2>
+              <p className="hero-sub">
+                {t.usualBasketSub.replace('{count}', String(usual.length))}
+              </p>
+              <UsualBasket items={usual} locale={locale} />
+            </div>
+          </section>
+        )}
+
+        {buyAgain.length > 0 && (
+          <section className="section" aria-labelledby="again">
+            <div className="shelf-head">
+              <h2 className="section-title" id="again">
+                {t.buyAgain}
+              </h2>
+            </div>
+            <BuyAgain items={buyAgain} locale={locale} />
+          </section>
+        )}
+
+        {shelf.length > 0 && (
+          <section className="section" aria-labelledby="popular">
+            <div className="shelf-head">
+              <h2 className="section-title" id="popular">
+                {t.bestSellers}
+              </h2>
+              <Link className="shelf-more" href={`/${locale}/search`}>
+                {t.seeAll}
+              </Link>
+            </div>
+
+            <div className="product-grid">
+              {shelf.map((item) => (
+                <ProductCard key={item.masterProductId} item={item} locale={locale} />
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="section">
           <h2 className="section-title">{t.appearance}</h2>
           <ThemeToggle current={theme} locale={locale} />
@@ -110,13 +157,3 @@ export default async function HomePage({
     </>
   );
 }
-
-/**
- * How many categories the rail carries.
- *
- * Staging returns 696 — mostly e2e debris, but a real city catalogue will run
- * to dozens, and nobody browses a list that long. The rail shows the first
- * screenful and search covers everything else, which is how people actually
- * find "toor dal" anyway.
- */
-const CATEGORY_RAIL_LIMIT = 12;

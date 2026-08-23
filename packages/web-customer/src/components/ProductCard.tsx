@@ -8,7 +8,7 @@ import {
   pricePerBaseUnit,
 } from '@freshkirana/contracts';
 import { type Locale, getDictionary } from '@/i18n/dictionaries';
-import { glyphFor, tintFor } from '@/lib/glyph';
+import { artUrl, tintFor } from '@/lib/glyph';
 import { AddToCart } from './AddToCart';
 
 export function VegBadge({ mark, locale }: { mark: string; locale: Locale }) {
@@ -66,20 +66,25 @@ export function ProductCard({
   return (
     <article className={`pcard${item.isAvailable ? '' : ' unavailable'}`}>
       <Link href={`/${locale}/product/${item.slug}`} className="pcard-media">
-        {item.imageUrl ? (
-          /*
-           * A plain <img>, not next/image. The optimiser needs the origin
-           * whitelisted in next.config and runs every file through a transform
-           * on the server — for catalogue images served from a CDN that is a
-           * per-request cost for no gain. `loading="lazy"` covers what matters
-           * in a grid this dense.
-           */
-          <img src={item.imageUrl} alt="" loading="lazy" decoding="async" />
-        ) : (
-          <span className={`pcard-plate tint-${tintFor(item.name)}`} aria-hidden="true">
-            {glyphFor(item.name)}
-          </span>
-        )}
+        {/*
+          A plain <img>, not next/image. The optimiser needs each origin
+          whitelisted in next.config and runs every file through a server-side
+          transform — for a catalogue image on a CDN, or for a 350-byte SVG
+          shipped from /public, that is cost for no gain. `loading="lazy"` is
+          what actually matters in a grid this dense.
+
+          `alt=""` in both cases: the product name is the very next element, and
+          a screen reader reading "packet of Aashirvaad Atta, Aashirvaad Atta"
+          is worse than silence.
+        */}
+        <span className={`pcard-plate tint-${tintFor(item.name)}`}>
+          <img
+            src={item.imageUrl ?? artUrl(item.name)}
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
+        </span>
 
         {/* Only worth shouting about above 5% — below that it reads as noise
             and trains people to ignore the badge that matters. */}
@@ -111,9 +116,7 @@ export function ProductCard({
                   </em>
                 )}
               </>
-            ) : (
-              <b className="muted">{t.outOfStock}</b>
-            )}
+            ) : null}
           </span>
 
           {/* The whole point of a grid: add without leaving it. */}

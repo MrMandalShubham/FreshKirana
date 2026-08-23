@@ -1,41 +1,70 @@
+import Link from 'next/link';
 import { UOM_LABEL, type Uom } from '@freshkirana/contracts';
-import { AddToCart } from '@/components/AddToCart';
+import { AddToCart } from './AddToCart';
 import type { BuyAgainItem } from '@/lib/orders';
+import { artUrl, tintFor } from '@/lib/glyph';
 import { type Locale, getDictionary } from '@/i18n/dictionaries';
 
 /**
- * "Buy again" (§4.2).
+ * "Buy again" — everything bought before, most recent first (§4.2).
  *
- * Everything bought before, most recent first — a list to browse rather than a
- * prediction. A single purchase belongs here even though it never belongs in
- * the usual basket, which is why the two are separate lists rather than one
- * with a threshold.
+ * Was a bare list of names with an add button, which told a shopper nothing
+ * they could act on: no picture, no price, and no way through to the product.
+ * It is now the same tile as every other shelf, so the name opens the product
+ * page and the button adds without leaving home.
+ *
+ * Deliberately a rail rather than a grid. This is a list to browse, not a
+ * prediction — the usual basket above it is the prediction — so it should take
+ * one row and get out of the way.
  */
 export function BuyAgain({ items, locale }: { items: BuyAgainItem[]; locale: Locale }) {
   const t = getDictionary(locale);
-  if (items.length === 0) return null;
 
   return (
-    <ul className="buy-again">
+    <div className="shelf">
       {items.map((item) => (
-        <li key={item.masterProductId} className="buy-again-item">
-          <span>
-            <span className="product-name">{item.name}</span>
-            <span className="muted">
-              {`${item.netQuantity} ${UOM_LABEL[item.uom as Uom] ?? item.uom.toLowerCase()}`}
-              {item.timesOrdered > 1
-                ? ` · ${t.boughtTimes.replace('{count}', String(item.timesOrdered))}`
-                : ''}
+        <article key={item.masterProductId} className="pcard">
+          <Link href={`/${locale}/product/${item.slug}`} className="pcard-media">
+            <span className={`pcard-plate tint-${tintFor(item.name)}`}>
+              <img src={artUrl(item.name)} alt="" loading="lazy" decoding="async" />
             </span>
-          </span>
+          </Link>
 
-          <AddToCart
-            vendorOfferId={item.vendorOfferId}
-            quantity={item.quantity}
-            locale={locale}
-          />
-        </li>
+          <div className="pcard-body">
+            <div className="pcard-top">
+              <span className="pcard-qty">
+                {`${item.netQuantity} ${UOM_LABEL[item.uom as Uom] ?? item.uom.toLowerCase()}`}
+              </span>
+            </div>
+
+            <h3 className="pcard-name">
+              <Link href={`/${locale}/product/${item.slug}`}>{item.name}</Link>
+            </h3>
+
+            <div className="pcard-foot">
+              <span className="pcard-price">
+                {/*
+                  Why it is here, which is the whole reason this shelf beats a
+                  generic "recommended" row: it is something they actually buy.
+                */}
+                <em>
+                  {item.timesOrdered > 1
+                    ? t.boughtTimes.replace('{count}', String(item.timesOrdered))
+                    : t.buyAgain}
+                </em>
+              </span>
+
+              <AddToCart
+                vendorOfferId={item.vendorOfferId}
+                quantity={item.quantity}
+                locale={locale}
+                label={t.addToCart}
+                compact
+              />
+            </div>
+          </div>
+        </article>
       ))}
-    </ul>
+    </div>
   );
 }

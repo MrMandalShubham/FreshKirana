@@ -30,6 +30,18 @@ const en = {
   account: 'Account',
   buyAgain: 'Buy again',
   usualBasket: 'Your usual basket',
+
+  // --- Home shelves (UI.6) ---
+  heroBadge: 'Your whole month, one basket',
+  heroTitle: 'The full kirana shop, in two minutes',
+  heroSub:
+    'Every staple, every regional brand, loose produce weighed at the counter — delivered in a slot you choose.',
+  heroCta: 'Start shopping',
+  bestSellers: 'Popular right now',
+  seeAll: 'See all',
+  freeDeliveryAbove: 'Free delivery on bigger baskets',
+  slotYouChoose: 'Delivered in a slot you pick',
+  weighedAtCounter: 'Loose produce weighed at the counter',
   usualBasketSub: '{count} items you buy regularly, ready to go',
   shopByCategory: 'Shop by category',
   outOfStock: 'Out of stock',
