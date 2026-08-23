@@ -1180,3 +1180,192 @@ a {
 .paybar .button {
   flex: 1;
 }
+
+/* --------------------------------------------------------------------------
+   Motion (UI.4)
+
+   Every animation here answers a question the shopper is already asking — did
+   that work, where did it go, how much longer. Nothing decorative, nothing over
+   300ms, and only `transform` and `opacity`, which the compositor can run
+   without touching layout.
+
+   No animation library. All of this is 0 KB of JavaScript.
+   -------------------------------------------------------------------------- */
+
+:root {
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* --- Press -------------------------------------------------------------- */
+
+/*
+ * A control that squashes under the thumb confirms the tap before the network
+ * does. On a mid-range phone that gap is hundreds of milliseconds, and it is
+ * the whole difference between "slow" and "broken".
+ */
+.button,
+.link-button,
+.stepper-button,
+.theme-toggle button,
+.category-tile,
+.addbtn {
+  transition:
+    transform 0.14s var(--ease),
+    background-color 0.14s var(--ease);
+}
+
+.button:active,
+.theme-toggle button:active,
+.addbtn:active {
+  transform: scale(0.97);
+}
+
+.stepper-button:active {
+  transform: scale(0.88);
+}
+
+.category-tile:active {
+  transform: scale(0.95);
+}
+
+/* --- Confirmation ------------------------------------------------------- */
+
+/* The "Added" line after a successful add. It grows in rather than appearing,
+   because something that simply appears is easy to miss on a busy screen. */
+.notice.success,
+.notice.error {
+  animation: notice-in 0.22s var(--ease-out) both;
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+/* The current step on an order timeline. A slow pulse, not a spinner: the
+   order is progressing, not loading. */
+.timeline-step.current .timeline-mark {
+  animation: step-pulse 2.4s var(--ease) infinite;
+}
+
+@keyframes step-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px var(--brand-tint);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+/* --- Skeletons ---------------------------------------------------------- */
+
+.sk-line,
+.sk-box,
+.sk-tile,
+.sk-hero {
+  display: block;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+}
+
+.sk-line {
+  height: 11px;
+  border-radius: 6px;
+}
+
+.sk-box {
+  width: 46px;
+  height: 46px;
+  flex: none;
+}
+
+.sk-tile {
+  width: 100%;
+  aspect-ratio: 1;
+  margin-bottom: var(--s2);
+}
+
+.sk-hero {
+  height: 190px;
+  border-radius: var(--r-lg);
+  margin: var(--s4) 0 var(--s5);
+}
+
+/* One sweep travelling across every placeholder. `transform` on a pseudo
+   element, so the shimmer never triggers layout the way an animated
+   `background-position` on a gradient does. */
+.sk-line::after,
+.sk-box::after,
+.sk-tile::after,
+.sk-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translate3d(-100%, 0, 0);
+  background: linear-gradient(90deg, transparent, var(--bg), transparent);
+  opacity: 0.6;
+  animation: shimmer 1.3s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
+.sk-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.sk-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  flex: 1;
+  min-width: 0;
+}
+
+.sk-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* --- Opting out --------------------------------------------------------- */
+
+/*
+ * Not a nicety. Motion triggers nausea and migraine for people with vestibular
+ * disorders, and the shimmer above is exactly the kind of repeating movement
+ * that does it. Everything stops; nothing disappears.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* The shimmer's job is done by a flat tone instead of a moving highlight. */
+  .sk-line::after,
+  .sk-box::after,
+  .sk-tile::after,
+  .sk-hero::after {
+    display: none;
+  }
+}
