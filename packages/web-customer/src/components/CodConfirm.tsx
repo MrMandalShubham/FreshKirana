@@ -91,7 +91,7 @@ export function CodConfirm({
 
       {confirmation.expiresAt && (
         <p className="muted">
-          {t.codExpiresAt.replace('{time}', formatTime(confirmation.expiresAt, locale))}
+          {t.codExpiresAt.replace('{time}', formatTime(confirmation.expiresAt))}
         </p>
       )}
 
@@ -179,8 +179,8 @@ function maskPhone(phone: string): string {
   return phone.length > 2 ? `••••${phone.slice(-2)}` : phone;
 }
 
-function formatTime(iso: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale === 'hi' ? 'hi-IN' : 'en-IN', {
+function formatTime(iso: string): string {
+  return new Intl.DateTimeFormat('en-IN', {
     hour: 'numeric',
     minute: '2-digit',
     timeZone: 'Asia/Kolkata',

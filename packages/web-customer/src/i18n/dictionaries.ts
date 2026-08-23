@@ -6,7 +6,7 @@
  * budget than the strings themselves.
  */
 
-export const LOCALES = ['en', 'hi'] as const;
+export const LOCALES = ['en'] as const;
 export type Locale = (typeof LOCALES)[number];
 
 export const DEFAULT_LOCALE: Locale = 'en';
@@ -17,7 +17,6 @@ export function isLocale(value: string): value is Locale {
 
 export const LOCALE_LABEL: Record<Locale, string> = {
   en: 'English',
-  hi: 'हिंदी',
 };
 
 const en = {
@@ -58,7 +57,6 @@ const en = {
   save: 'Save',
   emptyCategory: 'No products here yet.',
   comingSoon: 'Coming soon',
-  language: 'Language',
   backToHome: 'Back to home',
   notFound: 'We could not find that page.',
 
@@ -237,216 +235,13 @@ const en = {
 /**
  * Keys are fixed, values are free.
  *
- * `typeof en` would inherit the literal types from `as const`, so Hindi would
- * have to equal the English strings — which is exactly backwards. This keeps
- * the useful half: a missing or misspelled key is a compile error.
+ * The shell ships in English only. This type is what keeps that a decision
+ * rather than a dead end: adding a locale means adding one object, and a
+ * missing or misspelled key is a compile error rather than a blank label.
  */
 type Dictionary = Record<keyof typeof en, string>;
 
-const hi: Dictionary = {
-  appName: 'फ्रेशकिराना',
-  searchPlaceholder: 'आटा, चावल, तेल खोजें…',
-  search: 'खोजें',
-  home: 'होम',
-  categories: 'श्रेणियाँ',
-  cart: 'कार्ट',
-  orders: 'ऑर्डर',
-  account: 'खाता',
-  buyAgain: 'फिर से खरीदें',
-  usualBasket: 'आपकी नियमित टोकरी',
-  shopByCategory: 'श्रेणी से खरीदें',
-  outOfStock: 'स्टॉक में नहीं',
-  inStock: 'स्टॉक में',
-  addToCart: 'जोड़ें',
-  noResults: 'कुछ नहीं मिला',
-  noResultsHint: 'दूसरी वर्तनी आज़माएँ, या कोई श्रेणी देखें।',
-  didYouMean: 'क्या आपका मतलब था',
-  resultsFor: 'के लिए परिणाम',
-  browseCategory: 'देखें',
-  productDetails: 'उत्पाद विवरण',
-  netQuantity: 'शुद्ध मात्रा',
-  manufacturer: 'निर्माता / पैकर',
-  countryOfOrigin: 'मूल देश',
-  consumerCare: 'उपभोक्ता सेवा',
-  hsnCode: 'एचएसएन कोड',
-  veg: 'शाकाहारी',
-  nonVeg: 'मांसाहारी',
-  egg: 'अंडा शामिल',
-  variableWeightNotice:
-    'वज़न के हिसाब से मूल्य। अंतिम मूल्य वास्तविक वज़न पर निर्भर करेगा।',
-  sellers: 'विक्रेता',
-  seller: 'विक्रेता',
-  from: 'से',
-  perUnit: 'प्रति',
-  save: 'बचत',
-  emptyCategory: 'यहाँ अभी कोई उत्पाद नहीं है।',
-  comingSoon: 'जल्द आ रहा है',
-  language: 'भाषा',
-  backToHome: 'होम पर वापस',
-  notFound: 'वह पृष्ठ नहीं मिला।',
-
-  adding: 'जोड़ा जा रहा है…',
-  addedToCart: 'जोड़ दिया',
-  differentStore:
-    'आपकी टोकरी दूसरी दुकान की है। एक ऑर्डर एक ही दुकान से आता है — यहाँ से खरीदने के लिए टोकरी खाली करें।',
-  emptyCart: 'आपकी टोकरी खाली है।',
-  startShopping: 'खरीदारी शुरू करें',
-  remove: 'हटाएँ',
-  increase: 'मात्रा बढ़ाएँ',
-  decrease: 'मात्रा घटाएँ',
-  itemUnavailable: 'दुकान में यह खत्म हो गया है। आगे बढ़ने के लिए हटाएँ।',
-  priceChanged: 'जोड़ने के बाद इसका दाम बदल गया है।',
-  orderSummary: 'ऑर्डर का ब्यौरा',
-  itemsTotal: 'सामान',
-  youSave: 'आपकी बचत',
-  deliveryFee: 'डिलीवरी',
-  smallBasketFee: 'छोटी टोकरी शुल्क',
-  packagingFee: 'पैकिंग',
-  toPay: 'देय राशि',
-  free: 'मुफ़्त',
-  addMoreForMinimum: 'छोटी टोकरी शुल्क से बचने के लिए {amount} और जोड़ें।',
-  addMoreForFreeDelivery: 'मुफ़्त डिलीवरी के लिए {amount} और जोड़ें।',
-  checkout: 'ऑर्डर करें',
-  signInToCheckout: 'ऑर्डर के लिए साइन इन करें',
-  deliveryAddress: 'डिलीवरी का पता',
-  deliverySlot: 'डिलीवरी का समय',
-  noSlots: 'इस दुकान का अभी कोई समय उपलब्ध नहीं है।',
-  slotFull: 'भर गया',
-  slotClosed: 'दुकान बंद',
-  slotCutoffPassed: 'इस समय के लिए देर हो गई',
-  ifSomethingIsOut: 'अगर कुछ खत्म हो जाए',
-  substituteAuto: 'मिलता-जुलता सामान भेज दें',
-  substituteAsk: 'पहले मुझसे पूछें',
-  substituteRefund: 'छोड़ दें और पैसे लौटाएँ',
-  payment: 'भुगतान',
-  codOnly: 'डिलीवरी पर नकद। ऑनलाइन भुगतान जल्द आ रहा है।',
-  payOnDelivery: 'डिलीवरी पर देना है',
-  totalPaid: 'कुल',
-  placeOrder: 'ऑर्डर करें',
-  placingOrder: 'ऑर्डर हो रहा है…',
-  noAddresses: 'यह ऑर्डर जहाँ जाना है वह पता जोड़ें।',
-  recipientName: 'नाम',
-  phone: 'फ़ोन',
-  addressLine: 'मकान और गली',
-  landmark: 'पहचान चिह्न',
-  city: 'शहर',
-  state: 'राज्य',
-  pincode: 'पिन कोड',
-  latitude: 'अक्षांश',
-  longitude: 'देशांतर',
-  saveAddress: 'पता सहेजें',
-  saving: 'सहेजा जा रहा है…',
-
-  noOrders: 'अभी कोई ऑर्डर नहीं।',
-  item: 'सामान',
-  items: 'सामान',
-  allOrders: 'सारे ऑर्डर',
-  cancelOrder: 'यह ऑर्डर रद्द करें',
-  cancelReason: 'रद्द करने का कारण? (वैकल्पिक)',
-  confirmCancel: 'हाँ, रद्द करें',
-  keepOrder: 'ऑर्डर रहने दें',
-  cancelling: 'रद्द किया जा रहा है…',
-  stepPlaced: 'ऑर्डर हुआ',
-  stepConfirmed: 'दुकान ने पक्का किया',
-  stepPacking: 'पैक हो रहा है',
-  stepOnTheWay: 'रास्ते में',
-  stepDelivered: 'पहुँच गया',
-  stepDone: 'हो गया',
-  stepNow: 'अभी चल रहा है',
-  stepUpcoming: 'आगे होना है',
-  stepNotReached: 'नहीं हुआ',
-  notifications: 'अपडेट',
-  noNotifications: 'अभी कोई अपडेट नहीं।',
-
-  signIn: 'साइन इन',
-  signOut: 'साइन आउट',
-  devSignInNotice:
-    'ओटीपी से असली साइन इन अभी नहीं बना है। यह टेस्ट ग्राहक के रूप में आगे बढ़ता है।',
-  continueAsTestCustomer: 'टेस्ट ग्राहक के रूप में जारी रखें',
-  signInUnavailable: 'इस वातावरण में साइन इन अभी उपलब्ध नहीं है।',
-
-  addAllToCart: 'सभी {count} टोकरी में डालें',
-  someItemsSkipped: '{count} नहीं जोड़ पाए — दुकान में खत्म है, या कहीं और मिलता है।',
-  usuallyEvery: 'आमतौर पर हर {interval} दिन · पिछली बार {days} दिन पहले',
-  boughtBefore: '{days} दिन पहले खरीदा',
-  boughtTimes: '{count} बार खरीदा',
-
-  paymentNotDone: 'पेमेंट पूरा नहीं हुआ',
-  paymentNotDoneHelp:
-    'आपका सामान और डिलीवरी का समय अभी भी रोका हुआ है। ऑर्डर पक्का करने के लिए पेमेंट पूरा करें।',
-  payAgain: 'फिर से पेमेंट करें',
-  payingAgain: 'पेमेंट खोला जा रहा है…',
-  payWithCash: 'इसके बजाय डिलीवरी पर नकद दें',
-  switchingToCash: 'बदला जा रहा है…',
-  cashNotAvailable: 'इस ऑर्डर पर डिलीवरी पर नकद उपलब्ध नहीं है।',
-  payNow: '{amount} दें',
-  paymentLinkDead: 'इस पेमेंट लिंक की मियाद खत्म हो गई।',
-  paymentLinkDeadHelp:
-    'ऐप में ऑर्डर खोलकर फिर कोशिश करें। पेमेंट न होने पर ऑर्डर रद्द हो जाएगा और सामान छोड़ दिया जाएगा।',
-  paymentAmount: 'देने की राशि',
-  paymentGatewayMissing:
-    'इस वातावरण में ऑनलाइन पेमेंट अभी सेट नहीं है, इसलिए यह लिंक पेमेंट ऐप नहीं खोल सकता।',
-  paymentOpening: 'आपका पेमेंट ऐप खोला जा रहा है…',
-  paymentClosed: 'पेमेंट पूरा नहीं हुआ। आप फिर कोशिश कर सकते हैं।',
-  paymentTakingEffect: 'पेमेंट मिल गया। ऑर्डर पक्का हो रहा है — कुछ सेकंड लगेंगे।',
-  backToOrder: 'ऑर्डर देखें',
-
-  codConfirmTitle: 'अपना नकद ऑर्डर पक्का करें',
-  codConfirmHelp:
-    'आपका सामान और डिलीवरी का समय रोका हुआ है। आपके पक्का करते ही दुकान पैक करना शुरू करेगी।',
-  codConfirmYes: 'हाँ, मैं लूँगा',
-  codConfirmNo: 'यह ऑर्डर रद्द करें',
-  codConfirming: 'पक्का किया जा रहा है…',
-  codCancelling: 'रद्द किया जा रहा है…',
-  codOtpHelp:
-    'हमने {phone} पर {length} अंकों का कोड भेजा है। उसे डालकर ऑर्डर पक्का करें।',
-  codOtpLabel: 'पुष्टि कोड',
-  codOtpSubmit: 'पक्का करें',
-  codOtpWrong: 'यह कोड सही नहीं है। {left} कोशिशें बाकी हैं।',
-  codOtpNoTries: 'बहुत बार गलत कोड डाला गया। कृपया सहायता से संपर्क करें।',
-  codOtpExpired: 'इस पुष्टि की मियाद खत्म हो गई।',
-  codExpiresAt: '{time} से पहले पक्का करें',
-  codConfirmedNotice: 'पक्का हो गया। दुकान को बता दिया गया है।',
-
-  refunds: 'रिफंड',
-  refundInitiated: 'वापस भेजा जा रहा है',
-  refundProcessing: 'आपके बैंक के पास',
-  refundCompleted: 'वापस हो गया',
-  refundFailed: 'भेजा नहीं जा सका — हम देख रहे हैं',
-  refundExpected: '{min}–{max} कार्यदिवस में मिलने की उम्मीद',
-  refundToOriginal: 'जैसे दिया था वैसे वापस',
-  refundToBank: 'आपके बैंक खाते में',
-  refundToStoreCredit: 'स्टोर क्रेडिट के रूप में',
-  cancelRefundNotice: '{amount} वापस किया जाएगा।',
-  cancelFeeNotice: '{amount} रद्दीकरण शुल्क लगेगा — दुकान ने इसे पैक कर दिया है।',
-  cancelNothingToRefund: 'कोई पैसा नहीं लिया गया, इसलिए वापस करने को कुछ नहीं है।',
-  vendorQueue: 'करने वाले ऑर्डर',
-  vendorQueueNotice: 'दुकान का पेज — पूरा डैशबोर्ड बाद में आएगा।',
-  vendorNoOrders: 'अभी कुछ नहीं। नए ऑर्डर यहाँ और व्हाट्सऐप पर आएँगे।',
-  vendorAccept: 'यह ऑर्डर लें',
-  vendorStartPicking: 'सामान निकालना शुरू करें',
-  vendorMarkPacked: 'पैक हो गया',
-  vendorReadyForPickup: 'उठाने के लिए तैयार',
-  vendorOutOfStock: 'स्टॉक में नहीं',
-  vendorMarking: 'लगाया जा रहा है…',
-  vendorWorking: 'हो रहा है…',
-  vendorActionFailed: 'यह नहीं हो पाया। फिर कोशिश करें।',
-  vendorLineOutOfStock: 'स्टॉक में नहीं — ग्राहक से पूछा जा रहा है',
-  vendorLineSubstituted: 'बदल दिया गया',
-  vendorLineRefunded: 'पैसे वापस',
-  vendorCollectCash: 'डिलीवरी पर लेना है',
-  vendorPrepaid: 'पहले से भुगतान',
-  vendorBackToQueue: 'ऑर्डर पर वापस',
-  vendorSignIn: 'दुकान स्टाफ के रूप में जारी रखें',
-
-  vendorGrams: 'ग्राम',
-  vendorSaveWeight: 'वज़न सेव करें',
-  vendorWeighed: '{grams} ग्राम तौला',
-  vendorWeightAsked:
-    'यह सामान्य सीमा से बाहर है, इसलिए हमने ग्राहक से पूछा है। उनका जवाब तय करेगा।',
-};
-
-const DICTIONARIES: Record<Locale, Dictionary> = { en, hi };
+const DICTIONARIES: Record<Locale, Dictionary> = { en };
 
 export function getDictionary(locale: Locale): Dictionary {
   return DICTIONARIES[locale] ?? DICTIONARIES[DEFAULT_LOCALE];
@@ -457,9 +252,11 @@ export type { Dictionary };
 /**
  * Picks the best available translation of a **product** name.
  *
- * §4.1 is explicit that product names must translate, not just UI chrome —
- * it is the half teams forget, and the half that matters in grocery. A Hindi
- * speaker reading "आटा" on the packet should not be shown "Whole Wheat Flour".
+ * With one locale this always falls through to the catalogue name, which is
+ * the correct English-only behaviour: Indian staples keep the names people
+ * actually use — atta, toor dal, haldi — rather than being translated into
+ * "whole wheat flour". Kept because the catalogue still carries `nameI18n`,
+ * and a second locale should not need this rewritten.
  */
 export function localisedName(
   name: string,

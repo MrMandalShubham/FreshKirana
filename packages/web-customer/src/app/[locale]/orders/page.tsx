@@ -46,7 +46,7 @@ export default async function OrdersPage({
                   <span className="muted">
                     {order.orderNumber} · {order.lines.length}{' '}
                     {order.lines.length === 1 ? t.item : t.items} ·{' '}
-                    {formatDate(order.placedAt, locale)}
+                    {formatDate(order.placedAt)}
                   </span>
                 </Link>
               </li>
@@ -60,8 +60,8 @@ export default async function OrdersPage({
   );
 }
 
-function formatDate(iso: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale === 'hi' ? 'hi-IN' : 'en-IN', {
+function formatDate(iso: string): string {
+  return new Intl.DateTimeFormat('en-IN', {
     day: 'numeric',
     month: 'short',
     hour: 'numeric',

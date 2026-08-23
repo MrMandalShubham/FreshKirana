@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { BuyAgain } from '@/components/BuyAgain';
-import { BottomNav, Header, LocaleSwitch } from '@/components/Chrome';
+import { BottomNav, Header } from '@/components/Chrome';
 import { UsualBasket } from '@/components/UsualBasket';
 import { fetchCategories } from '@/lib/api';
 import { fetchBuyAgain, fetchUsualBasket } from '@/lib/orders';
@@ -85,11 +85,6 @@ export default async function HomePage({
               ))}
             </div>
           )}
-        </section>
-
-        <section className="section">
-          <h2 className="section-title">{t.language}</h2>
-          <LocaleSwitch locale={locale} path="" />
         </section>
       </main>
 

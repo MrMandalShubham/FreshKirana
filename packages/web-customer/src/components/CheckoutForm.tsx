@@ -110,7 +110,7 @@ export function CheckoutForm({
                     onChange={() => setSlotId(slot.id)}
                   />
                   <span>
-                    <strong>{formatDate(slot.serviceDate, locale)}</strong>
+                    <strong>{formatDate(slot.serviceDate)}</strong>
                     <span className="muted">
                       {slot.label}
                       {slot.isBookable ? '' : ` · ${statusLabel(slot.status, t)}`}
@@ -299,8 +299,8 @@ function statusLabel(status: string, t: ReturnType<typeof getDictionary>): strin
   return t.slotCutoffPassed;
 }
 
-function formatDate(serviceDate: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale === 'hi' ? 'hi-IN' : 'en-IN', {
+function formatDate(serviceDate: string): string {
+  return new Intl.DateTimeFormat('en-IN', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',

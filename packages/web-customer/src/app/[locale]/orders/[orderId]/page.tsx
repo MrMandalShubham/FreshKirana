@@ -97,7 +97,7 @@ export default async function OrderPage({
 
         <section className="section">
           <h2 className="section-title">{t.deliverySlot}</h2>
-          <p>{formatSlot(order.slotStartsAt, order.slotEndsAt, locale)}</p>
+          <p>{formatSlot(order.slotStartsAt, order.slotEndsAt)}</p>
           <p className="muted">
             {order.recipientName} · {order.addressLine1}, {order.addressCity}{' '}
             {order.addressPincode}
@@ -162,8 +162,8 @@ export default async function OrderPage({
   );
 }
 
-function formatSlot(startsAt: string, endsAt: string, locale: Locale): string {
-  const tag = locale === 'hi' ? 'hi-IN' : 'en-IN';
+function formatSlot(startsAt: string, endsAt: string): string {
+  const tag = 'en-IN';
   const day = new Intl.DateTimeFormat(tag, {
     weekday: 'long',
     day: 'numeric',

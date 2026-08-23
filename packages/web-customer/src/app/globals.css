@@ -40,7 +40,6 @@ body {
     -apple-system,
     'Segoe UI',
     Roboto,
-    'Noto Sans Devanagari',
     sans-serif;
   font-size: 16px;
   line-height: 1.5;
@@ -100,15 +99,31 @@ a {
 }
 
 .brand {
+  /* A link, so it carries the same 44px target as everything else (§4.5). */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-weight: 700;
   font-size: 18px;
   color: var(--brand);
   white-space: nowrap;
 }
 
+/*
+ * `min-width: 0` is load-bearing, not tidying.
+ *
+ * A flex item defaults to `min-width: auto`, which refuses to shrink below its
+ * min-content — here 315px, because the input reports its intrinsic 20-character
+ * width. On a 375px phone only 232px is available, so the header pushed the
+ * document to 443px wide. The bottom nav is `position: fixed; left: 0; right: 0`,
+ * which resolves against that widened initial containing block, so it stretched
+ * to 443px too and laid its five tabs at 88px each — putting Orders and Account
+ * off-screen and out of reach on the exact device §4.1 targets.
+ */
 .search-form {
   display: flex;
   flex: 1;
+  min-width: 0;
   gap: 8px;
 }
 
@@ -372,27 +387,6 @@ a {
 .nav-icon {
   font-size: 18px;
   line-height: 1;
-}
-
-/* --- Language switch ---------------------------------------------------- */
-
-.locale-switch {
-  display: flex;
-  gap: 6px;
-}
-
-.locale-switch a {
-  padding: 6px 10px;
-  font-size: 13px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--text-muted);
-}
-
-.locale-switch a[aria-current='true'] {
-  border-color: var(--brand);
-  color: var(--brand);
-  font-weight: 600;
 }
 
 /* --------------------------------------------------------------------------

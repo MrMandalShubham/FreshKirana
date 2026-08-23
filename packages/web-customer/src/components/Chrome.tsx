@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { type Locale, getDictionary, LOCALE_LABEL, LOCALES } from '@/i18n/dictionaries';
+import { type Locale, getDictionary } from '@/i18n/dictionaries';
 
 /** Header with the search bar, per §4.2: pinned to the top of every screen. */
 export function Header({
@@ -76,28 +76,5 @@ export function BottomNav({ locale, current }: { locale: Locale; current: string
         </Link>
       ))}
     </nav>
-  );
-}
-
-/**
- * Language switch.
- *
- * Links rather than a client-side toggle: the locale lives in the URL, so a
- * chosen language survives sharing, bookmarking and a cold start.
- */
-export function LocaleSwitch({ locale, path }: { locale: Locale; path: string }) {
-  return (
-    <div className="locale-switch">
-      {LOCALES.map((candidate) => (
-        <Link
-          key={candidate}
-          href={`/${candidate}${path}`}
-          aria-current={candidate === locale ? 'true' : undefined}
-          hrefLang={candidate}
-        >
-          {LOCALE_LABEL[candidate]}
-        </Link>
-      ))}
-    </div>
   );
 }

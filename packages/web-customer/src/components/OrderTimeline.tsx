@@ -46,7 +46,7 @@ export function OrderTimeline({
             <span className="timeline-label">{stepLabel[step.step] ?? step.step}</span>
 
             <span className="muted">
-              {step.at ? formatTime(step.at, locale) : stateLabel[step.state]}
+              {step.at ? formatTime(step.at) : stateLabel[step.state]}
             </span>
           </span>
 
@@ -57,8 +57,8 @@ export function OrderTimeline({
   );
 }
 
-function formatTime(iso: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale === 'hi' ? 'hi-IN' : 'en-IN', {
+function formatTime(iso: string): string {
+  return new Intl.DateTimeFormat('en-IN', {
     day: 'numeric',
     month: 'short',
     hour: 'numeric',
