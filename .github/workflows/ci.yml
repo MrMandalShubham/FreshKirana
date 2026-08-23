@@ -265,6 +265,7 @@ jobs:
       PAYMENT_RECONCILIATION_JOB: freshkirana-staging-payment-reconciliation
       COD_SWEEP_JOB: freshkirana-staging-cod-confirmation-sweep
       SUBSTITUTION_SWEEP_JOB: freshkirana-staging-substitution-sweep
+      SHELF_LIFE_SWEEP_JOB: freshkirana-staging-shelf-life-sweep
 
     steps:
       - uses: actions/checkout@v4
@@ -315,7 +316,7 @@ jobs:
         run: |
           for job in "$SLA_SWEEP_JOB" "$RESERVATION_SWEEP_JOB" \
                      "$PAYMENT_RECONCILIATION_JOB" "$COD_SWEEP_JOB" \
-                     "$SUBSTITUTION_SWEEP_JOB"; do
+                     "$SUBSTITUTION_SWEEP_JOB" "$SHELF_LIFE_SWEEP_JOB"; do
             echo "Updating $job"
             gcloud run jobs update "$job" \
               --region "$REGION" \

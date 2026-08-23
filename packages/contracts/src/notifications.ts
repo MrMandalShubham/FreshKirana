@@ -68,6 +68,8 @@ export const NotificationTemplate = {
   ORDER_CANCELLED_NOTICE: 'ORDER_CANCELLED_NOTICE',
   /** "Your tomatoes weighed 1.3 kg — is that all right?" (§1.7.1). */
   WEIGHT_CONSENT: 'WEIGHT_CONSENT',
+  /** "Do not eat this — batch recalled" (§1.7.3). FSSAI compliance. */
+  PRODUCT_RECALL: 'PRODUCT_RECALL',
   /** Money is on its way back, and roughly when (§1.8.2). */
   REFUND_INITIATED: 'REFUND_INITIATED',
   REFUND_COMPLETED: 'REFUND_COMPLETED',
@@ -154,6 +156,9 @@ export const TEMPLATE_URGENCY: Record<NotificationTemplate, NotificationUrgency>
   // A picker is standing at a scale waiting for the answer, and the slot is
   // running. Nothing about this can wait for morning.
   WEIGHT_CONSENT: NotificationUrgency.CRITICAL,
+  // A safety message. Quiet hours are irrelevant when the question is whether
+  // somebody is about to eat something unsafe.
+  PRODUCT_RECALL: NotificationUrgency.CRITICAL,
   // Somebody is waiting on money they are owed. Holding this until morning to
   // be polite is exactly the wrong trade.
   REFUND_INITIATED: NotificationUrgency.CRITICAL,

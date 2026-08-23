@@ -79,6 +79,8 @@ export class WeighingService {
     vendorId: string;
     actualGrams: number;
     consented?: boolean;
+    /** Which lot it came out of (§1.7.3). Optional until P7.1's scanner. */
+    offerBatchId?: string;
   }): Promise<WeighedLineView> {
     const found = await this.orders.findById(input.orderId);
     if (!found || found.vendorId !== input.vendorId) {
@@ -149,6 +151,9 @@ export class WeighingService {
         weightTolerancePct: tolerancePct,
         lineTotalPaise: outcome.actualLineTotalPaise,
         weighedAt: new Date(),
+        // The lot this came out of, if the picker said. It is what makes a
+        // recall able to name customers rather than guess at them (§1.7.3).
+        ...(input.offerBatchId ? { offerBatchId: input.offerBatchId } : {}),
         updatedAt: new Date(),
       })
       .where(eq(orderLine.id, line.id));

@@ -174,3 +174,9 @@ variable "substitution_sweep_schedule" {
   type        = string
   default     = "* * * * *"
 }
+
+variable "shelf_life_sweep_schedule" {
+  description = "Cron for delisting short-dated stock (§1.7.3). Just before the first delivery slot, so a shop starts the day with an honest catalogue rather than delisting things mid-picking."
+  type        = string
+  default     = "30 5 * * *"
+}

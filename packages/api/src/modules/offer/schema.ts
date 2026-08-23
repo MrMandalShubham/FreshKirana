@@ -135,5 +135,121 @@ export const vendorOffer = offerSchema.table(
   ],
 );
 
+/**
+ * One physical lot of a product at one store (spec §1.7.3).
+ *
+ * ## Why batches are rows rather than columns
+ *
+ * P1.2 put `batch_no`, `mfg_date` and `expiry_date` on the offer itself, which
+ * says a store holds exactly one lot of anything. Real shops hold two: the
+ * crate from Monday and the crate from Thursday, expiring days apart. §1.7.3
+ * needs both — FEFO picks the older one first, and a recall names *a batch*,
+ * not a product.
+ *
+ * The offer's own columns stay as they are. They describe the lot a store is
+ * currently selling from, which is what search and the product page read, and
+ * rewriting that in this part would touch every screen for no gain.
+ *
+ * `stock_on_hand` on the offer also stays authoritative for reservations: P3.1
+ * guards it with a single atomic statement that is correct and hard-won, and
+ * moving stock into batches would mean rewriting that guarantee. The quantity
+ * here is the traceability record — what arrived, what is left of it — and the
+ * two are reconciled by the store, not by this code. See the deferral.
+ */
+export const offerBatch = offerSchema.table(
+  'offer_batch',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+
+    vendorOfferId: uuid('vendor_offer_id')
+      .notNull()
+      .references(() => vendorOffer.id, { onDelete: 'cascade' }),
+
+    /** The lot code printed on the pack. What a recall names. */
+    batchNo: text('batch_no').notNull(),
+    mfgDate: date('mfg_date'),
+    expiryDate: date('expiry_date'),
+
+    /** Units received, and how many are left, in the product's own unit. */
+    receivedQuantity: integer('received_quantity').notNull().default(0),
+    remainingQuantity: integer('remaining_quantity').notNull().default(0),
+
+    /** ACTIVE, DELISTED, RECALLED or DEPLETED (§1.7.3). */
+    status: text('status').notNull().default('ACTIVE'),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // One row per lot per offer. The same batch number arriving twice is the
+    // same lot, and two rows for it would split a recall in half.
+    uniqueIndex('offer_batch_unique').on(table.vendorOfferId, table.batchNo),
+
+    // FEFO reads this on every picking list.
+    index('offer_batch_fefo_idx').on(table.vendorOfferId, table.status, table.expiryDate),
+
+    // The shelf-life sweep, and the recall search by expiry.
+    index('offer_batch_expiry_idx')
+      .on(table.expiryDate)
+      .where(sql`${table.expiryDate} is not null`),
+
+    check(
+      'offer_batch_dates_ordered',
+      sql`${table.mfgDate} is null or ${table.expiryDate} is null or ${table.expiryDate} >= ${table.mfgDate}`,
+    ),
+    check('offer_batch_remaining_sane', sql`${table.remainingQuantity} >= 0`),
+  ],
+);
+
+/**
+ * A withdrawal, and the record a regulator will ask for (spec §1.7.3).
+ *
+ * Kept as a row rather than reconstructed from batch statuses, because a recall
+ * is an *event* with a time, a reason and a person attached — and FSSAI wants
+ * to know when the sale was blocked and when customers were told, neither of
+ * which a status flag records.
+ */
+export const recall = offerSchema.table(
+  'recall',
+  {
+    id: uuid('id')
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+
+    /** Owned by catalog. Validated through contracts, never joined. */
+    masterProductId: uuid('master_product_id').notNull(),
+    /** The manufacturer's lot code, which is what a recall actually names. */
+    batchNo: text('batch_no').notNull(),
+
+    reason: text('reason').notNull(),
+    note: text('note'),
+    status: text('status').notNull().default('OPEN'),
+
+    /** Who ordered it. A recall is never anonymous. */
+    raisedBy: uuid('raised_by').notNull(),
+
+    /** How far it reached, snapshotted when the report is produced. */
+    batchesAffected: integer('batches_affected').notNull().default(0),
+    ordersAffected: integer('orders_affected').notNull().default(0),
+    customersNotified: integer('customers_notified').notNull().default(0),
+
+    raisedAt: timestamp('raised_at', { withTimezone: true }).notNull().defaultNow(),
+    notifiedAt: timestamp('notified_at', { withTimezone: true }),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+  },
+  (table) => [
+    // One open recall per lot. Two would notify the same customers twice and
+    // produce two reports that disagree.
+    uniqueIndex('recall_open_batch_key')
+      .on(table.masterProductId, table.batchNo)
+      .where(sql`status <> 'CLOSED'`),
+    index('recall_status_idx').on(table.status, table.raisedAt),
+  ],
+);
+
 export type VendorOfferRow = typeof vendorOffer.$inferSelect;
+export type OfferBatchRow = typeof offerBatch.$inferSelect;
+export type RecallRow = typeof recall.$inferSelect;
 export type NewVendorOfferRow = typeof vendorOffer.$inferInsert;

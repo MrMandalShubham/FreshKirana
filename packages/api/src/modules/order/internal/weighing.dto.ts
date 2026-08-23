@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsBoolean, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
 
 /**
  * What the scale said (spec §1.7.1).
@@ -21,4 +21,13 @@ export class WeighLineDto {
    * decorative.
    */
   @IsOptional() @IsBoolean() consented?: boolean;
+
+  /**
+   * The lot this line came out of (§1.7.3).
+   *
+   * Optional because a picker with no scanner should not be blocked from
+   * recording a weight — but every line without it is a line a recall cannot
+   * trace, which is why P7.1's dashboard makes it the default path.
+   */
+  @IsOptional() @IsUUID() offerBatchId?: string;
 }

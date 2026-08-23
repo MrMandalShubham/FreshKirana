@@ -2,8 +2,11 @@ import { Module } from '@nestjs/common';
 import { CatalogModule } from '../catalog/catalog.module';
 import { IdentityModule } from '../identity/identity.module';
 import { VendorModule } from '../vendor/vendor.module';
+import { BatchController, ShelfLifeSweepController } from './internal/batch.controller';
 import { OfferController } from './internal/offer.controller';
 import { OfferService } from './internal/offer.service';
+import { BatchService } from './internal/batch.service';
+import { RecallRegistry } from './internal/recall.registry';
 import { RuleSubstituteRanker } from './internal/substitute-ranker.service';
 
 /**
@@ -17,8 +20,8 @@ import { RuleSubstituteRanker } from './internal/substitute-ranker.service';
  */
 @Module({
   imports: [IdentityModule, CatalogModule, VendorModule],
-  controllers: [OfferController],
-  providers: [OfferService, RuleSubstituteRanker],
-  exports: [OfferService, RuleSubstituteRanker],
+  controllers: [OfferController, BatchController, ShelfLifeSweepController],
+  providers: [OfferService, RuleSubstituteRanker, BatchService, RecallRegistry],
+  exports: [OfferService, RuleSubstituteRanker, BatchService, RecallRegistry],
 })
 export class OfferModule {}

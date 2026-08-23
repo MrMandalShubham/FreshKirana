@@ -27,6 +27,8 @@ import {
   SubstitutionSweepController,
 } from './internal/substitution.controller';
 import { SubstitutionService } from './internal/substitution.service';
+import { RecallController } from './internal/recall.controller';
+import { RecallService } from './internal/recall.service';
 import { WeighingService } from './internal/weighing.service';
 import {
   OrderController,
@@ -101,6 +103,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     PickerSubstitutionController,
     SubstitutionController,
     SubstitutionSweepController,
+    RecallController,
   ],
   providers: [
     OrderService,
@@ -114,6 +117,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     RefundFlowService,
     SubstitutionService,
     WeighingService,
+    RecallService,
   ],
   exports: [
     OrderService,
@@ -126,6 +130,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     RefundFlowService,
     SubstitutionService,
     WeighingService,
+    RecallService,
   ],
 })
 export class OrderModule {}

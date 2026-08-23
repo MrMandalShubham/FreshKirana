@@ -52,6 +52,7 @@ export class PickerSubstitutionController {
       vendorId,
       actualGrams: dto.actualGrams,
       ...(dto.consented === undefined ? {} : { consented: dto.consented }),
+      ...(dto.offerBatchId === undefined ? {} : { offerBatchId: dto.offerBatchId }),
     });
   }
 }

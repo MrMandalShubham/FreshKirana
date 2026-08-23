@@ -220,6 +220,16 @@ export const orderLine = orderSchema.table(
 
     weighedAt: timestamp('weighed_at', { withTimezone: true }),
 
+    /**
+     * The lot this line was picked from (spec §1.7.3).
+     *
+     * Owned by the offer module; validated through contracts, never joined.
+     * Null until a picker records it, and null forever on anything without
+     * batches — but without it, "which customers received the contaminated
+     * lot?" has no answer, and that is the whole reason batches exist.
+     */
+    offerBatchId: uuid('offer_batch_id'),
+
     hsnCode: text('hsn_code').notNull(),
     gstRateBp: integer('gst_rate_bp').notNull(),
 
@@ -244,6 +254,11 @@ export const orderLine = orderSchema.table(
   },
   (table) => [
     index('order_line_order_idx').on(table.orderId),
+    // A recall walks batch → lines → orders (§1.7.3), so this direction is
+    // read under time pressure and must not be a sequential scan.
+    index('order_line_batch_idx')
+      .on(table.offerBatchId)
+      .where(sql`${table.offerBatchId} is not null`),
     index('order_line_product_idx').on(table.masterProductId),
 
     check('order_line_quantity_positive', sql`${table.quantity} > 0`),

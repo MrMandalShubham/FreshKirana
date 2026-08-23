@@ -521,3 +521,106 @@ resource "google_cloud_scheduler_job" "substitution_sweep" {
 
   depends_on = [google_project_service.required]
 }
+
+# ---------------------------------------------------------------------------
+# Shelf-life sweep (spec §1.7.3).
+#
+# Shelf life passes with the clock rather than with anything a person does. A
+# batch that was fine last night is not fine this morning, and nobody logs in to
+# notice — so without this the first person to find out is a customer opening a
+# bag of paneer that expires today.
+#
+# Daily rather than by the minute: shelf life is measured in days, and a sweep
+# that runs every minute would spend a thousand queries to learn nothing.
+#
+# Sixth tenant of the job runner from P2.5a.
+# ---------------------------------------------------------------------------
+
+resource "google_cloud_run_v2_job" "shelf_life_sweep" {
+  name     = "${local.name_prefix}-shelf-life-sweep"
+  location = var.region
+  labels   = local.common_labels
+
+  deletion_protection = false
+
+  template {
+    template {
+      service_account = google_service_account.api.email
+      max_retries     = 0
+      timeout         = "300s"
+
+      containers {
+        image   = var.image != "" ? var.image : var.bootstrap_image
+        command = ["node"]
+        args    = ["packages/api/dist/jobs/shelf-life-sweep.js"]
+
+        env {
+          name = "DATABASE_URL"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.database_url.secret_id
+              version = "latest"
+            }
+          }
+        }
+
+        env {
+          name  = "NODE_ENV"
+          value = var.node_env
+        }
+
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "512Mi"
+          }
+        }
+      }
+
+      volumes {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [google_sql_database_instance.main.connection_name]
+        }
+      }
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [template[0].template[0].containers[0].image]
+  }
+}
+
+resource "google_cloud_run_v2_job_iam_member" "scheduler_runs_shelf_life_sweep" {
+  name     = google_cloud_run_v2_job.shelf_life_sweep.name
+  location = google_cloud_run_v2_job.shelf_life_sweep.location
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.scheduler.email}"
+}
+
+resource "google_cloud_scheduler_job" "shelf_life_sweep" {
+  name        = "${local.name_prefix}-shelf-life-sweep"
+  region      = var.region
+  description = "Delists stock too short-dated to deliver (§1.7.3)"
+
+  schedule  = var.shelf_life_sweep_schedule
+  time_zone = "Asia/Kolkata"
+
+  attempt_deadline = "320s"
+
+  retry_config {
+    retry_count = 1
+  }
+
+  http_target {
+    http_method = "POST"
+    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.shelf_life_sweep.name}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.scheduler.email
+      scope                 = "https://www.googleapis.com/auth/cloud-platform"
+    }
+  }
+
+  depends_on = [google_project_service.required]
+}

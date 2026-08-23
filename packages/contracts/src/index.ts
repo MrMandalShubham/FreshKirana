@@ -20,6 +20,7 @@ export * from './order-status';
 export * from './order-transitions';
 export * from './payment-status';
 export * from './payments';
+export * from './perishables';
 export * from './refunds';
 export * from './roles';
 export * from './search';
