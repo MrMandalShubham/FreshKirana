@@ -18,11 +18,14 @@ export function AddToCart({
   quantity,
   locale,
   label,
+  compact = false,
 }: {
   vendorOfferId: string;
   quantity?: number;
   locale: Locale;
   label?: string;
+  /** The small outlined button that sits on a product tile in a grid. */
+  compact?: boolean;
 }) {
   const t = getDictionary(locale);
 
@@ -32,22 +35,22 @@ export function AddToCart({
   );
 
   return (
-    <form action={formAction} className="add-to-cart">
+    <form action={formAction} className={`add-to-cart${compact ? ' compact' : ''}`}>
       <input type="hidden" name="vendorOfferId" value={vendorOfferId} />
       {quantity !== undefined && <input type="hidden" name="quantity" value={quantity} />}
 
-      <button className="button" type="submit" disabled={pending}>
+      <button className={compact ? 'addbtn' : 'button'} type="submit" disabled={pending}>
         {pending ? t.adding : (label ?? t.addToCart)}
       </button>
 
       {state?.ok === false && (
-        <p className="notice error" role="alert">
+        <p className={compact ? 'addbtn-msg error' : 'notice error'} role="alert">
           {state.code === 'CART_VENDOR_CONFLICT' ? t.differentStore : state.error}
         </p>
       )}
 
       {state?.ok === true && (
-        <p className="notice success" role="status">
+        <p className={compact ? 'addbtn-msg ok' : 'notice success'} role="status">
           {t.addedToCart}
         </p>
       )}

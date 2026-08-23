@@ -6,6 +6,7 @@ import { UsualBasket } from '@/components/UsualBasket';
 import { fetchCategories } from '@/lib/api';
 import { fetchBuyAgain, fetchUsualBasket } from '@/lib/orders';
 import { getThemeChoice, isSignedIn } from '@/lib/session';
+import { glyphFor } from '@/lib/glyph';
 import { type Locale, getDictionary, localisedName } from '@/i18n/dictionaries';
 
 /**
@@ -78,8 +79,8 @@ export default async function HomePage({
           {categories.length === 0 ? (
             <p className="empty">{t.emptyCategory}</p>
           ) : (
-            <div className="category-grid">
-              {categories.map((category) => {
+            <div className="category-rail">
+              {categories.slice(0, CATEGORY_RAIL_LIMIT).map((category) => {
                 const name = localisedName(category.name, category.nameI18n, locale);
                 return (
                   <Link
@@ -111,27 +112,11 @@ export default async function HomePage({
 }
 
 /**
- * A glyph for a category tile.
+ * How many categories the rail carries.
  *
- * Keyword matching rather than a category-id map, because categories are
- * created by ops and a map would need editing every time one is added. An
- * unmatched category gets the basket, which is honest rather than wrong.
- *
- * Placeholder for real category artwork — the one part of the design that
- * needs a photographer rather than code.
+ * Staging returns 696 — mostly e2e debris, but a real city catalogue will run
+ * to dozens, and nobody browses a list that long. The rail shows the first
+ * screenful and search covers everything else, which is how people actually
+ * find "toor dal" anyway.
  */
-const GLYPHS: ReadonlyArray<readonly [RegExp, string]> = [
-  [/atta|rice|flour|grain|staple/i, '🌾'],
-  [/dal|pulse|lentil|bean/i, '🫘'],
-  [/oil|ghee|masala|spice/i, '🫗'],
-  [/dairy|milk|curd|paneer|butter/i, '🥛'],
-  [/veg|fruit|fresh|produce/i, '🥬'],
-  [/snack|biscuit|namkeen|sweet/i, '🍪'],
-  [/clean|home|detergent|soap/i, '🧼'],
-  [/baby|care|personal/i, '🧴'],
-  [/beverage|tea|coffee|juice|drink/i, '🍵'],
-];
-
-function glyphFor(name: string): string {
-  return GLYPHS.find(([pattern]) => pattern.test(name))?.[1] ?? '🧺';
-}
+const CATEGORY_RAIL_LIMIT = 12;
