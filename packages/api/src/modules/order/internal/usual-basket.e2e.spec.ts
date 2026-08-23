@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import {
   GST_RATE_BP,
   InventoryMode,
+  OrderStatus,
   ProductStatus,
   Role,
   ServiceAreaMode,
@@ -101,11 +102,22 @@ describe.skipIf(!dbUp)('usual basket (e2e)', () => {
   let categoryId: string;
 
   /**
-   * Places an order and back-dates it.
+   * Places an order, back-dates it, and settles it as delivered.
    *
    * The heuristic is about *when* things were bought, and no test can wait
    * three weeks. Writing `placed_at` directly is the only way to exercise the
    * interval arithmetic against real orders rather than a fixture.
+   *
+   * The status is written for a different reason. A back-dated order left in
+   * `AWAITING_VENDOR` is a three-week-old order no shop ever accepted, and
+   * `sweepAcceptanceSla` — which lists *every* waiting order, not this suite's —
+   * quite rightly breaches it. That moves it out of `COUNTS_AS_A_PURCHASE`, the
+   * history empties, and four assertions here fail. It cost three gate runs to
+   * find, and the symptom looked like flake because it depends on whether the
+   * sweep suite happens to run first.
+   *
+   * `DELIVERED` is also simply what purchase history *is*. The fixture was
+   * describing something that could not exist.
    */
   async function orderPlacedDaysAgo(offers: string[], daysAgo: number): Promise<string> {
     await as(customerToken)(http().delete('/cart')).expect(200);
@@ -129,7 +141,10 @@ describe.skipIf(!dbUp)('usual basket (e2e)', () => {
 
     const db = createDatabase();
     await db.execute(
-      `update "order"."order" set placed_at = now() - interval '${daysAgo} days' where id = '${orderId}'`,
+      `update "order"."order"
+          set placed_at = now() - interval '${daysAgo} days',
+              status = '${OrderStatus.DELIVERED}'
+        where id = '${orderId}'`,
     );
 
     return orderId;

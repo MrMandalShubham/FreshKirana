@@ -9,6 +9,8 @@ import {
   ensureCartToken,
   getCartToken,
   setSessionToken,
+  setThemeChoice,
+  type ThemeChoice,
 } from './session';
 
 /**
@@ -507,4 +509,20 @@ export async function markNotificationsRead(): Promise<ActionResult> {
 
   revalidatePath('/', 'layout');
   return ok;
+}
+
+/**
+ * Switches between the light and dark grounds (§4.5).
+ *
+ * A form post rather than a click handler, so the choice works before any
+ * JavaScript has loaded — the same reason search is a plain GET form. The
+ * layout re-reads the cookie on the next render, so the whole app changes at
+ * once instead of one screen at a time.
+ */
+export async function setTheme(formData: FormData): Promise<void> {
+  const value = formData.get('theme');
+  if (value !== 'light' && value !== 'dark') return;
+
+  await setThemeChoice(value as ThemeChoice);
+  revalidatePath('/', 'layout');
 }

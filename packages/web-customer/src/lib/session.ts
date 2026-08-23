@@ -49,6 +49,38 @@ export async function isSignedIn(): Promise<boolean> {
   return (await getSessionToken()) !== null;
 }
 
+/**
+ * The chosen colour theme (§4.5).
+ *
+ * Three states, not two. `null` means the shopper has not chosen, and the page
+ * follows the phone's own setting through `prefers-color-scheme` — which is the
+ * right default, because a phone in night mode at 10pm is telling us something.
+ * A stored value overrides it in either direction.
+ *
+ * Read on the server and stamped onto `<html>` during render, so the ground is
+ * correct in the first paint. A theme applied by client JavaScript flashes the
+ * wrong colour first, which is worse than not offering the choice.
+ */
+export type ThemeChoice = 'light' | 'dark';
+
+const THEME_COOKIE = 'fk_theme';
+
+export async function getThemeChoice(): Promise<ThemeChoice | null> {
+  const value = (await cookies()).get(THEME_COOKIE)?.value;
+  return value === 'light' || value === 'dark' ? value : null;
+}
+
+export async function setThemeChoice(theme: ThemeChoice): Promise<void> {
+  (await cookies()).set(THEME_COOKIE, theme, {
+    // Not HttpOnly: this one is a display preference, not a credential, and
+    // there is no harm in the page reading it.
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: YEAR_SECONDS,
+  });
+}
+
 /** The anonymous basket id, if one has been issued. */
 export async function getCartToken(): Promise<string | null> {
   return (await cookies()).get(CART_COOKIE)?.value ?? null;

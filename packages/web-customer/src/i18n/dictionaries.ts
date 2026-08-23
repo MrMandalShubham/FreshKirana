@@ -30,6 +30,7 @@ const en = {
   account: 'Account',
   buyAgain: 'Buy again',
   usualBasket: 'Your usual basket',
+  usualBasketSub: '{count} items you buy regularly, ready to go',
   shopByCategory: 'Shop by category',
   outOfStock: 'Out of stock',
   inStock: 'In stock',
@@ -58,6 +59,10 @@ const en = {
   emptyCategory: 'No products here yet.',
   comingSoon: 'Coming soon',
   backToHome: 'Back to home',
+  appearance: 'Appearance',
+  themeLight: 'Light',
+  themeDark: 'Dark',
+  themeFollowingPhone: 'Following your phone',
   notFound: 'We could not find that page.',
 
   // --- Basket and checkout (P2.6) ---
