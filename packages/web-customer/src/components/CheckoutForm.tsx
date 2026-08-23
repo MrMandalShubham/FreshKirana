@@ -126,7 +126,7 @@ export function CheckoutForm({
       <section className="checkout-section">
         <h2 className="section-title">{t.ifSomethingIsOut}</h2>
 
-        <ul className="option-list">
+        <ul className="option-list chips">
           {[
             { value: SubstitutionPreference.AUTO_SUBSTITUTE, label: t.substituteAuto },
             { value: SubstitutionPreference.ASK_ME, label: t.substituteAsk },
@@ -177,10 +177,6 @@ export function CheckoutForm({
             <span>{t.packagingFee}</span>
             <span>{inr(totals.packagingFeePaise)}</span>
           </p>
-          <p className="totals-row total">
-            <span>{t.payOnDelivery}</span>
-            <span>{inr(totals.grandTotalPaise)}</span>
-          </p>
         </section>
       )}
 
@@ -196,13 +192,25 @@ export function CheckoutForm({
         </p>
       )}
 
-      <button
-        className="button primary wide"
-        type="submit"
-        disabled={pending || !addressId || !slotId}
-      >
-        {pending ? t.placingOrder : t.placeOrder}
-      </button>
+      {/*
+        Sticky, because the price and the button that commits to it should
+        never be a scroll apart on a phone. `position: sticky` rather than
+        `fixed` so it settles into the page at the end rather than covering it.
+      */}
+      <div className="paybar">
+        <span className="amount">
+          <span className="k">{t.payOnDelivery}</span>
+          <span className="v">{totals ? inr(totals.grandTotalPaise) : '—'}</span>
+        </span>
+
+        <button
+          className="button primary"
+          type="submit"
+          disabled={pending || !addressId || !slotId}
+        >
+          {pending ? t.placingOrder : t.placeOrder}
+        </button>
+      </div>
     </form>
   );
 }

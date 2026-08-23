@@ -1067,3 +1067,116 @@ a {
   color: #eaf5ee;
   margin-bottom: 0;
 }
+
+/* --------------------------------------------------------------------------
+   Checkout (UI.3)
+
+   Every choice becomes a chip. The radio inputs stay — they are the correct
+   semantics and what a screen reader and a keyboard both expect — but they are
+   visually replaced by the label, which is the whole target. A chip is one tap
+   where a radio is a small dot next to some text.
+   -------------------------------------------------------------------------- */
+
+.option-list.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  padding: 0;
+}
+
+.option-list.chips li {
+  list-style: none;
+}
+
+/* The label is only a hit area; the span is the chip you can see. That split
+   is what lets the selected state use `input:checked + span` -- a plain
+   sibling selector, supported everywhere -- instead of `:has()`, which a
+   mid-range Android on Chrome 104 does not have. With `:has()` and no support,
+   nothing would look selected at all. */
+.option-list.chips .option {
+  display: inline-flex;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  min-height: 0;
+}
+
+.option-list.chips .option > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: var(--s2) var(--s4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Clipped rather than `display: none`: a hidden input is not focusable, and
+   the keyboard still has to reach the radio this is driving. */
+.option-list.chips .option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  overflow: hidden;
+}
+
+.option-list.chips .option input:checked + span {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+
+/* The ring has to follow the input onto its label or keyboard users lose the
+   cursor entirely (§4.5). */
+.option-list.chips .option input:focus-visible + span {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* --- The pay bar -------------------------------------------------------- */
+
+.paybar {
+  position: sticky;
+  /* Above the fixed bottom nav, not behind it. `bottom: 0` would park this
+     under 60px of navigation and hide the price and the button both. */
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  padding: var(--s3) 0 var(--s4);
+  margin-top: var(--s5);
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+.paybar .amount {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  flex: none;
+}
+
+.paybar .amount .k {
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.paybar .amount .v {
+  font-family: var(--font-display);
+  font-size: var(--t-title);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.paybar .button {
+  flex: 1;
+}
