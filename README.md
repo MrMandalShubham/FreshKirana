@@ -4,12 +4,13 @@ Multi-vendor grocery marketplace for local kirana stores — planned-basket, slo
 
 ## Documentation
 
-| Document                                                                                                             | Purpose                                                        |
-| -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| [Specification](docs/FreshKirana%20%E2%80%93%20Scalable%20Grocery%20Marketplace%20Documentation%20Set.md)            | PRD, architecture, security, frontend, analytics, ops, backlog |
-| [Build Plan & Workflow](docs/FreshKirana%20%E2%80%93%20Build%20Plan%20%26%20Workflow.md)                             | The 8 phases / 41 parts, confirmation gates, progress tracker  |
-| [Pre-Build Readiness Checklist](docs/FreshKirana%20%E2%80%93%20Pre-Build%20Readiness%20Checklist.md)                 | Program work outside the codebase                              |
-| [Gap Analysis](docs/FreshKirana%20%E2%80%93%20Documentation%20Review%2C%20Gap%20Analysis%20%26%20Recommendations.md) | Why the spec looks the way it does                             |
+| Document                                                                                                                     | Purpose                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| [**B2B Business Model & Operating Plan**](docs/FreshKirana%20%E2%80%93%20B2B%20Business%20Model%20%26%20Operating%20Plan.md) | **The current business model.** Supersedes the B2C marketplace model in spec §0–§1.3 |
+| [Specification](docs/FreshKirana%20%E2%80%93%20Scalable%20Grocery%20Marketplace%20Documentation%20Set.md)                    | PRD, architecture, security, frontend, analytics, ops, backlog                       |
+| [Build Plan & Workflow](docs/FreshKirana%20%E2%80%93%20Build%20Plan%20%26%20Workflow.md)                                     | The 8 phases / 41 parts, confirmation gates, progress tracker                        |
+| [Pre-Build Readiness Checklist](docs/FreshKirana%20%E2%80%93%20Pre-Build%20Readiness%20Checklist.md)                         | Program work outside the codebase                                                    |
+| [Gap Analysis](docs/FreshKirana%20%E2%80%93%20Documentation%20Review%2C%20Gap%20Analysis%20%26%20Recommendations.md)         | Why the spec looks the way it does                                                   |
 
 ## Stack
 

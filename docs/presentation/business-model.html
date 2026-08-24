@@ -1,0 +1,1074 @@
+<title>The FreshKirana Model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Karla:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --paper: #f7f6f2;
+    --surface: #ecebe4;
+    --ink: #14201a;
+    --ink-soft: #3d4a43;
+    --muted: #67736c;
+    --line: #d6d5cb;
+    --brand: #1f7a4d;
+    --brand-soft: #e0efe6;
+    --haldi: #b26a13;
+    --haldi-soft: #f6ead8;
+    --risk: #b3372e;
+    --risk-soft: #f5e2e0;
+    --shadow: 0 1px 3px rgba(20, 32, 26, 0.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0e1613;
+      --surface: #16211c;
+      --ink: #e9ece7;
+      --ink-soft: #b9c2bb;
+      --muted: #8b968e;
+      --line: #2a3730;
+      --brand: #58b884;
+      --brand-soft: #163022;
+      --haldi: #dfa85a;
+      --haldi-soft: #2c2110;
+      --risk: #e07a70;
+      --risk-soft: #331815;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0e1613;
+    --surface: #16211c;
+    --ink: #e9ece7;
+    --ink-soft: #b9c2bb;
+    --muted: #8b968e;
+    --line: #2a3730;
+    --brand: #58b884;
+    --brand-soft: #163022;
+    --haldi: #dfa85a;
+    --haldi-soft: #2c2110;
+    --risk: #e07a70;
+    --risk-soft: #331815;
+    --shadow: none;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .page { opacity: 1 !important; transform: none !important; transition: none !important; }
+  }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Karla', 'Segoe UI', system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    line-height: 1.15;
+    text-wrap: balance;
+    margin: 0;
+  }
+  p { margin: 0 0 1em; max-width: 65ch; }
+  a { color: var(--brand); }
+  strong { font-weight: 700; }
+
+  .mono, .eyebrow, td.num, .stat-num, .ledger, .tag, .rail-label {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- rail ---------- */
+  .rail {
+    position: fixed; left: 22px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 10px; z-index: 10;
+  }
+  .rail a {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--line); display: block; position: relative;
+    transition: background .2s;
+  }
+  .rail a:hover, .rail a:focus-visible { background: var(--haldi); }
+  .rail a.active { background: var(--brand); }
+  .rail a:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+  .rail-label {
+    position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+    font-size: 11px; letter-spacing: .04em; white-space: nowrap;
+    color: var(--ink-soft); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 4px; padding: 2px 8px;
+    opacity: 0; pointer-events: none; transition: opacity .15s;
+  }
+  .rail a:hover .rail-label, .rail a:focus-visible .rail-label { opacity: 1; }
+  @media (max-width: 1180px) { .rail { display: none; } }
+
+  /* ---------- page scaffold ---------- */
+  .page {
+    max-width: 1040px; margin: 0 auto; padding: 88px 28px 96px;
+    border-top: 1px solid var(--line);
+    opacity: 0; transform: translateY(14px);
+    transition: opacity .5s ease, transform .5s ease;
+  }
+  .page.seen { opacity: 1; transform: none; }
+  .page:first-of-type { border-top: none; }
+  .eyebrow {
+    font-size: 12.5px; font-weight: 500; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--brand); margin-bottom: 18px;
+  }
+  .eyebrow .lens { color: var(--haldi); }
+  .page h2 { font-size: clamp(1.9rem, 3.6vw, 2.7rem); margin-bottom: 14px; }
+  .lead { font-size: 1.16rem; color: var(--ink-soft); max-width: 62ch; }
+
+  .note {
+    border-left: 3px solid var(--haldi); background: var(--haldi-soft);
+    padding: 14px 18px; border-radius: 0 8px 8px 0; max-width: 70ch;
+    margin: 22px 0; font-size: .97rem;
+  }
+  .note.risk { border-left-color: var(--risk); background: var(--risk-soft); }
+  .note.good { border-left-color: var(--brand); background: var(--brand-soft); }
+  .note p:last-child { margin-bottom: 0; }
+
+  /* ---------- cards ---------- */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); gap: 18px; margin: 28px 0; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; padding: 22px 22px 18px; box-shadow: var(--shadow);
+  }
+  .card h3 { font-size: 1.22rem; margin-bottom: 10px; }
+  .card p { font-size: .95rem; color: var(--ink-soft); margin-bottom: .7em; }
+  .card p:last-child { margin-bottom: 0; }
+  .card .big {
+    font-family: 'Fraunces', Georgia, serif; font-size: 1.9rem; font-weight: 700;
+    color: var(--brand); display: block; margin-bottom: 6px;
+  }
+
+  /* ---------- stats ---------- */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin: 26px 0; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 16px 13px; }
+  .stat-num { font-size: 1.5rem; font-weight: 600; color: var(--brand); display: block; }
+  .stat-num.warn { color: var(--haldi); }
+  .stat small { color: var(--muted); font-size: .8rem; line-height: 1.35; display: block; margin-top: 4px; }
+
+  /* ---------- tables ---------- */
+  .scroll { overflow-x: auto; margin: 24px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+  td.num { text-align: right; white-space: nowrap; font-size: .88rem; }
+  tr.total td { border-top: 2px solid var(--ink-soft); font-weight: 700; }
+  .neg { color: var(--risk); }
+  .pos { color: var(--brand); }
+
+  /* ---------- tags ---------- */
+  .tag {
+    display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .05em;
+    padding: 2px 9px; border-radius: 20px; white-space: nowrap;
+  }
+  .tag.built { background: var(--brand-soft); color: var(--brand); }
+  .tag.new { background: var(--haldi-soft); color: var(--haldi); }
+  .tag.gone { background: var(--risk-soft); color: var(--risk); }
+  .tag.plain { background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
+
+  /* ---------- hub diagram ---------- */
+  .net { margin: 30px 0; text-align: center; }
+  .net-hub {
+    display: inline-block; background: var(--brand-soft); border: 1.5px solid var(--brand);
+    border-radius: 12px; padding: 16px 34px;
+  }
+  .net-hub b { font-family: 'Fraunces', Georgia, serif; font-size: 1.25rem; }
+  .net-hub span, .net-cell span { display: block; font-size: .82rem; color: var(--ink-soft); }
+  .net-link { height: 30px; width: 1.5px; background: var(--line); margin: 0 auto; position: relative; }
+  .net-link::after {
+    content: '▾'; position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%);
+    color: var(--muted); font-size: 12px;
+  }
+  .net-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .net-cell {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 10px;
+  }
+  .net-cell b { font-size: .95rem; }
+  .net-wide { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; }
+  .net-ctrl {
+    margin-top: 26px; border: 1.5px dashed var(--haldi); border-radius: 10px;
+    padding: 12px 18px; background: var(--haldi-soft); font-size: .92rem;
+  }
+
+  /* ---------- waterfall ---------- */
+  .wf { margin: 26px 0; display: flex; flex-direction: column; gap: 7px; max-width: 720px; }
+  .wf-row { display: grid; grid-template-columns: minmax(150px, 240px) 1fr 92px; gap: 12px; align-items: center; font-size: .9rem; }
+  .wf-row .bar { height: 16px; border-radius: 3px; background: var(--brand); min-width: 2px; }
+  .wf-row.cost .bar { background: var(--risk); opacity: .75; }
+  .wf-row.result .bar { background: var(--haldi); }
+  .wf-row .val { text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: .85rem; }
+  .wf-row.result { font-weight: 700; border-top: 1.5px solid var(--line); padding-top: 8px; }
+
+  /* ---------- pipeline ---------- */
+  .pipe { counter-reset: step; margin: 30px 0; display: grid; gap: 12px; }
+  .pipe-step {
+    display: grid; grid-template-columns: 46px 1fr auto; gap: 16px; align-items: start;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px;
+  }
+  .pipe-step::before {
+    counter-increment: step; content: counter(step);
+    font-family: 'Fraunces', Georgia, serif; font-size: 1.6rem; font-weight: 700;
+    color: var(--brand); line-height: 1;
+  }
+  .pipe-step h3 { font-size: 1.08rem; margin-bottom: 4px; }
+  .pipe-step p { font-size: .9rem; color: var(--ink-soft); margin: 0; max-width: none; }
+  @media (max-width: 640px) { .pipe-step { grid-template-columns: 36px 1fr; } .pipe-step .tag { grid-column: 2; justify-self: start; margin-top: 6px; } }
+
+  /* ---------- ledger ---------- */
+  .ledger {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 18px 22px; font-size: .84rem; line-height: 1.75; overflow-x: auto;
+    margin: 20px 0; white-space: pre;
+  }
+  .ledger em { font-style: normal; color: var(--muted); }
+  .ledger b { color: var(--brand); font-weight: 600; }
+
+  /* ---------- phases ---------- */
+  .phases { margin: 28px 0; display: grid; gap: 0; }
+  .phase {
+    display: grid; grid-template-columns: 90px 1fr; gap: 20px;
+    padding: 18px 0; border-bottom: 1px solid var(--line);
+  }
+  .phase:last-child { border-bottom: none; }
+  .phase-id { font-family: 'IBM Plex Mono', monospace; font-size: .85rem; color: var(--haldi); font-weight: 600; padding-top: 2px; }
+  .phase h3 { font-size: 1.12rem; margin-bottom: 4px; }
+  .phase p { font-size: .92rem; color: var(--ink-soft); margin-bottom: 4px; max-width: none; }
+  .phase .gate { font-size: .85rem; color: var(--muted); }
+  .phase .gate b { color: var(--brand); }
+  @media (max-width: 560px) { .phase { grid-template-columns: 1fr; gap: 4px; } }
+
+  /* ---------- figures & diagrams ---------- */
+  figure { margin: 30px 0; }
+  figure svg { display: block; max-width: 100%; height: auto; }
+  figcaption { font-size: .85rem; color: var(--muted); margin-top: 10px; max-width: 72ch; }
+  .dots { display: flex; flex-wrap: wrap; gap: 36px; align-items: flex-end; }
+  .fieldbox { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 12px; display: inline-block; }
+  .fielddots { width: 290px; height: 250px; background-image: radial-gradient(circle, var(--muted) 1.7px, transparent 1.9px); background-size: 10px 10px; }
+  .fielddots.big { width: 288px; height: 288px; background-image: radial-gradient(circle, var(--brand) 9px, transparent 10px); background-size: 48px 48px; }
+  .dotlabel { font-family: 'IBM Plex Mono', monospace; font-size: 12px; margin-top: 8px; color: var(--ink-soft); text-align: center; }
+
+  .modmap { border: 1.5px solid var(--brand); border-radius: 12px; padding: 16px 18px 18px; background: var(--surface); }
+  .modmap-title { font-family: 'IBM Plex Mono', monospace; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); color: var(--ink-soft); }
+  .chip.keep { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); }
+  .chip.newm { border-color: var(--haldi); background: var(--haldi-soft); color: var(--haldi); border-style: dashed; }
+  .chip.gonem { color: var(--risk); border-color: var(--risk); background: var(--risk-soft); text-decoration: line-through; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 14px; font-size: .8rem; color: var(--muted); align-items: center; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; font-style: normal; }
+
+  .prog { display: flex; gap: 5px; margin: 26px 0 6px; flex-wrap: wrap; }
+  .prog span { flex: 1 1 62px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 9px 2px; border-radius: 6px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .prog .done { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); font-weight: 600; }
+  .prog .next { border-color: var(--haldi); border-style: dashed; color: var(--haldi); font-weight: 600; }
+
+  /* ---------- misc ---------- */
+  .cover { padding-top: 120px; min-height: 78vh; }
+  .cover h1 { font-size: clamp(2.6rem, 6vw, 4.4rem); font-weight: 700; margin: 8px 0 20px; }
+  .cover .thesis { font-size: clamp(1.1rem, 2.2vw, 1.4rem); color: var(--ink-soft); max-width: 34em; }
+  .cover-strip { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 42px; }
+  .divider { height: 3px; width: 64px; background: var(--haldi); border: none; margin: 26px 0; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+  @media (max-width: 820px) { .two-col { grid-template-columns: 1fr; } }
+  ul.tight { padding-left: 20px; margin: 12px 0; }
+  ul.tight li { margin-bottom: 8px; font-size: .96rem; }
+  ul.tight li::marker { color: var(--brand); }
+  .foot { text-align: center; color: var(--muted); font-size: .85rem; padding: 40px 20px 70px; border-top: 1px solid var(--line); }
+</style>
+
+<nav class="rail" aria-label="Pages"></nav>
+
+<!-- ============================================================ 01 COVER -->
+<section class="page cover" id="p1" data-name="Cover">
+  <div class="eyebrow">FreshKirana · Business model briefing · <span class="lens">All audiences</span></div>
+  <h1>One hub.<br>Every shop supplied.</h1>
+  <p class="thesis">FreshKirana is a <strong>B2B grocery distribution business</strong> — a working hub-and-spoke network of shops, stock and vehicles — being given a single digital control tower so it can run from one place and grow without breaking.</p>
+  <div class="cover-strip">
+    <span class="tag built">Running business, not a concept</span>
+    <span class="tag built">Platform live on Google Cloud</span>
+    <span class="tag built">753 automated tests</span>
+    <span class="tag new">6 build phases ahead</span>
+  </div>
+  <p style="margin-top:44px; font-size:.85rem; color:var(--muted); max-width: none;">16 pages · each opens with the audience it serves · figures marked <em>demo</em> are planning placeholders (founder decision D-B2), swapped for real numbers without touching code.</p>
+</section>
+
+<!-- ============================================================ 02 THE BUSINESS TODAY -->
+<section class="page" id="p2" data-name="The business today">
+  <div class="eyebrow">02 · <span class="lens">For everyone — what already exists</span></div>
+  <h2>This starts from a business that already works</h2>
+  <p class="lead">Most pitches begin with an idea looking for customers. This one begins with customers, stock, shops and vehicles that exist today — and builds the software second.</p>
+
+  <div class="net">
+    <div class="net-hub"><b>The Hub</b><span>Main shop &amp; main inventory · home city · all buying happens here</span></div>
+    <div class="net-link"></div>
+    <div class="net-row">
+      <div class="net-cell"><b>Branch 1</b><span>local stock</span></div>
+      <div class="net-cell"><b>Branch 2</b><span>local stock</span></div>
+      <div class="net-cell"><b>Branch 3</b><span>local stock</span></div>
+      <div class="net-cell"><b>Branch N</b><span>local stock</span></div>
+    </div>
+    <div class="net-link"></div>
+    <div class="net-wide"><b>Customers</b> — small retail shops · caterers · event managers · walk-ins at the counter<br><span style="font-size:.82rem; color:var(--muted);">receive by pickup at a branch, or delivery to their shop or event site</span></div>
+    <div class="net-ctrl">🎛 <b>Control tower</b> — catalog, pricing, credit, purchasing and replenishment decided centrally. Branches hold stock and fulfil; they don't guess.</div>
+  </div>
+
+  <ul class="tight">
+    <li><strong>The hub buys.</strong> All purchasing — wholesale suppliers, mandi mornings for fruit &amp; veg — happens at the main shop, where volume gets the best price.</li>
+    <li><strong>Branches hold stock sized to their own local demand</strong>, resupplied from the hub. All branches sit in the same state — one GST registration, simple stock transfers.</li>
+    <li><strong>Deliveries run on own vehicles and hired ones</strong>, and customers can also collect at a branch.</li>
+    <li><strong>Branches also sell over the counter</strong> to walk-in customers — a real flow the system must record, because every counter sale moves stock.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ 03 THE GAP -->
+<section class="page" id="p3" data-name="The gap">
+  <div class="eyebrow">03 · <span class="lens">Customer &amp; problem lens</span></div>
+  <h2>Today the system is a person's memory</h2>
+  <p class="lead">B2B grocery distribution in India mostly runs the way it has for decades — and it works, right up until it has to grow.</p>
+
+  <div class="cards">
+    <div class="card"><h3>Orders</h3><p>Arrive by phone call and WhatsApp message, written into a notebook or remembered. No two channels agree on what was ordered.</p></div>
+    <div class="card"><h3>Prices</h3><p>Live in the owner's head. Every customer negotiates; nobody can say what margin any given order actually earned.</p></div>
+    <div class="card"><h3>Credit</h3><p>Tracked in a ledger book. Who owes what, since when, against which bill — answerable only by the one person who keeps it.</p></div>
+    <div class="card"><h3>Stock</h3><p>Known by walking the aisle. Branches over-order to be safe, or run out; nobody sees wastage until the money is already gone.</p></div>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 760 235" role="img" aria-label="Today, orders, credit and stock information all converge on the founder's memory. With the control tower, the same three flows converge on one system of record, and the founder reads one screen.">
+      <defs><marker id="a3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="currentColor"/></marker></defs>
+      <text x="14" y="24" font-size="13" font-weight="700" fill="currentColor">TODAY</text>
+      <g stroke="currentColor" fill="none">
+        <rect x="14" y="44" width="126" height="30" rx="6"/>
+        <rect x="14" y="96" width="126" height="30" rx="6"/>
+        <rect x="14" y="148" width="126" height="30" rx="6"/>
+      </g>
+      <text x="77" y="63" font-size="11.5" text-anchor="middle" fill="currentColor">orders · phone calls</text>
+      <text x="77" y="115" font-size="11.5" text-anchor="middle" fill="currentColor">credit · notebook</text>
+      <text x="77" y="167" font-size="11.5" text-anchor="middle" fill="currentColor">stock · by eye</text>
+      <g stroke="currentColor" fill="none" marker-end="url(#a3)">
+        <line x1="140" y1="59" x2="212" y2="98"/>
+        <line x1="140" y1="111" x2="212" y2="111"/>
+        <line x1="140" y1="163" x2="212" y2="124"/>
+      </g>
+      <circle cx="268" cy="111" r="46" fill="none" stroke="var(--risk)" stroke-width="1.8"/>
+      <text x="268" y="106" font-size="11.5" text-anchor="middle" fill="var(--risk)" font-weight="700">the founder's</text>
+      <text x="268" y="121" font-size="11.5" text-anchor="middle" fill="var(--risk)" font-weight="700">memory</text>
+      <text x="268" y="185" font-size="11" text-anchor="middle" fill="currentColor" opacity=".65">× every branch added</text>
+      <line x1="382" y1="20" x2="382" y2="210" stroke="currentColor" opacity=".2" stroke-dasharray="3 5"/>
+      <text x="404" y="24" font-size="13" font-weight="700" fill="currentColor">WITH THE CONTROL TOWER</text>
+      <g stroke="currentColor" fill="none">
+        <rect x="404" y="44" width="126" height="30" rx="6"/>
+        <rect x="404" y="96" width="126" height="30" rx="6"/>
+        <rect x="404" y="148" width="126" height="30" rx="6"/>
+      </g>
+      <text x="467" y="63" font-size="11.5" text-anchor="middle" fill="currentColor">orders · any channel</text>
+      <text x="467" y="115" font-size="11.5" text-anchor="middle" fill="currentColor">credit · live ledger</text>
+      <text x="467" y="167" font-size="11.5" text-anchor="middle" fill="currentColor">stock · counted</text>
+      <g stroke="currentColor" fill="none" marker-end="url(#a3)">
+        <line x1="530" y1="59" x2="586" y2="98"/>
+        <line x1="530" y1="111" x2="586" y2="111"/>
+        <line x1="530" y1="163" x2="586" y2="124"/>
+      </g>
+      <rect x="590" y="86" width="150" height="50" rx="8" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.6"/>
+      <text x="665" y="107" font-size="12" text-anchor="middle" fill="var(--brand)" font-weight="700">control tower</text>
+      <text x="665" y="122" font-size="10.5" text-anchor="middle" fill="var(--brand)">one system of record</text>
+      <line x1="665" y1="136" x2="665" y2="166" stroke="currentColor" marker-end="url(#a3)"/>
+      <text x="665" y="188" font-size="11.5" text-anchor="middle" fill="currentColor">the founder reads <tspan font-weight="700">one screen</tspan></text>
+    </svg>
+    <figcaption>The same three flows exist in both worlds. The only thing that changes is where they converge — a person, who cannot scale, or a system, which can.</figcaption>
+  </figure>
+
+  <div class="note risk">
+    <p><strong>Why this breaks at scale:</strong> every branch multiplies the guesswork. N branches means N notebooks, N stock counts done by eye, N credit books — and one founder trying to hold all of it. The founder <em>is</em> the system, and a person doesn't scale.</p>
+  </div>
+
+  <p>The product replaces founder-memory with a control tower: one catalog, one price policy, one credit book, one view of stock across every location — while keeping the ways of working customers already trust (WhatsApp, a phone call, the counter).</p>
+</section>
+
+<!-- ============================================================ 04 THE MODEL -->
+<section class="page" id="p4" data-name="The model">
+  <div class="eyebrow">04 · <span class="lens">Investor lens</span></div>
+  <h2>Buy. Own. Sell. Revenue is margin.</h2>
+  <p class="lead">FreshKirana is <strong>not a marketplace</strong>. It buys goods at the hub, owns the stock, and sells to business customers. Revenue is the gap between what a crate costs landed and what it sells for.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 280" role="img" aria-label="In the marketplace model, goods travelled straight from vendor to customer and the platform skimmed a small commission. In distribution, goods pass through our hub, we own the stock, the customer pays us, we pay the supplier, and the margin stays in the middle.">
+      <defs><marker id="a4" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="currentColor"/></marker></defs>
+      <text x="14" y="22" font-size="13" font-weight="700" fill="currentColor" opacity=".75">MARKETPLACE — the old plan</text>
+      <g stroke="currentColor" fill="none">
+        <rect x="40" y="42" width="120" height="34" rx="6"/>
+        <rect x="600" y="42" width="120" height="34" rx="6"/>
+      </g>
+      <text x="100" y="63" font-size="12" text-anchor="middle" fill="currentColor">vendor</text>
+      <text x="660" y="63" font-size="12" text-anchor="middle" fill="currentColor">customer</text>
+      <line x1="160" y1="59" x2="592" y2="59" stroke="currentColor" marker-end="url(#a4)"/>
+      <text x="376" y="52" font-size="11" text-anchor="middle" fill="currentColor" opacity=".7">goods — never ours</text>
+      <path d="M660 76 v22 h-274" stroke="currentColor" stroke-dasharray="4 4" fill="none" marker-end="url(#a4)"/>
+      <text x="376" y="116" font-size="11" text-anchor="middle" fill="currentColor" opacity=".7">commission skimmed · ₹23 per order</text>
+      <line x1="14" y1="138" x2="746" y2="138" stroke="currentColor" opacity=".2"/>
+      <text x="14" y="164" font-size="13" font-weight="700" fill="var(--brand)">DISTRIBUTION — this plan</text>
+      <g stroke="currentColor" fill="none">
+        <rect x="40" y="184" width="120" height="34" rx="6"/>
+        <rect x="600" y="184" width="120" height="34" rx="6"/>
+      </g>
+      <rect x="310" y="178" width="140" height="46" rx="8" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.6"/>
+      <text x="100" y="205" font-size="12" text-anchor="middle" fill="currentColor">supplier</text>
+      <text x="380" y="197" font-size="12" text-anchor="middle" fill="var(--brand)" font-weight="700">our hub</text>
+      <text x="380" y="212" font-size="10.5" text-anchor="middle" fill="var(--brand)">we own the stock</text>
+      <text x="660" y="205" font-size="12" text-anchor="middle" fill="currentColor">customer</text>
+      <line x1="160" y1="194" x2="302" y2="194" stroke="currentColor" marker-end="url(#a4)"/>
+      <line x1="450" y1="194" x2="592" y2="194" stroke="currentColor" marker-end="url(#a4)"/>
+      <text x="231" y="186" font-size="10.5" text-anchor="middle" fill="currentColor" opacity=".7">goods in</text>
+      <text x="521" y="186" font-size="10.5" text-anchor="middle" fill="currentColor" opacity=".7">goods out</text>
+      <path d="M660 218 v24 h-200" stroke="currentColor" stroke-dasharray="4 4" fill="none" marker-end="url(#a4)"/>
+      <text x="560" y="236" font-size="11" text-anchor="middle" fill="currentColor" opacity=".8">₹12,000 · sell</text>
+      <path d="M320 224 v18 h-210" stroke="currentColor" stroke-dasharray="4 4" fill="none" marker-end="url(#a4)"/>
+      <text x="214" y="236" font-size="11" text-anchor="middle" fill="currentColor" opacity=".8">₹10,800 · cost</text>
+      <text x="380" y="262" font-size="12" text-anchor="middle" fill="var(--brand)" font-weight="700">₹1,200 of margin stays here</text>
+    </svg>
+    <figcaption>The arrow that changes everything: in the old model goods bypassed us; now they pass through the hub, and the gap between the two money arrows is the revenue. (Rupee figures are demo values.)</figcaption>
+  </figure>
+
+  <div class="scroll"><table>
+    <thead><tr><th></th><th>Marketplace (what we pivoted away from)</th><th>Distribution (what this is)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Who owns stock</strong></td><td>Third-party vendors</td><td><strong>We do</strong></td></tr>
+      <tr><td><strong>Revenue</strong></td><td>Commission on other people's sales</td><td><strong>Gross margin: sell price − landed cost</strong></td></tr>
+      <tr><td><strong>Who owes us</strong></td><td>Nobody</td><td><strong>Customers, on credit terms</strong></td></tr>
+      <tr><td><strong>We owe</strong></td><td>Vendors (payouts)</td><td><strong>Suppliers (purchases)</strong></td></tr>
+      <tr><td><strong>Core risk</strong></td><td>Vendor churn</td><td><strong>Working capital · credit default · wastage</strong></td></tr>
+      <tr><td><strong>Core levers</strong></td><td>Take rate, basket size</td><td><strong>Buy price · drop size · wastage · mix · collection speed · route density</strong></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note">
+    <p><strong>Landed cost is the number everything stands on.</strong> Purchase price + freight + loading + grading losses − supplier schemes actually realised. Get it wrong and every margin figure in the business is fiction. That's why goods-receipt is built <em>before</em> any margin reporting — margin truth is created at the warehouse door, not in a spreadsheet.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 05 CUSTOMERS -->
+<section class="page" id="p5" data-name="Customers">
+  <div class="eyebrow">05 · <span class="lens">Sales &amp; customer lens</span></div>
+  <h2>Three customers, three different games</h2>
+  <p class="lead">Flattening these into one "B2B customer" is the classic mistake. They order differently, pay differently, and punish failure differently.</p>
+
+  <div class="cards">
+    <div class="card">
+      <span class="big">Retail shops</span>
+      <p><strong>₹8,000–25,000 per order</strong> · weekly rhythm · the same 30–80 lines every time.</p>
+      <p>What they need: <strong>fill rate and credit.</strong> The order is a reorder — last week's list, adjusted, submitted in 90 seconds. Extremely price-aware; loyal while supply is reliable.</p>
+      <p>Failure mode: short-ship them twice and they call your competitor.</p>
+    </div>
+    <div class="card">
+      <span class="big">Caterers</span>
+      <p><strong>₹15,000–60,000 per order</strong> · spikes around functions · bigger quantities per line.</p>
+      <p>What they need: <strong>date certainty.</strong> The biryani is on a wedding date; the rice is not negotiable. Values reliability over the last rupee.</p>
+      <p>Failure mode: miss one function date.</p>
+    </div>
+    <div class="card">
+      <span class="big">Event managers</span>
+      <p><strong>₹50,000–3,00,000 per order</strong> · project-shaped · needs a quote first, then an exact delivery.</p>
+      <p>What they need: <strong>a quotation flow</strong> — enquiry → priced quote → acceptance → firm order with stock <em>reserved against it</em>, protected from everyday sales.</p>
+      <p>Best margin of the three. One miss ends the relationship — treated as a binary metric, not a percentage.</p>
+    </div>
+  </div>
+
+  <div class="note good">
+    <p><strong>The product consequence:</strong> retail shops get an order pad, not a shopping app. Search barely matters; the pre-filled last order <em>is</em> the interface. Events get quotes and firm stock allocation. Caterers get promised dates that the system refuses to overbook. Order values are demo figures (D-B2) — the segmentation is the point.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 06 PRODUCTS -->
+<section class="page" id="p6" data-name="Product lines">
+  <div class="eyebrow">06 · <span class="lens">Operations &amp; buying lens</span></div>
+  <h2>Three product lines with different physics</h2>
+  <p class="lead">Staples, fresh produce, and beauty are not three categories in one catalog — they obey different laws, and the system measures each by its own rules. <em>(Margins and shares below are industry-typical demo values.)</em></p>
+
+  <div class="scroll"><table>
+    <thead><tr><th></th><th>Staples &amp; grocery</th><th>Fruits &amp; vegetables</th><th>Beauty &amp; personal care</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Gross margin</strong></td><td class="num">3–8%</td><td class="num">12–25%</td><td class="num">12–25%</td></tr>
+      <tr><td><strong>Wastage</strong></td><td class="num">~0.5%</td><td class="num"><span class="neg">8–15%</span></td><td class="num">~1%</td></tr>
+      <tr><td><strong>Price changes</strong></td><td>Weekly-ish</td><td><strong>Daily — sometimes twice</strong></td><td>Stable, MRP-anchored</td></tr>
+      <tr><td><strong>Stock turns / year</strong></td><td class="num">12–20</td><td class="num">60–120</td><td class="num">4–8</td></tr>
+      <tr><td><strong>The one control</strong></td><td>Buy price</td><td><strong>Wastage + daily repricing</strong></td><td>Don't overstock</td></tr>
+    </tbody>
+  </table></div>
+
+  <figure>
+    <svg viewBox="0 0 600 330" role="img" aria-label="A map of margin against stock turns. Staples sit low-margin but predictable. Fruits and vegetables sit high-margin and fast-turning, but wastage decides whether the margin survives. Beauty sits high-margin but slow-turning, where cash sleeps.">
+      <defs><marker id="a6" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="currentColor"/></marker></defs>
+      <line x1="70" y1="270" x2="560" y2="270" stroke="currentColor" opacity=".45" marker-end="url(#a6)"/>
+      <line x1="70" y1="270" x2="70" y2="42" stroke="currentColor" opacity=".45" marker-end="url(#a6)"/>
+      <text x="315" y="300" font-size="11.5" text-anchor="middle" fill="currentColor" opacity=".7">stock turns per year — money comes home faster →</text>
+      <text x="24" y="160" font-size="11.5" text-anchor="middle" fill="currentColor" opacity=".7" transform="rotate(-90 24 160)">gross margin % ↑</text>
+      <circle cx="134" cy="226" r="17" fill="var(--surface)" stroke="currentColor"/>
+      <text x="134" y="196" font-size="12" text-anchor="middle" fill="currentColor" font-weight="700">staples</text>
+      <text x="134" y="252" font-size="10.5" text-anchor="middle" fill="currentColor" opacity=".65">3–8% · thin but predictable</text>
+      <circle cx="430" cy="112" r="20" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.6"/>
+      <text x="430" y="80" font-size="12" text-anchor="middle" fill="var(--brand)" font-weight="700">fruits &amp; veg</text>
+      <text x="430" y="150" font-size="10.5" text-anchor="middle" fill="var(--risk)">wastage 8–15% decides it</text>
+      <circle cx="104" cy="112" r="18" fill="var(--haldi-soft)" stroke="var(--haldi)" stroke-width="1.6"/>
+      <text x="134" y="106" font-size="12" text-anchor="start" fill="var(--haldi)" font-weight="700">beauty</text>
+      <text x="134" y="121" font-size="10.5" text-anchor="start" fill="currentColor" opacity=".65">best margin · cash sleeps here</text>
+      <text x="548" y="58" font-size="10.5" text-anchor="end" fill="currentColor" opacity=".45">the corner every line wants</text>
+    </svg>
+    <figcaption>Why the three lines are managed separately: they live in different corners of the same map. F&amp;V is the prize — margin <em>and</em> speed — but only while wastage is measured daily. Beauty pays well and ties up cash. Staples pay the rent.</figcaption>
+  </figure>
+
+  <div class="two-col">
+    <div>
+      <h3 style="font-size:1.15rem; margin-bottom:8px;">What the system does about it</h3>
+      <ul class="tight">
+        <li><strong>F&amp;V is priced cost-plus from this morning's landed cost</strong> — a weekly price list is wrong by Wednesday.</li>
+        <li><strong>Wastage is posted daily</strong>, per branch, per category — never a plug figure discovered at month end.</li>
+        <li><strong>Margin is reported by line, never blended.</strong> A blended 10% hides staples at 4% and beauty at 20%.</li>
+      </ul>
+    </div>
+    <div class="note risk" style="margin:0;">
+      <p><strong>The two traps, named:</strong> F&amp;V wastage is the single biggest margin leak in the business — a quarter of revenue rides on measuring it daily. And beauty is the working-capital trap: best margin, slowest turns. Overstocking beauty is the classic way a profitable distributor runs out of cash.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 07 POTENTIAL -->
+<section class="page" id="p7" data-name="The potential">
+  <div class="eyebrow">07 · <span class="lens">Investor lens</span></div>
+  <h2>Why this is worth building</h2>
+  <p class="lead">The same platform, pointed at consumers, needed ~725 orders a day to matter. Pointed at businesses, it needs ~38.</p>
+
+  <div class="scroll"><table>
+    <thead><tr><th></th><th>Consumer marketplace (old plan)</th><th>B2B distribution (this plan)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Order value</strong></td><td class="num">₹600</td><td class="num">₹12,000 <em style="color:var(--muted)">(demo)</em></td></tr>
+      <tr><td><strong>Contribution per order</strong></td><td class="num">₹23</td><td class="num pos"><strong>≈ ₹440</strong></td></tr>
+      <tr><td><strong>Orders/day for ₹5L monthly contribution</strong></td><td class="num">~725</td><td class="num pos"><strong>~38</strong></td></tr>
+      <tr><td><strong>Supply side</strong></td><td>Recruit stores one by one</td><td><strong>Already owned and running</strong></td></tr>
+      <tr><td><strong>Demand side</strong></td><td>Cold-start consumer acquisition</td><td><strong>Existing trade relationships</strong></td></tr>
+    </tbody>
+  </table></div>
+
+  <figure>
+    <div class="dots">
+      <div>
+        <div class="fieldbox"><div class="fielddots" aria-hidden="true"></div></div>
+        <div class="dotlabel">B2C · 725 orders a day · ₹23 each</div>
+      </div>
+      <div>
+        <div class="fieldbox"><div class="fielddots big" aria-hidden="true"></div></div>
+        <div class="dotlabel">B2B · 38 orders a day · ₹440 each</div>
+      </div>
+    </div>
+    <figcaption>Every dot is one day's order. Both fields earn the same ₹5 lakh of monthly contribution — the left needs 725 consumer doorsteps a day; the right needs 38 business deliveries. Each B2C dot must be won from scratch; each B2B dot is a shop that reorders weekly.</figcaption>
+  </figure>
+
+  <p>Roughly the same contribution <em>percentage</em> — 3.7% against 3.8% — but the order is 20× larger and the delivery cost isn't. Delivery cost is per <strong>drop</strong>, not per rupee, so bigger orders are structurally more profitable.</p>
+
+  <div class="cards">
+    <div class="card"><h3>The market context</h3><p>Indian grocery is overwhelmingly served by the unorganised trade — lakhs of small shops, each buying from distributors weekly. B2B supply to that trade is enormous, fragmented, and barely digitised. This model doesn't need to win a city; it needs to win its own trade area, then repeat.</p></div>
+    <div class="card"><h3>The replication path</h3><p>Everything is designed as a playbook: a branch is a configuration, not a project. Once the gates pass at one branch — stock accurate, cash cycle healthy — the next branch is the same software with a new address.</p></div>
+    <div class="card"><h3>The seam held open</h3><p>B2C is deferred, not deleted (decision D-B7). Customer type is modelled from day one, so adding consumers later is configuration, not a rewrite. The B2C storefront already exists — built and live from the earlier phase of this project.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ 08 UNIT ECONOMICS -->
+<section class="page" id="p8" data-name="Unit economics">
+  <div class="eyebrow">08 · <span class="lens">Investor &amp; finance lens</span> · demo figures (D-B2)</div>
+  <h2>One order, followed to the paisa</h2>
+  <p class="lead">A typical retail-shop order of ₹12,000, using placeholder economics. Every figure is configuration — replacing it with real numbers is a data change, not a code change.</p>
+
+  <div class="wf">
+    <div class="wf-row"><span>Invoice value</span><div class="bar" style="width:100%"></div><span class="val">₹12,000</span></div>
+    <div class="wf-row cost"><span>Cost of goods (landed)</span><div class="bar" style="width:90%"></div><span class="val">−₹10,800</span></div>
+    <div class="wf-row result"><span>Gross margin (10%)</span><div class="bar" style="width:10%"></div><span class="val">₹1,200</span></div>
+    <div class="wf-row cost"><span>Delivery (share of route)</span><div class="bar" style="width:1.6%"></div><span class="val">−₹150</span></div>
+    <div class="wf-row cost"><span>Wastage &amp; shrinkage (2%)</span><div class="bar" style="width:2.5%"></div><span class="val">−₹240</span></div>
+    <div class="wf-row cost"><span>Cost of credit (30d @ 14% p.a.)</span><div class="bar" style="width:1.5%"></div><span class="val">−₹138</span></div>
+    <div class="wf-row cost"><span>Bad-debt provision (1%)</span><div class="bar" style="width:1.3%"></div><span class="val">−₹120</span></div>
+    <div class="wf-row cost"><span>Picking, packing, comms, banking</span><div class="bar" style="width:1.2%"></div><span class="val">−₹112</span></div>
+    <div class="wf-row result"><span><strong>Contribution per order</strong></span><div class="bar" style="width:4.8%"></div><span class="val"><strong>≈ ₹440</strong></span></div>
+  </div>
+
+  <hr class="divider">
+  <h3 style="font-size:1.3rem; margin-bottom:10px;">The constraint nobody puts on slide one: working capital</h3>
+  <p>Distribution consumes cash as it grows. You pay suppliers before customers pay you, and stock sits in between. Here is one crate of goods, followed across fifty days:</p>
+
+  <figure>
+    <svg viewBox="0 0 740 240" role="img" aria-label="Timeline of fifty days. Goods arrive on day zero and sit as stock for twenty days. The supplier is paid on day fifteen. The goods are sold on day twenty, and the customer pays on day fifty. Between day fifteen and day fifty — thirty-five days — the business funds the gap with its own cash, roughly thirty-four and a half lakh at thirty lakh monthly revenue.">
+      <g stroke="currentColor" opacity=".18" stroke-dasharray="3 4">
+        <line x1="60" y1="44" x2="60" y2="200"/>
+        <line x1="240" y1="44" x2="240" y2="200"/>
+        <line x1="300" y1="44" x2="300" y2="200"/>
+        <line x1="660" y1="44" x2="660" y2="200"/>
+      </g>
+      <text x="60" y="36" font-size="11" text-anchor="start" fill="currentColor">day 0 · goods arrive</text>
+      <text x="240" y="18" font-size="11" text-anchor="middle" fill="currentColor">day 15 · we pay the supplier</text>
+      <text x="304" y="36" font-size="11" text-anchor="start" fill="currentColor">day 20 · sold to a shop</text>
+      <text x="660" y="18" font-size="11" text-anchor="end" fill="currentColor">day 50 · the shop pays us</text>
+      <rect x="60" y="52" width="240" height="22" rx="4" fill="var(--brand-soft)" stroke="var(--brand)"/>
+      <text x="180" y="67" font-size="11" text-anchor="middle" fill="var(--brand)" font-weight="600">stock on the shelf · 20 days</text>
+      <rect x="300" y="88" width="360" height="22" rx="4" fill="var(--haldi-soft)" stroke="var(--haldi)"/>
+      <text x="480" y="103" font-size="11" text-anchor="middle" fill="var(--haldi)" font-weight="600">invoice out, waiting to be paid · 30 days</text>
+      <rect x="60" y="124" width="180" height="22" rx="4" fill="var(--surface)" stroke="currentColor"/>
+      <text x="150" y="139" font-size="10.5" text-anchor="middle" fill="currentColor">supplier credit · 15 days</text>
+      <rect x="240" y="168" width="420" height="26" rx="4" fill="var(--risk-soft)" stroke="var(--risk)" stroke-width="1.6"/>
+      <text x="450" y="185" font-size="12" text-anchor="middle" fill="var(--risk)" font-weight="700">our cash bridges these 35 days ≈ ₹34.5 lakh</text>
+      <text x="60" y="222" font-size="10.5" text-anchor="start" fill="currentColor" opacity=".65">shorten any bar — collect faster, hold less, stretch supplier terms — and cash comes free</text>
+    </svg>
+    <figcaption>The cash conversion cycle: days of stock + days of customer credit − days of supplier credit. Cash leaves on day 15 and returns on day 50 — and the business must be able to afford that bridge at whatever size it grows to. (Demo figures.)</figcaption>
+  </figure>
+
+  <div class="stats">
+    <div class="stat"><span class="stat-num">₹18.0L</span><small>locked in stock — 20 days of inventory at cost</small></div>
+    <div class="stat"><span class="stat-num">₹30.0L</span><small>locked in receivables — 30 days of customer credit</small></div>
+    <div class="stat"><span class="stat-num warn">−₹13.5L</span><small>funded by supplier credit — 15 days</small></div>
+    <div class="stat"><span class="stat-num">₹34.5L</span><small><strong>net cash that must sit still</strong> to run ₹30L/month</small></div>
+  </div>
+
+  <div class="note risk">
+    <p><strong>The rule this imposes:</strong> the cash conversion cycle — days of stock + days of receivables − days of supplier credit — sits on the daily dashboard <em>above revenue</em>. No growth push is approved without stating the cash it consumes. A distributor that grows 40% on credit without funding it runs out of money while profitable — the most common death in this industry, and it looks like success until the day it doesn't.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 09 LEVERS -->
+<section class="page" id="p9" data-name="Six levers">
+  <div class="eyebrow">09 · <span class="lens">Strategy lens</span></div>
+  <h2>Six levers, ranked — and we hold all six</h2>
+  <p class="lead">A marketplace has two levers. A distributor who owns the buying has six, and the ranking below is what set the build order.</p>
+
+  <div class="scroll"><table>
+    <thead><tr><th>#</th><th>Lever</th><th>Why it matters</th><th>Where it lives in the product</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td><strong>Buy price</strong></td><td>At 10% margin, buying 1% better lifts contribution ~10%. Nothing else comes close.</td><td>Supplier rate comparison · hub volume consolidation · scheme tracking</td></tr>
+      <tr><td class="num">2</td><td><strong>Drop size</strong></td><td>Delivery is paid per drop. A ₹12k order growing to ₹18k adds ~₹550 contribution.</td><td>Order pad upsell · minimum order rules · standing orders</td></tr>
+      <tr><td class="num">3</td><td><strong>Wastage</strong></td><td>F&amp;V wastage cut from 12% to 8% ≈ +₹120 on every order in the book.</td><td>Daily wastage posting · FEFO picking (already built) · demand-led replenishment</td></tr>
+      <tr><td class="num">4</td><td><strong>Mix</strong></td><td>Shifting 5 points of revenue from staples to beauty/F&amp;V lifts blended margin ~0.6pt.</td><td>Assortment · rep incentives · order-pad suggestions</td></tr>
+      <tr><td class="num">5</td><td><strong>Collection speed</strong></td><td>5 days off DSO at ₹30L/month frees ₹5L of cash and cuts bad debt.</td><td>Credit engine · ageing ladder · driver doorstep collection</td></tr>
+      <tr><td class="num">6</td><td><strong>Route density</strong></td><td>8 → 12 drops per vehicle-day cuts delivery ~₹50/order.</td><td>Delivery-day clustering · route planning · pickup-at-branch</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note">
+    <p><strong>Levers 1 and 3 are the ones a marketplace never had</strong> — and the two that most reward software, because both are invisible without measurement. You cannot negotiate what you don't track, and you cannot cut wastage you discover at year end.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 10 OPERATING PIPELINE -->
+<section class="page" id="p10" data-name="Operating pipeline">
+  <div class="eyebrow">10 · <span class="lens">Operations lens</span></div>
+  <h2>The operating model, end to end</h2>
+  <p class="lead">Seven stages, from mandi morning to money in the bank. Each one names what the system does — and what's already built.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 140" role="img" aria-label="Seven stages in a row: procure, receive, distribute, sell, fulfil, deliver, collect. Goods move forward through all seven; the cash collected at the end returns to the start to buy the next cycle.">
+      <defs>
+        <marker id="a10" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="currentColor"/></marker>
+        <marker id="a10b" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="var(--brand)"/></marker>
+      </defs>
+      <text x="380" y="20" font-size="10.5" text-anchor="middle" fill="currentColor" opacity=".6">goods move forward →</text>
+      <g stroke="currentColor" fill="none">
+        <rect x="23" y="34" width="90" height="32" rx="6"/>
+        <rect x="127" y="34" width="90" height="32" rx="6"/>
+        <rect x="231" y="34" width="90" height="32" rx="6"/>
+        <rect x="335" y="34" width="90" height="32" rx="6"/>
+        <rect x="439" y="34" width="90" height="32" rx="6"/>
+        <rect x="543" y="34" width="90" height="32" rx="6"/>
+      </g>
+      <rect x="647" y="34" width="90" height="32" rx="6" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.5"/>
+      <text x="68" y="54" font-size="11.5" text-anchor="middle" fill="currentColor">Procure</text>
+      <text x="172" y="54" font-size="11.5" text-anchor="middle" fill="currentColor">Receive</text>
+      <text x="276" y="54" font-size="11.5" text-anchor="middle" fill="currentColor">Distribute</text>
+      <text x="380" y="54" font-size="11.5" text-anchor="middle" fill="currentColor">Sell</text>
+      <text x="484" y="54" font-size="11.5" text-anchor="middle" fill="currentColor">Fulfil</text>
+      <text x="588" y="54" font-size="11.5" text-anchor="middle" fill="currentColor">Deliver</text>
+      <text x="692" y="54" font-size="11.5" text-anchor="middle" fill="var(--brand)" font-weight="700">Collect</text>
+      <g stroke="currentColor" marker-end="url(#a10)">
+        <line x1="113" y1="50" x2="125" y2="50"/>
+        <line x1="217" y1="50" x2="229" y2="50"/>
+        <line x1="321" y1="50" x2="333" y2="50"/>
+        <line x1="425" y1="50" x2="437" y2="50"/>
+        <line x1="529" y1="50" x2="541" y2="50"/>
+        <line x1="633" y1="50" x2="645" y2="50"/>
+      </g>
+      <path d="M692 66 v36 H68 v-28" stroke="var(--brand)" fill="none" stroke-width="1.5" marker-end="url(#a10b)"/>
+      <text x="380" y="118" font-size="11.5" text-anchor="middle" fill="var(--brand)">cash returns to buy the next cycle — the faster this loop runs, the less capital it needs</text>
+    </svg>
+    <figcaption>One loop, two currents: goods flow left to right, cash flows back. Every stage below either speeds the loop up or stops it leaking.</figcaption>
+  </figure>
+
+  <div class="pipe">
+    <div class="pipe-step"><div><h3>Procure</h3><p>Supplier master, purchase orders, rate comparison — plus a "buy first, record now" path for mandi purchases, which never wait for paperwork. Schemes and rebates accrue into cost, not into a year-end surprise.</p></div><span class="tag new">New</span></div>
+    <div class="pipe-step"><div><h3>Receive</h3><p>Goods receipt at the door: count, check, record shorts and damage <em>at receipt</em>, capture batch and expiry, apportion freight — and freeze the <strong>landed cost</strong>. The most important new module: this is where margin truth is created.</p></div><span class="tag new">New</span></div>
+    <div class="pipe-step"><div><h3>Distribute</h3><p>Reorder points per branch per product, computed from real sell-through. Transfer suggestions generated centrally, moved on a delivery challan (same state, one GSTIN — no tax leg), tracked in transit, received at the branch.</p></div><span class="tag new">New</span></div>
+    <div class="pipe-step"><div><h3>Sell</h3><p>Order pad pre-filled from the last order · customer-specific price list · <strong>credit check as a hard gate before confirmation</strong> · firm stock allocation for events · quotes that convert to orders. Partial fulfilment is a normal outcome, not a failure.</p></div><span class="tag built">Re-pointed</span></div>
+    <div class="pipe-step"><div><h3>Fulfil</h3><p>FEFO picking lists, batch selection, weighing of loose goods in grams, invoice generated on <em>actual</em> quantities shipped. Largely built and tested — the grocery-mechanics phases did this work already.</p></div><span class="tag built">Built</span></div>
+    <div class="pipe-step"><div><h3>Deliver</h3><p>Delivery days and route beats, not 2-hour slots. Own and hired vehicles, both costed per trip. Driver collects payment at the door, picks up returns and crates on the same trip. Proof of delivery captured.</p></div><span class="tag new">New</span></div>
+    <div class="pipe-step"><div><h3>Collect</h3><p>Every invoice starts an ageing clock. Receipts apply against <em>specific invoices</em>, never a floating balance. Credit notes for returns and rate differences. Overdue accounts climb an escalation ladder that ends in a supply stop.</p></div><span class="tag new">New</span></div>
+  </div>
+</section>
+
+<!-- ============================================================ 11 SALES & ORDERS -->
+<section class="page" id="p11" data-name="Sales &amp; orders">
+  <div class="eyebrow">11 · <span class="lens">Sales lens</span></div>
+  <h2>Every channel, one order</h2>
+  <p class="lead">Be honest about how B2B orders actually arrive: by WhatsApp and by phone, to a person. The system meets customers where they are — and writes every channel to the same order object.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 250" role="img" aria-label="Four intake channels — WhatsApp, the order pad, telesales and reps, and counter walk-ins — converge into one order object. Every order then passes the credit gate: clear accounts confirm, overdue accounts need approval, and over-limit accounts are blocked to cash-only.">
+      <defs><marker id="a11" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="currentColor"/></marker></defs>
+      <g stroke="currentColor" fill="none">
+        <rect x="16" y="16" width="134" height="32" rx="6"/>
+        <rect x="16" y="72" width="134" height="32" rx="6"/>
+        <rect x="16" y="128" width="134" height="32" rx="6"/>
+        <rect x="16" y="184" width="134" height="32" rx="6"/>
+      </g>
+      <text x="83" y="36" font-size="11.5" text-anchor="middle" fill="currentColor">WhatsApp</text>
+      <text x="83" y="92" font-size="11.5" text-anchor="middle" fill="currentColor">order pad</text>
+      <text x="83" y="148" font-size="11.5" text-anchor="middle" fill="currentColor">telesales · rep</text>
+      <text x="83" y="204" font-size="11.5" text-anchor="middle" fill="currentColor">counter walk-in</text>
+      <g stroke="currentColor" fill="none" marker-end="url(#a11)">
+        <line x1="150" y1="32" x2="294" y2="106"/>
+        <line x1="150" y1="88" x2="294" y2="117"/>
+        <line x1="150" y1="144" x2="294" y2="129"/>
+        <line x1="150" y1="200" x2="294" y2="140"/>
+      </g>
+      <rect x="300" y="98" width="130" height="52" rx="8" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.6"/>
+      <text x="365" y="119" font-size="12" text-anchor="middle" fill="var(--brand)" font-weight="700">one order</text>
+      <text x="365" y="135" font-size="10.5" text-anchor="middle" fill="var(--brand)">channel is an attribute</text>
+      <line x1="430" y1="124" x2="458" y2="124" stroke="currentColor" marker-end="url(#a11)"/>
+      <polygon points="522,84 580,124 522,164 464,124" fill="var(--haldi-soft)" stroke="var(--haldi)" stroke-width="1.6"/>
+      <text x="522" y="120" font-size="11.5" text-anchor="middle" fill="var(--haldi)" font-weight="700">credit</text>
+      <text x="522" y="135" font-size="11.5" text-anchor="middle" fill="var(--haldi)" font-weight="700">gate</text>
+      <g stroke="currentColor" fill="none" marker-end="url(#a11)">
+        <line x1="551" y1="104" x2="620" y2="56"/>
+        <line x1="580" y1="124" x2="620" y2="124"/>
+        <line x1="551" y1="144" x2="620" y2="192"/>
+      </g>
+      <text x="585" y="72" font-size="10" text-anchor="middle" fill="currentColor" opacity=".65">clear</text>
+      <text x="600" y="117" font-size="10" text-anchor="middle" fill="currentColor" opacity=".65">overdue</text>
+      <text x="581" y="182" font-size="10" text-anchor="middle" fill="currentColor" opacity=".65">over limit</text>
+      <rect x="626" y="38" width="140" height="34" rx="6" fill="var(--brand-soft)" stroke="var(--brand)"/>
+      <text x="696" y="59" font-size="11.5" text-anchor="middle" fill="var(--brand)" font-weight="600">confirmed</text>
+      <rect x="626" y="107" width="140" height="34" rx="6" fill="var(--haldi-soft)" stroke="var(--haldi)"/>
+      <text x="696" y="128" font-size="11.5" text-anchor="middle" fill="var(--haldi)" font-weight="600">needs approval</text>
+      <rect x="626" y="176" width="140" height="34" rx="6" fill="var(--risk-soft)" stroke="var(--risk)"/>
+      <text x="696" y="197" font-size="11.5" text-anchor="middle" fill="var(--risk)" font-weight="600">blocked · cash-only</text>
+    </svg>
+    <figcaption>Four doors, one room. However the order arrives, it becomes the same object, passes the same credit gate, and lands in the same pipeline — which is what makes the numbers on page 16 computable at all.</figcaption>
+  </figure>
+
+  <div class="cards">
+    <div class="card"><h3>WhatsApp</h3><p>Most shops and caterers order this way today. The WhatsApp infrastructure — templates, inbound webhook, quick replies — is already built from the earlier phase and gets rewired to B2B flows.</p></div>
+    <div class="card"><h3>The order pad</h3><p>Last order pre-filled, change quantities, running total, live credit balance, submit in 90 seconds. The margin lever: costs nothing per order and grows drop size. Built on the "usual basket" engine that's already live.</p></div>
+    <div class="card"><h3>Telesales &amp; field reps</h3><p>A rep places the order <em>for</em> the customer — on a call or standing at their counter — attributed correctly, priced from the customer's own list.</p></div>
+    <div class="card"><h3>Counter walk-in</h3><p>Branches sell over the counter (decision D-B3). Recorded from day one — because every counter sale moves stock — with a full point-of-sale experience deferred.</p></div>
+  </div>
+
+  <h3 style="font-size:1.25rem; margin:26px 0 8px;">The credit gate — where sales meets discipline</h3>
+  <p>Before any order confirms: <span class="mono" style="font-size:.88rem;">available credit = limit − outstanding − undelivered confirmed orders</span>. Within limit and current → confirm. Overdue → escalating approvals. Over limit or 30+ days overdue → <strong>blocked, cash-only</strong>. Every override is logged: who, when, why, how much. A credit gate everyone can click past is worse than none.</p>
+
+  <div class="note good">
+    <p><strong>One rule keeps this sane:</strong> the channel is an attribute on the order, never a separate code path. Four intake channels, one order pipeline, one truth to reconcile.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 12 INVENTORY -->
+<section class="page" id="p12" data-name="Inventory">
+  <div class="eyebrow">12 · <span class="lens">Operations &amp; inventory lens</span></div>
+  <h2>Stock truth, at every location</h2>
+  <p class="lead">Allocation, replenishment and valuation all stand on one thing: the system's stock number matching the shelf. Everything on this page defends that match.</p>
+
+  <figure>
+    <svg viewBox="0 0 730 165" role="img" aria-label="A branch's stock split into its four states: 350 units available to sell, 110 reserved by orders in flight, 90 firm-allocated to confirmed events, and 70 in transit on a truck — sellable from nowhere.">
+      <path d="M40 36 v-8 h550 v8" stroke="currentColor" fill="none" opacity=".5"/>
+      <text x="315" y="20" font-size="11" text-anchor="middle" fill="currentColor" opacity=".7">on hand at the branch · 550 units</text>
+      <rect x="40" y="48" width="350" height="34" rx="4" fill="var(--brand-soft)" stroke="var(--brand)"/>
+      <text x="215" y="69" font-size="11.5" text-anchor="middle" fill="var(--brand)" font-weight="600">available · 350</text>
+      <rect x="390" y="48" width="110" height="34" fill="var(--haldi-soft)" stroke="var(--haldi)"/>
+      <text x="445" y="69" font-size="11" text-anchor="middle" fill="var(--haldi)" font-weight="600">reserved · 110</text>
+      <rect x="500" y="48" width="90" height="34" rx="4" fill="var(--haldi)" fill-opacity=".32" stroke="var(--haldi)" stroke-dasharray="4 3"/>
+      <text x="545" y="69" font-size="11" text-anchor="middle" fill="var(--haldi)" font-weight="600">firm · 90</text>
+      <rect x="614" y="48" width="76" height="34" rx="4" fill="var(--surface)" stroke="currentColor" stroke-dasharray="5 4"/>
+      <text x="652" y="69" font-size="11" text-anchor="middle" fill="currentColor">transit · 70</text>
+      <text x="215" y="102" font-size="10.5" text-anchor="middle" fill="currentColor" opacity=".65">what the order pad can sell</text>
+      <text x="445" y="102" font-size="10.5" text-anchor="middle" fill="currentColor" opacity=".65">in checkouts now</text>
+      <text x="545" y="120" font-size="10.5" text-anchor="middle" fill="currentColor" opacity=".65">held for confirmed events</text>
+      <text x="652" y="102" font-size="10.5" text-anchor="middle" fill="currentColor" opacity=".65">on the truck —</text>
+      <text x="652" y="116" font-size="10.5" text-anchor="middle" fill="currentColor" opacity=".65">sellable nowhere</text>
+      <text x="40" y="150" font-size="11" font-family="IBM Plex Mono, monospace" fill="currentColor" opacity=".75">sellable = on_hand − reserved − firm_allocated</text>
+    </svg>
+    <figcaption>Four states, one truth. The firm slice is what protects a ₹2-lakh event from being sold out from under by eleven walk-up orders; the transit slice is what stops the same crate being promised at both ends of its journey.</figcaption>
+  </figure>
+
+  <div class="two-col">
+    <div>
+      <ul class="tight">
+        <li><strong>Per-branch stock</strong> with four states: on hand, reserved by in-flight orders, <em>firm-allocated</em> to confirmed events, and in transit between locations. In-transit stock is sellable from nowhere.</li>
+        <li><strong>The oversell guard is already built</strong> — an atomic reservation check, proven under 20 racing checkouts, carried over from the earlier build. Ported, not rewritten.</li>
+        <li><strong>Batches and expiry are already built</strong> — every lot a row, first-expiry-first-out picking, shelf-life sweeps, and a recall that produces a regulator-ready report.</li>
+        <li><strong>Weighted-average cost valuation</strong> — every unit carries its landed cost, so stock value and cost of goods fall out of the ledger, not a spreadsheet.</li>
+        <li><strong>Replenishment is computed, not guessed:</strong> reorder point = average daily sell-through × lead time + safety stock, per branch, per product, on a rolling window.</li>
+        <li><strong>Wastage posted daily</strong> — damage, expiry, shrinkage — per branch, per category. Cycle counts reconcile shelf to system, and every variance posts a ledger entry that explains itself.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="note risk" style="margin-top:0;">
+        <p><strong>The quiet killer: unrecorded counter sales.</strong> A walk-in buying 5 kg of atta removes stock the system still believes is there. Unrecorded, the error compounds daily and silently breaks allocation, replenishment and valuation at once.</p>
+        <p>So counter sales are recorded from day one — a small entry that depletes stock and posts revenue. The stock-truth half ships now; the point-of-sale experience half is deferred.</p>
+      </div>
+      <div class="stats" style="margin-top:14px;">
+        <div class="stat"><span class="stat-num">≥ 98%</span><small>stock accuracy — shelf vs system, the Phase 7 gate</small></div>
+        <div class="stat"><span class="stat-num">&lt; 8%</span><small>F&amp;V wastage target (staples &lt; 0.5%, beauty &lt; 1%)</small></div>
+        <div class="stat"><span class="stat-num">&lt; 3%</span><small>dead stock — nothing unmoved for 60 days</small></div>
+        <div class="stat"><span class="stat-num">&lt; 2%</span><small>stock-outs on A-class items at any branch</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 13 MONEY & CREDIT -->
+<section class="page" id="p13" data-name="Money &amp; credit">
+  <div class="eyebrow">13 · <span class="lens">Finance lens</span></div>
+  <h2>A ledger that cannot lie</h2>
+  <p class="lead">Every rupee that moves posts a balanced double-entry transaction — refused in code, refused by the service, and refused a third time by the database itself. Margin, receivables and cash positions are <em>computed from the ledger</em>, never summed from order rows.</p>
+
+  <p style="font-size:.95rem;">One credit sale, followed through (₹12,000 sold, ₹10,800 landed cost, 5% GST):</p>
+  <div class="ledger"><em>— sale on credit —</em>
+Dr  customer_receivable(shop)     <b>12,600</b>
+    Cr  sales_revenue                      12,000
+    Cr  gst_output_payable                    600
+Dr  cost_of_goods                 <b>10,800</b>
+    Cr  inventory(branch)                  10,800   <em>← margin ₹1,200 falls straight out</em>
+
+<em>— driver collects at the door —</em>
+Dr  cash_in_transit(driver)       <b>12,600</b>
+    Cr  customer_receivable(shop)          12,600
+
+<em>— driver banks it —</em>
+Dr  bank                          <b>12,600</b>
+    Cr  cash_in_transit(driver)            12,600</div>
+
+  <p>Two controls fall out for free: a non-zero <span class="mono" style="font-size:.85rem;">customer_receivable</span> past its due date <strong>is</strong> the overdue amount, and a non-zero <span class="mono" style="font-size:.85rem;">cash_in_transit</span> after the deposit deadline <strong>is</strong> the driver's cash shortfall. Both surface automatically. No reconciliation spreadsheet exists anywhere in this business.</p>
+
+  <h3 style="font-size:1.25rem; margin:26px 0 10px;">The collections ladder</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>Overdue</th><th>Owner</th><th>What happens</th></tr></thead>
+    <tbody>
+      <tr><td class="num">before due</td><td>System</td><td>WhatsApp reminder, 2 days ahead</td></tr>
+      <tr><td class="num">1–15 days</td><td>Sales rep</td><td>Reminder on the next visit</td></tr>
+      <tr><td class="num">16–30 days</td><td>Branch manager</td><td>Call · new orders need approval</td></tr>
+      <tr><td class="num">31–60 days</td><td>Head office</td><td><strong>Supply stops.</strong> Payment plan or security enforced</td></tr>
+      <tr><td class="num">61–90 days</td><td>Head office</td><td>Legal notice considered · provision raised</td></tr>
+      <tr><td class="num">90+ days</td><td>Founder</td><td>Write-off decision · account suspended</td></tr>
+    </tbody>
+  </table></div>
+  <p style="font-size:.9rem; color:var(--muted);">Targets: DSO ≤ 25 days · receivables past 60 days under 5% of the book · bad debt under 0.5% of revenue. The ladder encodes textbook practice; it gets tuned to the founder's real trade terms before launch.</p>
+</section>
+
+<!-- ============================================================ 14 TECHNOLOGY -->
+<section class="page" id="p14" data-name="Technology">
+  <div class="eyebrow">14 · <span class="lens">Engineering lens</span></div>
+  <h2>Built on a foundation that already ships</h2>
+  <p class="lead">This is not a greenfield promise. The platform is live on Google Cloud with 753 automated tests, continuous deployment, and a year of grocery-specific mechanics already proven.</p>
+
+  <div class="cards">
+    <div class="card"><h3>Stack</h3><p>TypeScript end to end · NestJS API · PostgreSQL + PostGIS · Redis · Drizzle ORM · Next.js PWA storefront · Google Cloud Run, Mumbai region · CI deploys both services on every green merge.</p></div>
+    <div class="card"><h3>Architecture</h3><p>A <strong>modular monolith</strong>: one deployable, 22 bounded modules, each owning its own database schema. Boundaries are enforced by CI — a module reaching into another's internals fails the build. Services extract later on published triggers, not by fashion.</p></div>
+    <div class="card"><h3>Discipline that carries over</h3><p>Idempotency keys on every mutating endpoint · transactional outbox for events · analytics events shipped with every feature · double-entry invariant asserted in tests, in the service, and in the database itself.</p></div>
+  </div>
+
+  <h3 style="font-size:1.25rem; margin:26px 0 12px;">What the pivot does to the codebase</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>Fate</th><th>Modules</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag built">Survives intact</span></td><td>catalog · search · batches &amp; FEFO · recall · variable weight · substitutions · order state machine · reservations · payments (UPI) · notifications · analytics</td><td>The hard grocery mechanics — a year of work — carry over untouched.</td></tr>
+      <tr><td><span class="tag plain">Re-pointed</span></td><td>vendor→branch · cart→order pad · slots→routes · COD risk→credit risk · checkout · identity</td><td>Same engines, new commercial meaning. The risk engine keeps its audit log and swaps its rules.</td></tr>
+      <tr><td><span class="tag new">New builds</span></td><td>procurement · goods receipt &amp; landed cost · stock transfer · credit &amp; receivables · wastage · counter sale</td><td>The distribution-specific organs. Six modules, sequenced below.</td></tr>
+      <tr><td><span class="tag gone">Deleted</span></td><td>commission · vendor onboarding &amp; SLAs · vendor payouts · marketplace tax provisions</td><td>Marketplace concepts with no meaning when you own the stock.</td></tr>
+    </tbody>
+  </table></div>
+
+  <figure>
+    <div class="modmap">
+      <div class="modmap-title">one deployable · one database · every module owns its own schema</div>
+      <div class="chips">
+        <span class="chip keep">catalog</span>
+        <span class="chip keep">search</span>
+        <span class="chip keep">order</span>
+        <span class="chip keep">inventory</span>
+        <span class="chip keep">batches · FEFO</span>
+        <span class="chip keep">payment</span>
+        <span class="chip keep">notification</span>
+        <span class="chip keep">analytics</span>
+        <span class="chip keep">ledger</span>
+        <span class="chip keep">support</span>
+        <span class="chip">vendor → branch</span>
+        <span class="chip">cart → order pad</span>
+        <span class="chip">slots → routes</span>
+        <span class="chip">cod → credit risk</span>
+        <span class="chip">pricing → price lists</span>
+        <span class="chip">settlement → collections</span>
+        <span class="chip">checkout</span>
+        <span class="chip">identity</span>
+        <span class="chip">delivery</span>
+        <span class="chip">admin → control tower</span>
+        <span class="chip newm">+ procurement</span>
+        <span class="chip newm">+ goods receipt</span>
+        <span class="chip newm">+ stock transfer</span>
+        <span class="chip newm">+ credit</span>
+        <span class="chip newm">+ wastage</span>
+        <span class="chip newm">+ counter sale</span>
+      </div>
+    </div>
+    <div class="chips" style="margin-top:10px;">
+      <span class="chip gonem">commission</span>
+      <span class="chip gonem">vendor onboarding</span>
+      <span class="chip gonem">vendor SLAs</span>
+      <span class="chip gonem">vendor payouts</span>
+      <span class="chip gonem">marketplace tax</span>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--brand-soft); border:1px solid var(--brand);"></i>survives intact</span>
+      <span><i style="background:var(--paper); border:1px solid var(--line);"></i>re-pointed at B2B</span>
+      <span><i style="background:var(--haldi-soft); border:1px dashed var(--haldi);"></i>new build</span>
+      <span><i style="background:var(--risk-soft); border:1px solid var(--risk);"></i>deleted — no longer means anything</span>
+    </div>
+    <figcaption>The monolith after the pivot: 26 modules inside one deployable, plus five marketplace concepts that leave the building. CI enforces the walls between chips — a module reaching into another's internals fails the build, which is exactly why this pivot is a redirection and not a rewrite.</figcaption>
+  </figure>
+
+  <div class="note">
+    <p><strong>Why the pivot is survivable at all:</strong> module boundaries were enforced from day one. Re-pointing <em>vendor</em> to <em>branch</em>, or splitting price from stock, touches known seams — not a tangle. That discipline, paid for early, is what makes this a redirection instead of a rewrite.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 15 ROADMAP -->
+<section class="page" id="p15" data-name="Roadmap">
+  <div class="eyebrow">15 · <span class="lens">Plan lens — for everyone</span></div>
+  <h2>Eight phases, each with a gate it must pass</h2>
+  <p class="lead">The order is set by dependency, not preference: you can't compute margin before landed cost exists, and you can't compute landed cost before receiving exists. No phase starts until the one before it passes its gate.</p>
+
+  <div class="prog" role="img" aria-label="Phases 0 through 4 are built and live. Phase 5 is next. Phases 6 through 12 follow.">
+    <span class="done">0 foundation ✓</span>
+    <span class="done">1 catalog ✓</span>
+    <span class="done">2 ordering ✓</span>
+    <span class="done">3 payments ✓</span>
+    <span class="done">4 grocery ✓</span>
+    <span class="next">5 recut ◀ next</span>
+    <span>6 cost</span>
+    <span>7 stock</span>
+    <span>8 orders</span>
+    <span>9 credit</span>
+    <span>10 routes</span>
+    <span>11 tower</span>
+    <span>12 launch</span>
+  </div>
+  <p style="font-size:.85rem; color:var(--muted); margin-bottom: 6px;">Green is built, tested and live on cloud today. Everything from phase 5 onward is this plan.</p>
+
+  <div class="phases">
+    <div class="phase"><span class="phase-id">Phase 5</span><div><h3>The recut</h3><p>Ledger re-charted for distribution · vendor becomes branch · price splits from stock · customer types &amp; price lists.</p><span class="gate">Gate: <b>an order prices from a customer's list, allocates from a branch, and posts a balanced ledger entry.</b></span></div></div>
+    <div class="phase"><span class="phase-id">Phase 6</span><div><h3>Procurement &amp; landed cost</h3><p>Suppliers, purchase orders, goods receipt, weighted-average valuation, the mandi fast path, scheme accrual.</p><span class="gate">Gate: <b>gross margin on a delivered order ties to a manual calculation, to the paisa.</b></span></div></div>
+    <div class="phase"><span class="phase-id">Phase 7</span><div><h3>Stock across locations</h3><p>Branch stock truth, hub↔branch transfers, computed replenishment, daily wastage, cycle counts, counter-sale recording.</p><span class="gate">Gate: <b>system stock matches a physical count within 2% — on a day that included counter sales.</b></span></div></div>
+    <div class="phase"><span class="phase-id">Phase 8</span><div><h3>B2B order to invoice</h3><p>The order pad, credit gate, firm allocation, telesales, GST-correct B2B invoice, quotations, WhatsApp rewiring.</p><span class="gate">Gate: <b>a shop orders from the pad, is credit-checked, picked, weighed and invoiced end to end.</b></span></div></div>
+    <div class="phase"><span class="phase-id">Phase 9</span><div><h3>Credit &amp; collections</h3><p>Credit profiles, live exposure and ageing, receipt-against-invoice, the escalation ladder, credit notes, statements, supplier payables.</p><span class="gate">Gate: <b>DSO and ageing compute live from the ledger; a customer statement ties to the paisa.</b></span></div></div>
+    <div class="phase"><span class="phase-id">Phase 10</span><div><h3>Distribution &amp; routes</h3><p>Delivery days and beats, route planning and loading, own + hired vehicles costed per trip, driver app with proof of delivery and doorstep collection, pickup at branch.</p><span class="gate">Gate: <b>a day's orders route, load, deliver, collect and reconcile end-of-day to the ledger.</b></span></div></div>
+    <div class="phase"><span class="phase-id">Phase 11</span><div><h3>Control tower</h3><p>The whole network on one screen: stock, orders, receivables, wastage, margin by every cut, cash conversion cycle, replenishment and demand planning.</p><span class="gate">Gate: <b>the founder runs a full day from one screen without calling a single branch.</b></span></div></div>
+    <div class="phase"><span class="phase-id">Phase 12</span><div><h3>Compliance &amp; launch readiness</h3><p>Real tax config replaces the fenced demo values · GST returns support · e-way bill and e-invoice seams switch on when needed · auth hardening (blocks production by rule) · load testing.</p><span class="gate">Gate: <b>launch readiness review passes with no demo value able to reach production.</b></span></div></div>
+  </div>
+
+  <h3 style="font-size:1.25rem; margin:26px 0 10px;">Rollout — proven at each ring before the next</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>Ring</th><th>Scope</th><th>Go / no-go</th></tr></thead>
+    <tbody>
+      <tr><td><strong>B0</strong></td><td>Hub only · 10–15 friendly customers</td><td>Order → pick → invoice → deliver → collect works; margin ties to hand calculation</td></tr>
+      <tr><td><strong>B1</strong></td><td>Hub + one branch · ~30 customers</td><td>Transfers work · stock accurate within 2% · DSO measured and under 30 · fill rate ≥ 93%</td></tr>
+      <tr><td><strong>B2</strong></td><td>Full network, all branches</td><td>B1 gates hold everywhere · cash cycle ≤ 35 days · wastage on target · zero missed event dates</td></tr>
+      <tr><td><strong>B3</strong></td><td>Growth — new customers, territory, possibly B2C</td><td>Unit economics positive · working capital funded · playbook runs without the founder</td></tr>
+    </tbody>
+  </table></div>
+  <p style="font-size:.9rem; color:var(--muted);">If B1 gates fail, the likely cause is data discipline, not software — and the rule is to fix discipline before adding branches, because a second branch multiplies a data problem rather than diluting it.</p>
+</section>
+
+<!-- ============================================================ 16 SCOREBOARD -->
+<section class="page" id="p16" data-name="Scoreboard">
+  <div class="eyebrow">16 · <span class="lens">Governance lens</span></div>
+  <h2>How we'll know it's working</h2>
+  <p class="lead">Four families of numbers, each protecting a different way the business can fail. All computed live — none assembled by hand.</p>
+
+  <div class="stats">
+    <div class="stat"><span class="stat-num">≥ 95%</span><small><strong>Fill rate</strong> — the single most important B2B metric. Short-ship a shop twice and they leave.</small></div>
+    <div class="stat"><span class="stat-num">≥ 80%</span><small><strong>Outlet reorder rate</strong> — customers who came back within 30 days</small></div>
+    <div class="stat"><span class="stat-num">≤ 25d</span><small><strong>DSO</strong> — days sales outstanding, the speed money comes home</small></div>
+    <div class="stat"><span class="stat-num">≤ 35d</span><small><strong>Cash conversion cycle</strong> — the number above revenue on the dashboard</small></div>
+    <div class="stat"><span class="stat-num">&lt; 8%</span><small><strong>F&amp;V wastage</strong> — measured daily, the biggest margin leak</small></div>
+    <div class="stat"><span class="stat-num">≥ 98%</span><small><strong>Stock accuracy</strong> — shelf matches system, every branch</small></div>
+    <div class="stat"><span class="stat-num">0</span><small><strong>Missed event dates</strong> — a binary, not a percentage</small></div>
+    <div class="stat"><span class="stat-num">100%</span><small><strong>Credit-gate integrity</strong> — no unlogged overrides, ever</small></div>
+  </div>
+
+  <h3 style="font-size:1.25rem; margin:30px 0 10px;">The risks we're naming out loud</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>Risk</th><th>Why it kills</th><th>The defence</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Working capital runs out while growing</strong></td><td>Fatal — and it looks like success until the day it doesn't</td><td>Cash cycle on the daily dashboard · growth approvals must state the cash they consume</td></tr>
+      <tr><td><strong>Receivables rot</strong></td><td>Fatal, slowly — everyone keeps supplying a customer who has stopped paying</td><td>Hard credit gate at order time · supply stop at 31 days · overrides logged</td></tr>
+      <tr><td><strong>Landed cost is wrong</strong></td><td>Every margin number becomes fiction, invisibly</td><td>Goods-receipt discipline built first · Phase 6 gate ties margin to hand calculation</td></tr>
+      <tr><td><strong>F&amp;V wastage untracked</strong></td><td>A quarter of revenue loses its margin silently</td><td>Daily posting · FEFO (built) · demand-led replenishment · daily repricing</td></tr>
+      <tr><td><strong>The system gets bypassed</strong></td><td>Orders keep flowing by phone; the data — the product — never materialises</td><td>Every channel is a first-class flow into one order object, including telesales and the counter</td></tr>
+      <tr><td><strong>Over-building</strong></td><td>The business runs fine on a notebook while software gold-plates</td><td>Ring B0 ships after two phases and gets used · the existing business is the fallback, not a hostage</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note good">
+    <p><strong>Where this stands today:</strong> the founder's decisions are taken and recorded — same-state network, demo economics until real figures land, counter sales in scope, simple invoicing with real tax config fenced until launch, both fleet types, B2C seam held open. Every structural question is closed. The next commit is Phase 5: re-charting the ledger for a business that owns what it sells.</p>
+  </div>
+</section>
+
+<div class="foot">FreshKirana · business model briefing · figures marked demo are planning placeholders (decision D-B2), held in configuration and replaced without code changes · companion documents: <em>B2B Business Model &amp; Operating Plan</em> · <em>Build Plan &amp; Workflow</em></div>
+
+<script>
+  (function () {
+    var pages = Array.prototype.slice.call(document.querySelectorAll('.page'));
+    var rail = document.querySelector('.rail');
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    pages.forEach(function (p, i) {
+      var a = document.createElement('a');
+      a.href = '#' + p.id;
+      a.setAttribute('aria-label', 'Page ' + (i + 1) + ': ' + p.dataset.name);
+      var label = document.createElement('span');
+      label.className = 'rail-label';
+      label.textContent = (i + 1 < 10 ? '0' : '') + (i + 1) + ' · ' + p.dataset.name;
+      a.appendChild(label);
+      rail.appendChild(a);
+    });
+    var dots = rail.querySelectorAll('a');
+
+    if ('IntersectionObserver' in window) {
+      var reveal = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('seen'); reveal.unobserve(e.target); }
+        });
+      }, { threshold: 0.08 });
+      var spy = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) {
+            var idx = pages.indexOf(e.target);
+            dots.forEach(function (d, i) { d.classList.toggle('active', i === idx); });
+          }
+        });
+      }, { rootMargin: '-45% 0px -45% 0px' });
+      pages.forEach(function (p) {
+        if (reduced) { p.classList.add('seen'); } else { reveal.observe(p); }
+        spy.observe(p);
+      });
+    } else {
+      pages.forEach(function (p) { p.classList.add('seen'); });
+    }
+  })();
+</script>

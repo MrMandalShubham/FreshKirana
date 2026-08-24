@@ -444,23 +444,21 @@ Every component, and where it lives. A row without a GCP home is not finished.
 | 4 | P4.2 | Variable weight **+ picker weight entry** | ⏳ | | `0379974` · CI green, deployed · 718 tests · grams not floats, tolerance consent, refund-the-delta for prepaid, rounded cash collectable |
 | 4 | P4.3 | Perishables, batches & recall | ⏳ | | `7846dc3` · CI green, deployed · 753 tests · batches as rows, FEFO picking, shelf-life sweep, recall with a regulator-ready report · sweep verified executing on GCP (`checked 50 batches`) · **the first deploy went red: CI updates a job terraform had not created yet** |
 | — | 🎯 | **PHASE 4 COMPLETE** | ⏳ | | 3 parts · 753 tests · substitutions, variable weight, perishables · the three ways a grocery order stops matching what was ordered · **seven shipped defects found and fixed across the phase** |
-| 5 | P5.1 | Ledger | ☐ | | |
-| 5 | P5.2 | Tax & invoicing | ☐ | | Needs B6 |
-| 5 | P5.3 | Settlement | ☐ | | |
-| 5 | P5.4 | COD cash reconciliation | ☐ | | |
-| 6 | P6.1 | Delivery abstraction ⚙ | ☐ | | |
-| 6 | P6.2 | Rider PWA & POD | ☐ | | |
-| 6 | P6.3 | Failed delivery & RTO | ☐ | | |
-| 7 | P7.1 | Vendor PWA dashboard | ☐ | | |
-| 7 | P7.2 | Admin console | ☐ | | |
-| 7 | P7.3 | Vendor analytics & SLA | ☐ | | |
-| 8 | P8.1 | Abuse prevention | ☐ | | |
-| 8 | P8.2 | DPDP features | ☐ | | Needs C3 |
-| 8 | P8.3 | Notifications complete | ☐ | | Needs B1, B2 |
-| 8 | P8.4 | Load & chaos testing | ☐ | | |
-| 8 | P8.5 | Accessibility audit | ☐ | | |
-| 8 | **P8.6** | **Auth hardening — deferred from P0.3** | ☐ | | 🔒 **BLOCKS PRODUCTION.** Real OTP, refresh rotation, rate limits, admin MFA |
-| 8 | P8.7 | Launch readiness | ☐ | | |
+| — | ⚠️ | **PIVOT — B2C marketplace → B2B distribution** | — | 2026-08-24 | Phases 5–12 below **supersede the old plan**. See *B2B Business Model & Operating Plan* §7. Phases 0–4 stand and are largely reused |
+| 5 | **P5.1** | **Ledger chart of accounts (B2B)** | ⏳ | | `npm run verify` green · **792 tests** · marketplace accounts out, `CUSTOMER_RECEIVABLE` / `SUPPLIER_PAYABLE` / `INVENTORY` / `COGS` / `WASTAGE` in · scope kinds named (customer/supplier/location/driver) · full trade cycle proven end to end, 33 postings balancing to the paisa · **DB trigger verified by raw SQL insert — refused at COMMIT** · *fixed my own defect: three assertions read pooled balances and only passed on a clean DB; now deltas, and the suite is re-runnable* |
+| 5 | P5.2 | `vendor` → `branch` | ☐ | | Delete approval, suspension, SLA. Hub is a branch with `is_hub` |
+| 5 | P5.3 | **Split `vendor_offer`** | ☐ | | → central price list + per-branch stock. **Riskiest migration in the plan** |
+| 5 | P5.4 | Customer organisation & types | ☐ | | Multi-user orgs, `customer_type`, rep-on-behalf-of |
+| 5 | P5.5 | Price lists & tiers | ☐ | | Slabs, validity, cost-plus for F&V |
+| 6 | P6.1–6.8 | **Credit, receivables & collections** | ☐ | | **Reordered ahead of procurement 2026-08-24** — shortest path to a number the notebook cannot give, and the data entry is the founder’s own |
+| 7 | P7.1–7.7 | Procurement & landed cost | ☐ | | Suppliers, PO, **GRN and landed cost**, weighted-average valuation, mandi fast path |
+| 8 | P8.1–8.6 | Stock across locations | ☐ | | Branch stock truth, transfers, reorder points, wastage, counts, **counter-sale recording** |
+| 9 | P9.1–9.7 | B2B order to invoice | ☐ | | Order pad, allocation, telesales, GST invoice, quotations |
+| 10 | P10.1–10.6 | Distribution & routes | ☐ | | Beats, route planning, **own + hired vehicles**, POD, pickup at branch |
+| 11 | P11.1–11.6 | Control tower | ☐ | | Network dashboard, margin analytics, **cash conversion cycle**, replenishment |
+| 12 | P12.1–12.9 | Compliance & launch readiness | ☐ | | Real tax config replaces fenced demo values · GST returns · e-way bill / e-invoice seams |
+| 12 | **P12.5** | **Auth hardening — deferred from P0.3** | ☐ | | 🔒 **BLOCKS PRODUCTION.** Real OTP, refresh rotation, rate limits, admin MFA |
+| — | 🎯 | **B0 — HUB ONLY, REAL ORDERS** | ☐ | | 10–15 friendly customers. Gate: order → invoice → collect works, margin ties to a hand calculation |
 | — | 🎯 | **MVP COMPLETE** | ☐ | | |
 
 ---
@@ -537,6 +535,7 @@ Record every decision made during the build that isn't already in the spec. This
 | 2026-08-22 | P4.3 | A recall targets **one lot, never the whole product** | Withdrawing every packet of a brand when one lot is bad is ruinous for the vendor and teaches customers to ignore the next recall, which is the one that matters |
 | 2026-08-22 | P4.3 | Raising a recall is **ops-only**, not something a store can do alone | A shop quietly not raising one is the failure mode this exists to prevent; a shop deciding one is over is the other half of it |
 | 2026-08-23 | **P4.3** | **`terraform apply` must run *before* pushing a commit that adds a job to CI's image loop** | P4.3's first deploy went red: CI reached `gcloud run jobs update …-shelf-life-sweep` at 02:26:46, and terraform did not create that job until 02:27:50. The loop refusing to continue is correct and must stay that way — making it tolerant of a missing job is exactly the P3.4 defect, where three sweeps ran months-old images for three parts because a failure was being swallowed. The ordering is the fix, not the loop |
+| 2026-08-23 | **SCOPE** | **Cut to five pilot-critical parts: P5.1 ledger, P5.2 tax & invoicing, P5.4 COD cash reconciliation, P6.2 rider PWA, P8.6 real sign-in.** The other twelve are deferred until after a pilot | Seventeen parts remained against a near deadline, and three of them (P5.2's invoicing provider, P6.1's delivery provider, P8.6's OTP vendor) are blocked on commercial decisions rather than code. These five are what stand between the build and *five real orders* — money that provably balances, a legal invoice, cash that reconciles, somebody able to deliver, and customers who are actually who they say they are. Everything else is MVP completeness, which is a different milestone and one no pilot needs |
 | 2026-08-23 | P4.3 | `gh run watch --exit-status` **returned 0 for a run whose deploy job failed** | It was reported as green on that basis and was not. Read `gh run view --json conclusion` instead; a watch exit code is not a verdict |
 | 2026-08-22 | **P4.2** | **Capture the estimate and refund the difference**, rather than authorise and capture less | §2.10.2, recorded during P3.2, says UPI captures immediately and in full — so §1.7.1's auth-and-adjust flow, written for cards, is unavailable for the method almost every Indian customer uses. The spec names this fallback in the same breath. It is also why P3.5's refund path had to exist before this part could be built: without it there is no way to correct a weight downwards at all |
 | 2026-08-22 | P4.2 | Weights are **integer grams**, like money is integer paise | A scale reads 0.94 kg and a float stores `0.9400000000000001`. That cannot be reconciled against money, and every Indian shop scale reads whole grams anyway |

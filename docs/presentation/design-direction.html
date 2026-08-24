@@ -1,0 +1,1028 @@
+<title>Mandi Light</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Manrope:wght@400;500;600;800&family=Noto+Sans+Devanagari:wght@400;600&display=swap">
+
+<style>
+/* ============================================================================
+   MANDI LIGHT — a design direction for FreshKirana
+   Palette drawn from an Indian produce market: forest shade, turmeric, sprout,
+   chilli, and the warm paper of a shop ledger.
+   ========================================================================== */
+
+:root {
+  /* ground + ink */
+  --ink:        #10231a;
+  --ink-2:      #1c3529;
+  --paper:      #fbf9f4;
+  --clay:       #ede6d8;
+  --clay-line:  #ddd3c0;
+  --text:       #16241d;
+  --text-soft:  #4a5b52;
+  --text-mute:  #77877d;
+
+  /* brand */
+  --sprout:     #1fa45c;
+  --sprout-deep:#14663c;
+  --mint:       #e2f4e9;
+  --haldi:      #f2a61c;
+  --haldi-deep: #9a6206;
+  --haldi-tint: #fdf1d9;
+  --chilli:     #d93a2b;
+  --chilli-tint:#fdeae7;
+
+  --r-sm: 10px;
+  --r:    16px;
+  --r-lg: 24px;
+  --r-xl: 32px;
+
+  --shadow-1: 0 1px 2px #10231a0f, 0 2px 8px #10231a0a;
+  --shadow-2: 0 4px 12px #10231a14, 0 12px 32px -8px #10231a1f;
+  --shadow-3: 0 20px 60px -20px #10231a4d;
+
+  --ease: cubic-bezier(.32, .72, 0, 1);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper:      #0d1613;
+    --clay:       #16241d;
+    --clay-line:  #24362c;
+    --text:       #e8efe9;
+    --text-soft:  #b3c2b8;
+    --text-mute:  #7f8f85;
+    --mint:       #14301f;
+    --haldi-tint: #2b2110;
+    --chilli-tint:#301612;
+    --sprout:     #3fc078;
+    --sprout-deep:#8fe0b0;
+    --haldi-deep: #f3bb52;
+    --shadow-1: 0 1px 2px #0006;
+    --shadow-2: 0 4px 12px #00000059;
+    --shadow-3: 0 20px 60px -20px #000000a6;
+  }
+}
+
+:root[data-theme='dark'] {
+  --paper:      #0d1613;
+  --clay:       #16241d;
+  --clay-line:  #24362c;
+  --text:       #e8efe9;
+  --text-soft:  #b3c2b8;
+  --text-mute:  #7f8f85;
+  --mint:       #14301f;
+  --haldi-tint: #2b2110;
+  --chilli-tint:#301612;
+  --sprout:     #3fc078;
+  --sprout-deep:#8fe0b0;
+  --haldi-deep: #f3bb52;
+  --shadow-1: 0 1px 2px #0006;
+  --shadow-2: 0 4px 12px #00000059;
+  --shadow-3: 0 20px 60px -20px #000000a6;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--text);
+  font-family: Manrope, 'Noto Sans Devanagari', system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, .display {
+  font-family: 'Bricolage Grotesque', Manrope, system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+  margin: 0;
+  text-wrap: balance;
+}
+
+p { margin: 0 0 1em; }
+p:last-child { margin-bottom: 0; }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+.measure { max-width: 60ch; }
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--sprout-deep);
+  margin-bottom: 18px;
+}
+.eyebrow::before {
+  content: '';
+  width: 22px; height: 2px;
+  background: var(--haldi);
+  border-radius: 2px;
+}
+
+section { padding: 96px 0; }
+
+/* ---------------------------------------------------------------- HERO --- */
+
+.hero {
+  position: relative;
+  background: var(--ink);
+  color: #f4f7f2;
+  overflow: hidden;
+  padding: 0;
+  isolation: isolate;
+}
+
+.hero-glow {
+  position: absolute;
+  inset: -30% -10% auto -10%;
+  height: 90%;
+  background:
+    radial-gradient(45% 60% at 22% 30%, #1fa45c4d, #0000 70%),
+    radial-gradient(40% 55% at 78% 20%, #f2a61c33, #0000 70%);
+  filter: blur(8px);
+  z-index: -1;
+  animation: drift 22s var(--ease) infinite alternate;
+}
+
+@keyframes drift {
+  to { transform: translate3d(0, 4%, 0) scale(1.08); }
+}
+
+.hero-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 108px 24px 96px;
+  display: grid;
+  grid-template-columns: 1.05fr .95fr;
+  gap: 56px;
+  align-items: center;
+}
+
+.hero h1 {
+  font-size: clamp(3rem, 7.2vw, 5.6rem);
+  color: #fff;
+}
+.hero h1 .lit {
+  background: linear-gradient(100deg, var(--haldi), #ffd479 60%, var(--haldi));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero .kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: #ffffff14;
+  border: 1px solid #ffffff21;
+  color: #cfe8d8;
+  padding: 7px 14px 7px 8px;
+  border-radius: 999px;
+  font-size: .8rem;
+  font-weight: 600;
+  margin-bottom: 26px;
+  backdrop-filter: blur(6px);
+}
+.hero .kicker b {
+  background: var(--sprout);
+  color: #06180e;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
+.hero p.lede {
+  font-size: 1.18rem;
+  color: #b9cdc0;
+  max-width: 46ch;
+  margin: 24px 0 34px;
+}
+
+.cta-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 999px;
+  padding: 15px 26px;
+  font: inherit;
+  font-weight: 700;
+  font-size: .98rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform .18s var(--ease), box-shadow .25s var(--ease), background .2s;
+  will-change: transform;
+}
+.btn:active { transform: scale(.97); }
+
+.btn-primary {
+  background: var(--sprout);
+  color: #06180e;
+  box-shadow: 0 6px 20px -6px #1fa45cb3;
+}
+.btn-primary:hover { background: #24b767; box-shadow: 0 10px 30px -8px #1fa45ccc; transform: translateY(-2px); }
+
+.btn-ghost {
+  background: #ffffff0f;
+  color: #eaf3ec;
+  border: 1px solid #ffffff26;
+}
+.btn-ghost:hover { background: #ffffff1c; transform: translateY(-2px); }
+
+.trust {
+  display: flex;
+  gap: 22px;
+  margin-top: 34px;
+  flex-wrap: wrap;
+  font-size: .84rem;
+  color: #9fb8a8;
+}
+.trust span { display: inline-flex; align-items: center; gap: 7px; }
+.trust svg { color: var(--sprout); flex: none; }
+
+/* --- the animated basket stage ------------------------------------------ */
+
+.stage { position: relative; height: 460px; }
+
+.crate {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 240px;
+  background: linear-gradient(#ffffff12, #ffffff08);
+  border: 1px solid #ffffff1f;
+  border-radius: var(--r-lg);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-3);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.crate-head {
+  display: flex; justify-content: space-between; align-items: center;
+  color: #cfe3d6; font-size: .8rem; font-weight: 700;
+}
+.crate-head .count {
+  background: var(--haldi); color: #3a2503;
+  border-radius: 999px; padding: 3px 10px; font-size: .74rem; font-weight: 800;
+  animation: bump .5s var(--ease-out) 1.6s both;
+}
+@keyframes bump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+
+.crate-line {
+  display: flex; align-items: center; gap: 11px;
+  background: #ffffff0f;
+  border-radius: 12px;
+  padding: 9px 11px;
+  font-size: .84rem;
+  color: #e6f1e9;
+  opacity: 0;
+  animation: liftIn .6s var(--ease-out) both;
+}
+.crate-line:nth-child(2) { animation-delay: .5s; }
+.crate-line:nth-child(3) { animation-delay: .75s; }
+.crate-line:nth-child(4) { animation-delay: 1s; }
+.crate-line .px { margin-left: auto; font-variant-numeric: tabular-nums; color: #a9c6b5; }
+
+@keyframes liftIn {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+
+.produce {
+  position: absolute;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow-3);
+  animation: float 6s ease-in-out infinite;
+}
+.produce svg { width: 58%; height: 58%; }
+.p1 { width: 116px; height: 116px; left: 4%;  top: 26px;  background: linear-gradient(150deg,#ffd88a,#f2a61c); animation-delay: 0s; }
+.p2 { width: 92px;  height: 92px;  right: 8%; top: 0;     background: linear-gradient(150deg,#7ee0a5,#1fa45c); animation-delay: .8s; }
+.p3 { width: 78px;  height: 78px;  right: 30%;top: 128px; background: linear-gradient(150deg,#ff9f92,#d93a2b); animation-delay: 1.6s; }
+
+@keyframes float {
+  0%,100% { transform: translate3d(0,0,0) rotate(-3deg); }
+  50%     { transform: translate3d(0,-16px,0) rotate(3deg); }
+}
+
+/* --------------------------------------------------------- REVEAL ------- */
+
+.reveal { opacity: 0; transform: translate3d(0, 22px, 0); }
+.reveal.in {
+  opacity: 1; transform: none;
+  transition: opacity .7s var(--ease-out), transform .7s var(--ease-out);
+}
+.reveal.d1 { transition-delay: .08s; }
+.reveal.d2 { transition-delay: .16s; }
+.reveal.d3 { transition-delay: .24s; }
+
+/* --------------------------------------------------------- BLOCKS ------- */
+
+h2 { font-size: clamp(2rem, 4.4vw, 3.1rem); }
+h3 { font-size: 1.16rem; font-weight: 800; letter-spacing: -0.015em; }
+
+.lede-2 { font-size: 1.1rem; color: var(--text-soft); margin-top: 20px; }
+
+.grid { display: grid; gap: 20px; }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); }
+.g3 { grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); }
+.g4 { grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); }
+
+.card {
+  background: var(--clay);
+  border: 1px solid var(--clay-line);
+  border-radius: var(--r);
+  padding: 24px;
+}
+.card h3 { margin-bottom: 8px; }
+.card p { font-size: .95rem; color: var(--text-soft); }
+
+.band { background: var(--clay); }
+
+/* --- swatches ----------------------------------------------------------- */
+
+.swatches { display: grid; grid-template-columns: repeat(auto-fit,minmax(148px,1fr)); gap: 14px; }
+.sw { border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow-1); background: var(--paper); border: 1px solid var(--clay-line); }
+.sw .chip { height: 96px; position: relative; }
+.sw .chip::after {
+  content: attr(data-use);
+  position: absolute; left: 12px; bottom: 10px;
+  font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: #ffffffd9;
+}
+.sw .m { padding: 12px 14px; }
+.sw .n { font-weight: 800; font-size: .92rem; }
+.sw .h { font-size: .76rem; color: var(--text-mute); font-variant-numeric: tabular-nums; }
+
+/* --- type specimen ------------------------------------------------------ */
+
+.spec { border-top: 2px solid var(--text); padding-top: 20px; }
+.spec + .spec { margin-top: 34px; }
+.spec .label {
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  font-size: .76rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-mute); margin-bottom: 14px;
+}
+.spec .sample { line-height: 1.05; }
+
+/* --- motion demos ------------------------------------------------------- */
+
+.demos { display: grid; grid-template-columns: repeat(auto-fit,minmax(232px,1fr)); gap: 18px; }
+.demo {
+  background: var(--paper);
+  border: 1px solid var(--clay-line);
+  border-radius: var(--r);
+  padding: 20px;
+  box-shadow: var(--shadow-1);
+}
+.demo .stagearea {
+  height: 116px; display: grid; place-items: center;
+  background: var(--mint); border-radius: var(--r-sm); margin-bottom: 14px;
+  overflow: hidden; position: relative;
+}
+.demo h3 { font-size: .98rem; }
+.demo p { font-size: .86rem; color: var(--text-soft); margin: 5px 0 0; }
+
+/* add-to-cart */
+.atc {
+  background: var(--sprout); color: #06180e; border: 0; border-radius: 999px;
+  padding: 11px 20px; font: inherit; font-weight: 800; font-size: .88rem; cursor: pointer;
+  transition: transform .2s var(--ease);
+}
+.atc:hover { transform: translateY(-2px); }
+.fly {
+  position: absolute; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--haldi); pointer-events: none;
+  animation: fly .75s var(--ease) forwards;
+}
+@keyframes fly {
+  0%   { transform: translate3d(0,0,0) scale(1); opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translate3d(76px,-46px,0) scale(.28); opacity: 0; }
+}
+
+/* skeleton */
+.skel { width: 78%; }
+.skel i {
+  display: block; height: 11px; border-radius: 6px; margin-bottom: 9px;
+  background: linear-gradient(90deg, #0000000f 25%, #00000005 37%, #0000000f 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+.skel i:nth-child(2) { width: 62%; }
+.skel i:nth-child(3) { width: 40%; }
+@keyframes shimmer { to { background-position: -135% 0; } }
+
+/* timeline draw */
+.tldemo { width: 70%; }
+.tldemo .bar { height: 4px; background: #10231a1f; border-radius: 4px; overflow: hidden; }
+.tldemo .fill {
+  height: 100%; width: 0; background: var(--sprout); border-radius: 4px;
+  animation: draw 2.4s var(--ease) infinite;
+}
+@keyframes draw { 0% { width: 0; } 60% { width: 68%; } 100% { width: 68%; } }
+.tldemo .cap { font-size: .74rem; color: var(--text-mute); margin-top: 8px; font-weight: 600; }
+
+/* stepper */
+.stepdemo { display: flex; align-items: center; gap: 4px; background: var(--paper); border: 1px solid var(--clay-line); border-radius: 999px; padding: 4px; }
+.stepdemo button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--mint); color: var(--sprout-deep); font-size: 17px; font-weight: 800; cursor: pointer; transition: transform .15s var(--ease), background .15s; }
+.stepdemo button:hover { background: var(--sprout); color: #06180e; }
+.stepdemo button:active { transform: scale(.88); }
+.stepdemo .v { min-width: 34px; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* --- phone frames ------------------------------------------------------- */
+
+.phones { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 36px; justify-items: center; }
+figure { margin: 0; max-width: 320px; display: flex; flex-direction: column; gap: 14px; }
+figcaption { font-size: .88rem; color: var(--text-soft); }
+figcaption b { display: block; color: var(--text); font-weight: 800; margin-bottom: 3px; }
+
+.phone {
+  width: 304px; border: 10px solid #0c1a13; border-radius: 40px;
+  background: #0c1a13; box-shadow: var(--shadow-3); overflow: hidden;
+}
+.screen {
+  background: var(--paper); height: 620px; display: flex; flex-direction: column;
+  font-size: 13px; line-height: 1.45; overflow: hidden; position: relative;
+}
+.sbar { display: flex; justify-content: space-between; padding: 10px 18px 4px; font-size: 11px; font-weight: 800; }
+
+.appbar { padding: 8px 16px 12px; display: flex; align-items: center; gap: 10px; }
+.logo { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 16px; color: var(--sprout-deep); letter-spacing: -.03em; }
+.sfield {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px;
+  background: var(--clay); border-radius: 999px; padding: 9px 13px;
+  font-size: 12px; color: var(--text-mute);
+}
+
+.hero-card {
+  margin: 0 16px 14px; border-radius: var(--r);
+  background: linear-gradient(135deg, var(--ink), #1d4030);
+  color: #eaf5ee; padding: 16px; position: relative; overflow: hidden;
+}
+.hero-card::after {
+  content: ''; position: absolute; right: -30px; top: -30px; width: 120px; height: 120px;
+  background: radial-gradient(circle, #f2a61c4d, #0000 70%);
+}
+.hero-card .t { font-family: 'Bricolage Grotesque',sans-serif; font-weight: 800; font-size: 19px; letter-spacing: -.02em; line-height: 1.1; }
+.hero-card .s { font-size: 11.5px; color: #a9c6b5; margin: 5px 0 12px; }
+.hero-card .go {
+  background: var(--sprout); color: #06180e; border: 0; border-radius: 999px;
+  padding: 9px 16px; font: inherit; font-weight: 800; font-size: 12px; width: 100%;
+}
+
+.scroll { flex: 1; overflow: hidden; }
+.sec { padding: 0 16px 14px; }
+.sec-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.sec-h b { font-family: 'Bricolage Grotesque',sans-serif; font-size: 14.5px; letter-spacing: -.02em; }
+.sec-h a { font-size: 11.5px; color: var(--sprout-deep); font-weight: 700; }
+
+.tiles { display: grid; grid-template-columns: repeat(4,1fr); gap: 9px; }
+.tile { text-align: center; }
+.tile .disc {
+  aspect-ratio: 1; border-radius: 18px; display: grid; place-items: center;
+  margin-bottom: 5px; box-shadow: var(--shadow-1);
+}
+.tile span { font-size: 10px; font-weight: 700; color: var(--text-soft); }
+
+.prod { display: flex; gap: 11px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--clay-line); }
+.prod .im { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; flex: none; }
+.prod .nm { font-size: 12.5px; font-weight: 700; }
+.prod .sub { font-size: 10.5px; color: var(--text-mute); }
+.prod .pr { margin-left: auto; text-align: right; flex: none; }
+.prod .pr b { font-size: 13px; font-weight: 800; }
+.prod .pr s { font-size: 10px; color: var(--text-mute); display: block; }
+.addbtn {
+  border: 1.5px solid var(--sprout); color: var(--sprout-deep); background: var(--paper);
+  border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 11px; font-weight: 800;
+  margin-left: 10px; flex: none;
+}
+
+.tabbar {
+  display: grid; grid-template-columns: repeat(5,1fr);
+  background: var(--paper); border-top: 1px solid var(--clay-line);
+  padding: 8px 0 12px; flex: none;
+}
+.tb { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 9.5px; font-weight: 700; color: var(--text-mute); }
+.tb.on { color: var(--sprout-deep); }
+.tb .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--sprout); margin-top: 1px; }
+
+.paybar {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  border-top: 1px solid var(--clay-line); background: var(--paper); flex: none;
+}
+
+.chip-row { display: flex; gap: 7px; flex-wrap: wrap; }
+.chip {
+  border: 1px solid var(--clay-line); background: var(--paper);
+  border-radius: 999px; padding: 7px 13px; font-size: 11.5px; font-weight: 700;
+}
+.chip.on { background: var(--ink); color: #eaf5ee; border-color: var(--ink); }
+
+.notice-w {
+  background: var(--haldi-tint); border-left: 3px solid var(--haldi);
+  border-radius: 0 10px 10px 0; padding: 10px 12px; font-size: 11.5px; color: var(--haldi-deep);
+}
+
+/* --- roadmap ------------------------------------------------------------ */
+
+.steps { counter-reset: s; }
+.step {
+  display: grid; grid-template-columns: 46px 1fr; gap: 20px;
+  padding: 22px 0; border-bottom: 1px solid var(--clay-line);
+}
+.step .num {
+  counter-increment: s;
+  font-family: 'Bricolage Grotesque',sans-serif; font-weight: 800; font-size: 1.5rem;
+  color: var(--haldi); line-height: 1;
+}
+.step .num::before { content: counter(s, decimal-leading-zero); }
+.step h3 { margin-bottom: 6px; }
+.step p { font-size: .95rem; color: var(--text-soft); }
+.step .meta { font-size: .78rem; font-weight: 700; color: var(--sprout-deep); margin-top: 7px; letter-spacing: .02em; }
+
+/* --- budget table ------------------------------------------------------- */
+
+.scroller { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .93rem; min-width: 440px; }
+th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--clay-line); }
+th { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-mute); font-weight: 800; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+
+footer { padding: 40px 0 70px; font-size: .82rem; color: var(--text-mute); border-top: 1px solid var(--clay-line); }
+
+@media (max-width: 900px) {
+  .hero-inner { grid-template-columns: 1fr; padding-top: 76px; gap: 40px; }
+  /* The stage loses height before it loses width, so the floating produce has
+     to climb clear of the crate rather than sit behind its top edge. */
+  .stage { height: 404px; }
+  .p1 { width: 92px; height: 92px; top: 10px; }
+  .p2 { width: 76px; height: 76px; top: 4px; }
+  .p3 { width: 64px; height: 64px; top: 8px; right: 38%; }
+}
+@media (max-width: 620px) {
+  section { padding: 64px 0; }
+  .wrap { padding: 0 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+  .reveal { opacity: 1; transform: none; }
+}
+</style>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="wheat" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+    <path d="M24 44V18"/><path d="M24 20c-6-2-9-7-9-13 6 0 10 4 11 10M24 20c6-2 9-7 9-13-6 0-10 4-11 10"/>
+    <path d="M24 30c-5-1.6-8-5.6-8-10.4M24 30c5-1.6 8-5.6 8-10.4"/>
+  </symbol>
+  <symbol id="tomato" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+    <circle cx="24" cy="28" r="14"/><path d="M24 14v-3M24 14l-7-4M24 14l7-4"/>
+  </symbol>
+  <symbol id="bottle" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round">
+    <path d="M20 6h8v8l6 8v20a2 2 0 0 1-2 2H16a2 2 0 0 1-2-2V22l6-8z"/><path d="M14 28h20"/>
+  </symbol>
+  <symbol id="milk" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round">
+    <path d="M15 18h18v22a2 2 0 0 1-2 2H17a2 2 0 0 1-2-2z"/><path d="M15 18l4-12h10l4 12"/>
+  </symbol>
+  <symbol id="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></symbol>
+  <symbol id="bolt" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></symbol>
+  <symbol id="home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 10.5 12 3.5l9 7V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="bag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 7h14l1 13H4z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></symbol>
+  <symbol id="clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.2 2"/></symbol>
+  <symbol id="user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></symbol>
+</svg>
+
+<!-- ======================================================== HERO ======= -->
+<header class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-inner">
+    <div>
+      <span class="kicker"><b>NEW</b> A design direction for the storefront</span>
+      <h1>Your whole month’s<br>shopping, in<br><span class="lit">two minutes.</span></h1>
+      <p class="lede">Not another ten-minute delivery app. The full range of your neighbourhood kirana — every staple, every regional brand, loose produce weighed at the counter — reordered from last month’s basket in a single tap.</p>
+
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#system">See the system <svg width="16" height="16"><use href="#bolt"/></svg></a>
+        <a class="btn btn-ghost" href="#screens">Screens</a>
+      </div>
+
+      <div class="trust">
+        <span><svg width="15" height="15"><use href="#check"/></svg> 4,500+ items</span>
+        <span><svg width="15" height="15"><use href="#check"/></svg> Slot you choose</span>
+        <span><svg width="15" height="15"><use href="#check"/></svg> Pay cash or UPI</span>
+      </div>
+    </div>
+
+    <div class="stage" aria-hidden="true">
+      <div class="produce p1" style="color:#7a4d05"><svg><use href="#wheat"/></svg></div>
+      <div class="produce p2" style="color:#0b4527"><svg><use href="#bottle"/></svg></div>
+      <div class="produce p3" style="color:#6d1710"><svg><use href="#tomato"/></svg></div>
+
+      <div class="crate">
+        <div class="crate-head"><span>Your usual basket</span><span class="count">14 items</span></div>
+        <div class="crate-line"><svg width="16" height="16" style="color:#f2a61c"><use href="#wheat"/></svg> Aashirvaad Atta 5 kg <span class="px">₹255</span></div>
+        <div class="crate-line"><svg width="16" height="16" style="color:#7ee0a5"><use href="#milk"/></svg> Amul Taaza × 4 <span class="px">₹132</span></div>
+        <div class="crate-line"><svg width="16" height="16" style="color:#ff9f92"><use href="#tomato"/></svg> Tomatoes 1 kg <span class="px">₹38</span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ==================================================== WHY CHANGE ===== -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow reveal">Why this exists</span>
+    <h2 class="reveal d1" style="max-width:20ch">The machine is right. The surface isn’t built.</h2>
+    <p class="lede-2 measure reveal d2">Phases 0–4 made the ordering engine correct — substitutions, weighing, recalls, refunds all behave properly under test. But the storefront was written to prove the API worked, and it shows. Measured on the 375&nbsp;px phone the spec targets:</p>
+
+    <div class="grid g3" style="margin-top:36px">
+      <div class="card reveal"><h3 style="color:var(--chilli)">Nav is unreachable</h3><p>The document renders 442&nbsp;px wide in a 375&nbsp;px viewport. Two of the five bottom-nav tabs sit off-screen.</p></div>
+      <div class="card reveal d1"><h3 style="color:var(--chilli)">Zero imagery</h3><p>No product photography, no icon set — navigation uses text glyphs. Groceries are bought with the eyes first.</p></div>
+      <div class="card reveal d2"><h3 style="color:var(--chilli)">One type size</h3><p>620 of ~700 text nodes render at 14&nbsp;px/600. There is no hierarchy to guide the eye anywhere.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================== PALETTE ======== -->
+<section class="band" id="system">
+  <div class="wrap">
+    <span class="eyebrow reveal">The palette</span>
+    <h2 class="reveal d1" style="max-width:18ch">Mandi light</h2>
+    <p class="lede-2 measure reveal d2">Pulled from a produce market rather than a software company: the deep shade under an awning, turmeric, a fresh sprout, dried chilli, and the warm paper of a shop ledger. Deep green replaces black everywhere — it carries the same weight without the coldness.</p>
+
+    <div class="swatches reveal d3" style="margin-top:38px">
+      <div class="sw"><div class="chip" style="background:#10231a" data-use="Ground"></div><div class="m"><div class="n">Awning</div><div class="h">#10231A</div></div></div>
+      <div class="sw"><div class="chip" style="background:#1fa45c" data-use="Action"></div><div class="m"><div class="n">Sprout</div><div class="h">#1FA45C</div></div></div>
+      <div class="sw"><div class="chip" style="background:#f2a61c" data-use="Energy"></div><div class="m"><div class="n">Haldi</div><div class="h">#F2A61C</div></div></div>
+      <div class="sw"><div class="chip" style="background:#d93a2b" data-use="Alert"></div><div class="m"><div class="n">Chilli</div><div class="h">#D93A2B</div></div></div>
+      <div class="sw"><div class="chip" style="background:#ede6d8" data-use="Surface"></div><div class="m"><div class="n">Clay</div><div class="h">#EDE6D8</div></div></div>
+      <div class="sw"><div class="chip" style="background:#fbf9f4;box-shadow:inset 0 0 0 1px #ddd3c0" data-use="Paper"></div><div class="m"><div class="n">Ledger</div><div class="h">#FBF9F4</div></div></div>
+    </div>
+
+    <div class="grid g3" style="margin-top:30px">
+      <div class="card reveal"><h3>Green got brighter</h3><p>The current <b>#1F7A4D</b> is muddy on an OLED phone in daylight. <b>#1FA45C</b> keeps the same hue and gains the life it was missing — while <b>#14663C</b> handles text where contrast has to hold.</p></div>
+      <div class="card reveal d1"><h3>Haldi does the selling</h3><p>Every screen gets exactly one warm moment — a badge, a saving, a count. Scarcity is what makes it read as energy instead of noise.</p></div>
+      <div class="card reveal d2"><h3>Colour still means something</h3><p>The rule from the old system survives intact: nothing is coloured for decoration, and every coloured state carries a word beside it.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================== TYPE =========== -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow reveal">The type</span>
+    <h2 class="reveal d1" style="max-width:20ch">Confident headlines, quiet prices.</h2>
+    <p class="lede-2 measure reveal d2">Two families. <b>Bricolage Grotesque</b> for anything that has to be felt — it has real character at large sizes and optical sizing built in. <b>Manrope</b> for everything that has to be read, including 40 product names in a row without fatigue.</p>
+
+    <div style="margin-top:44px">
+      <div class="spec reveal">
+        <div class="label"><span>Display · Bricolage Grotesque 800</span><span>clamp(2rem → 5.6rem) · tracking −3%</span></div>
+        <div class="sample display" style="font-size:clamp(2.2rem,6vw,4rem)">Two minutes, ₹1,270</div>
+      </div>
+
+      <div class="spec reveal d1">
+        <div class="label"><span>Section · Bricolage Grotesque 800</span><span>24px · tracking −2%</span></div>
+        <div class="sample display" style="font-size:24px">Your usual basket</div>
+      </div>
+
+      <div class="spec reveal d2">
+        <div class="label"><span>Body · Manrope 400</span><span>16px / 1.6</span></div>
+        <div class="sample" style="font-size:16px;line-height:1.6;max-width:52ch;font-weight:400">Priced by weight. The final price varies with the actual weight delivered — we weigh it at the counter and charge for what actually goes in your bag.</div>
+      </div>
+
+      <div class="spec reveal d3">
+        <div class="label"><span>Price · Manrope 800 · tabular</span><span>Devanagari · Noto Sans</span></div>
+        <div class="sample" style="display:flex;gap:26px;align-items:baseline;flex-wrap:wrap">
+          <span style="font-size:30px;font-weight:800;font-variant-numeric:tabular-nums">₹255.00</span>
+          <span style="font-size:16px;color:var(--text-mute);text-decoration:line-through">₹280.00</span>
+          <span style="font-size:22px;font-weight:600;font-family:'Noto Sans Devanagari',sans-serif">आपकी नियमित टोकरी</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================== MOTION ========= -->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow reveal">The motion</span>
+    <h2 class="reveal d1" style="max-width:22ch">Motion that confirms, never decorates.</h2>
+    <p class="lede-2 measure reveal d2">Every animation here answers a question the shopper is already asking: <em>did that work?</em>, <em>where did it go?</em>, <em>how much longer?</em> Nothing runs longer than 300&nbsp;ms, everything is <code>transform</code> and <code>opacity</code> only, and all of it stops dead under <code>prefers-reduced-motion</code>.</p>
+
+    <div class="demos reveal d3" style="margin-top:38px">
+      <div class="demo">
+        <div class="stagearea" id="atc-stage">
+          <button class="atc" id="atc-btn" type="button">Add to basket</button>
+        </div>
+        <h3>Add to basket</h3>
+        <p>A dot leaves the button for the basket tab and the count bumps. Answers “did that land?” without a toast stealing the screen.</p>
+      </div>
+
+      <div class="demo">
+        <div class="stagearea"><div class="skel"><i></i><i></i><i></i></div></div>
+        <h3>Loading</h3>
+        <p>Skeletons in the shape of the content, never a spinner. The page never jumps when the data arrives.</p>
+      </div>
+
+      <div class="demo">
+        <div class="stagearea"><div class="tldemo"><div class="bar"><div class="fill"></div></div><div class="cap">Being packed · 3 of 5</div></div></div>
+        <h3>Order progress</h3>
+        <p>The line draws forward when the status moves. Progress you can feel is progress you trust.</p>
+      </div>
+
+      <div class="demo">
+        <div class="stagearea">
+          <div class="stepdemo">
+            <button type="button" data-step="-1">−</button>
+            <span class="v" id="qty">2</span>
+            <button type="button" data-step="1">+</button>
+          </div>
+        </div>
+        <h3>Quantity</h3>
+        <p>The control squashes to 88% on press. On a phone in a kitchen, that tactile confirmation is worth more than any label.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================== SCREENS ======== -->
+<section id="screens">
+  <div class="wrap">
+    <span class="eyebrow reveal">The screens</span>
+    <h2 class="reveal d1" style="max-width:20ch">Same information. Completely different feeling.</h2>
+    <p class="lede-2 measure reveal d2">Nothing below removes a feature that exists today. The veg mark, the legal declarations, the per-kilo price, the five-step timeline all survive — they are simply given room, rhythm and a reason to look.</p>
+
+    <div class="phones reveal d3" style="margin-top:44px">
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="sbar"><span>9:41</span><span>▮▮▮ ▊</span></div>
+          <div class="appbar">
+            <span class="logo">FreshKirana</span>
+            <span class="sfield"><svg width="13" height="13"><use href="#search"/></svg> Atta, rice, oil…</span>
+          </div>
+
+          <div class="scroll">
+            <div class="hero-card">
+              <div class="t">Welcome back, Priya</div>
+              <div class="s">14 items you buy every month, ready to go</div>
+              <button class="go" type="button">One tap — add all · ₹974</button>
+            </div>
+
+            <div class="sec">
+              <div class="sec-h"><b>Shop by category</b><a>All</a></div>
+              <div class="tiles">
+                <div class="tile"><div class="disc" style="background:linear-gradient(150deg,#ffe0a3,#f2a61c);color:#6d4404"><svg width="24" height="24"><use href="#wheat"/></svg></div><span>Atta</span></div>
+                <div class="tile"><div class="disc" style="background:linear-gradient(150deg,#c6f0d7,#1fa45c);color:#0b4527"><svg width="24" height="24"><use href="#milk"/></svg></div><span>Dairy</span></div>
+                <div class="tile"><div class="disc" style="background:linear-gradient(150deg,#ffd0c9,#d93a2b);color:#6d1710"><svg width="24" height="24"><use href="#tomato"/></svg></div><span>Veg</span></div>
+                <div class="tile"><div class="disc" style="background:linear-gradient(150deg,#dfe7ff,#6b86d6);color:#1e2c56"><svg width="24" height="24"><use href="#bottle"/></svg></div><span>Oils</span></div>
+              </div>
+            </div>
+
+            <div class="sec">
+              <div class="sec-h"><b>Buy again</b><a>See all</a></div>
+              <div class="prod">
+                <span class="im" style="background:linear-gradient(150deg,#ffe0a3,#f2a61c);color:#6d4404"><svg width="24" height="24"><use href="#wheat"/></svg></span>
+                <span><span class="nm">Aashirvaad Atta</span><br><span class="sub">5 kg · ₹51/kg</span></span>
+                <span class="pr"><b>₹255</b><s>₹280</s></span>
+                <button class="addbtn" type="button">Add</button>
+              </div>
+              <div class="prod">
+                <span class="im" style="background:linear-gradient(150deg,#c6f0d7,#1fa45c);color:#0b4527"><svg width="24" height="24"><use href="#milk"/></svg></span>
+                <span><span class="nm">Amul Taaza</span><br><span class="sub">500 ml · ₹66/L</span></span>
+                <span class="pr"><b>₹33</b></span>
+                <button class="addbtn" type="button">Add</button>
+              </div>
+            </div>
+          </div>
+
+          <nav class="tabbar">
+            <span class="tb on"><svg width="19" height="19"><use href="#home"/></svg>Home<i class="dot"></i></span>
+            <span class="tb"><svg width="19" height="19"><use href="#search"/></svg>Search</span>
+            <span class="tb"><svg width="19" height="19"><use href="#bag"/></svg>Basket</span>
+            <span class="tb"><svg width="19" height="19"><use href="#clock"/></svg>Orders</span>
+            <span class="tb"><svg width="19" height="19"><use href="#user"/></svg>You</span>
+          </nav>
+        </div></div>
+        <figcaption><b>Home</b>A dark hero card carries the one thing that matters — the basket that rebuilds itself. Categories become colour, not text tiles.</figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="sbar"><span>9:46</span><span>▮▮▮ ▊</span></div>
+          <div class="appbar"><span class="logo" style="font-size:14px">← Checkout</span></div>
+
+          <div class="scroll">
+            <div class="sec">
+              <div class="sec-h"><b>Delivery slot</b></div>
+              <div class="chip-row">
+                <span class="chip on">Today 5–8 pm</span>
+                <span class="chip" style="opacity:.45">8–10 pm · full</span>
+                <span class="chip">Tomorrow 8–11</span>
+              </div>
+            </div>
+
+            <div class="sec">
+              <div class="sec-h"><b>If something is out of stock</b></div>
+              <div class="chip-row">
+                <span class="chip">Send similar</span>
+                <span class="chip on">Ask me first</span>
+                <span class="chip">Refund it</span>
+              </div>
+            </div>
+
+            <div class="sec">
+              <div class="sec-h"><b>Payment</b></div>
+              <div class="chip-row">
+                <span class="chip on">UPI</span>
+                <span class="chip">Cash on delivery</span>
+              </div>
+            </div>
+
+            <div class="sec">
+              <div class="notice-w">Tomatoes are priced by weight. We weigh at the counter and charge for what actually goes in the bag.</div>
+            </div>
+
+            <div class="sec">
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0"><span style="color:var(--text-mute)">Items (14)</span><b>₹974</b></div>
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;color:var(--sprout-deep);font-weight:700"><span>You save</span><span>−₹76</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0"><span style="color:var(--text-mute)">Delivery</span><b style="color:var(--sprout-deep)">Free</b></div>
+            </div>
+          </div>
+
+          <div class="paybar">
+            <span><span style="font-size:10.5px;color:var(--text-mute);font-weight:700">TO PAY</span><br><b style="font-size:19px;font-weight:800;font-variant-numeric:tabular-nums">₹979</b></span>
+            <button class="btn btn-primary" style="flex:1;padding:13px 20px;font-size:.9rem" type="button">Place order</button>
+          </div>
+        </div></div>
+        <figcaption><b>Checkout</b>Every choice becomes a chip — one tap, no radio buttons, the whole page thumb-reachable. The pay bar never scrolls away.</figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="sbar"><span>5:52</span><span>▮▮▮ ▊</span></div>
+          <div class="appbar"><span class="logo" style="font-size:14px">← FK-2841</span></div>
+
+          <div class="scroll">
+            <div class="hero-card" style="background:linear-gradient(135deg,#7a4d05,#b8790c)">
+              <div class="t">Tomatoes are out of stock</div>
+              <div class="s">Sharma Kirana can send Hybrid Tomato 1 kg — ₹42, that’s ₹4 more</div>
+              <div style="display:flex;gap:8px">
+                <button class="go" style="background:#fff;color:#3a2503" type="button">Send it</button>
+                <button class="go" style="background:#ffffff26;color:#fff" type="button">Refund ₹38</button>
+              </div>
+              <div style="font-size:10.5px;color:#ffe4b0;margin-top:9px;font-weight:700">9:12 left to decide</div>
+            </div>
+
+            <div class="sec">
+              <div style="display:flex;gap:11px;align-items:flex-start;padding:7px 0">
+                <span style="width:13px;height:13px;border-radius:50%;background:var(--sprout);flex:none;margin-top:3px"></span>
+                <span><b style="font-size:12.5px">Order placed</b><br><span class="sub" style="font-size:10.5px;color:var(--text-mute)">22 Aug, 9:46 am</span></span>
+              </div>
+              <div style="display:flex;gap:11px;align-items:flex-start;padding:7px 0">
+                <span style="width:13px;height:13px;border-radius:50%;background:var(--sprout);flex:none;margin-top:3px"></span>
+                <span><b style="font-size:12.5px">Shop confirmed</b><br><span style="font-size:10.5px;color:var(--text-mute)">22 Aug, 9:51 am</span></span>
+              </div>
+              <div style="display:flex;gap:11px;align-items:flex-start;padding:7px 0">
+                <span style="width:13px;height:13px;border-radius:50%;border:3px solid var(--sprout);background:var(--paper);flex:none;margin-top:3px;box-shadow:0 0 0 4px #1fa45c2e"></span>
+                <span><b style="font-size:12.5px">Being packed</b><br><span style="font-size:10.5px;color:var(--sprout-deep);font-weight:700">Happening now</span></span>
+              </div>
+              <div style="display:flex;gap:11px;align-items:flex-start;padding:7px 0;opacity:.45">
+                <span style="width:13px;height:13px;border-radius:50%;border:2px solid var(--clay-line);flex:none;margin-top:3px"></span>
+                <span><b style="font-size:12.5px">On the way</b></span>
+              </div>
+              <div style="display:flex;gap:11px;align-items:flex-start;padding:7px 0;opacity:.45">
+                <span style="width:13px;height:13px;border-radius:50%;border:2px solid var(--clay-line);flex:none;margin-top:3px"></span>
+                <span><b style="font-size:12.5px">Delivered</b><br><span style="font-size:10.5px;color:var(--text-mute)">by 8:00 pm</span></span>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption><b>Order tracking</b>The decision the shopper has to make outranks the timeline — so it gets the hero card, the warm colour and the countdown.</figcaption>
+      </figure>
+
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================== PLAN =========== -->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow reveal">How it ships</span>
+    <h2 class="reveal d1" style="max-width:20ch">Four parts, in the order that pays off soonest.</h2>
+    <p class="lede-2 measure reveal d2">Sized to the way the rest of the build runs: one part at a time, each ending green through the same gate. This replaces the single line the plan currently gives the storefront under Phase&nbsp;8.</p>
+
+    <div class="steps reveal d3" style="margin-top:38px">
+      <div class="step">
+        <span class="num"></span>
+        <div>
+          <h3>Stop the bleeding</h3>
+          <p>The 442&nbsp;px overflow, the two unreachable nav tabs, and every tap target under 44&nbsp;px. Pure bug-fixing against rules the codebase already states.</p>
+          <div class="meta">Half a day · ships before anything else</div>
+        </div>
+      </div>
+      <div class="step">
+        <span class="num"></span>
+        <div>
+          <h3>The token layer</h3>
+          <p>Replace the flat palette with the full scale, add the two typefaces with a Devanagari fallback, and set the spacing and radius rhythm. No screen changes — just the vocabulary every later screen draws from.</p>
+          <div class="meta">Foundational · unblocks parts 3 and 4</div>
+        </div>
+      </div>
+      <div class="step">
+        <span class="num"></span>
+        <div>
+          <h3>Home, product and checkout</h3>
+          <p>The three screens that decide whether somebody orders. Hero card, category discs, product rows with imagery, chip-based checkout and the pinned pay bar.</p>
+          <div class="meta">Where the conversion actually moves</div>
+        </div>
+      </div>
+      <div class="step">
+        <span class="num"></span>
+        <div>
+          <h3>Motion and polish</h3>
+          <p>Add-to-basket flight, skeletons, timeline draw, press states, page transitions — plus the product imagery pipeline, which is the one item here that needs real photography rather than code.</p>
+          <div class="meta">Needs a decision on image sourcing</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:52px">
+      <h3 style="margin-bottom:16px">What it costs against the §4.1 budget</h3>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Item</th><th>Approach</th><th class="n">Added weight</th></tr></thead>
+          <tbody>
+            <tr><td>Two web fonts</td><td>Two weights each, <code>font-display:swap</code>, subset Latin + Devanagari</td><td class="n">~48 KB</td></tr>
+            <tr><td>Icon set</td><td>Inline SVG sprite, no icon font, no library</td><td class="n">~3 KB</td></tr>
+            <tr><td>All animation</td><td>CSS <code>transform</code>/<code>opacity</code> only — no Framer, no GSAP</td><td class="n">0 KB JS</td></tr>
+            <tr><td>Scroll reveals</td><td><code>IntersectionObserver</code>, ~15 lines</td><td class="n">&lt;1 KB</td></tr>
+            <tr><td>Product imagery</td><td>WebP, lazy below the fold, fixed aspect boxes</td><td class="n">per-image</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="measure" style="margin-top:20px;color:var(--text-soft);font-size:.95rem">The 200&nbsp;KB JavaScript budget is untouched, because none of this is JavaScript. Fonts are the only real cost, and they buy the single biggest change in how the product feels.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">FreshKirana · “Mandi light” design direction · supersedes the storefront styling line in Phase 8 of the build plan</div>
+</footer>
+
+<script>
+  // Scroll reveals. Fifteen lines, no library — see the budget table.
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+  document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+
+  // Add-to-basket: a dot leaves the button and the count bumps.
+  const stage = document.getElementById('atc-stage');
+  document.getElementById('atc-btn')?.addEventListener('click', (ev) => {
+    const dot = document.createElement('span');
+    dot.className = 'fly';
+    const r = ev.currentTarget.getBoundingClientRect();
+    const s = stage.getBoundingClientRect();
+    dot.style.left = (r.left - s.left + r.width / 2 - 13) + 'px';
+    dot.style.top = (r.top - s.top + r.height / 2 - 13) + 'px';
+    stage.appendChild(dot);
+    setTimeout(() => dot.remove(), 800);
+  });
+
+  // Quantity stepper.
+  const qty = document.getElementById('qty');
+  document.querySelectorAll('[data-step]').forEach((b) => {
+    b.addEventListener('click', () => {
+      const next = Math.max(1, Number(qty.textContent) + Number(b.dataset.step));
+      qty.textContent = String(next);
+    });
+  });
+</script>

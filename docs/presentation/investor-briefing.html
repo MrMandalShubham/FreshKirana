@@ -1,0 +1,706 @@
+<title>FreshKirana</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Karla:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  /* ---------------------------------------------------------------------
+     Palette taken from the product itself: the green is FreshKirana's own
+     brand colour, the amber is haldi. Neutrals carry a faint green bias so
+     they read as chosen rather than inherited.
+     --------------------------------------------------------------------- */
+  :root {
+    --ink: #14201a;
+    --ink-soft: #3d4a43;
+    --muted: #67736c;
+    --paper: #f7f6f2;
+    --surface: #ecebe4;
+    --surface-2: #e3e2d9;
+    --line: #d6d5cb;
+    --brand: #1f7a4d;
+    --brand-soft: #e0efe6;
+    --haldi: #b26a13;
+    --haldi-soft: #f6ead8;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --ink: #e9ece7;
+      --ink-soft: #b9c2bb;
+      --muted: #8b968e;
+      --paper: #0e1613;
+      --surface: #16211c;
+      --surface-2: #1d2a24;
+      --line: #2a3730;
+      --brand: #58b884;
+      --brand-soft: #16302266;
+      --haldi: #dfa85a;
+      --haldi-soft: #2c211066;
+    }
+  }
+
+  :root[data-theme='dark'] {
+    --ink: #e9ece7;
+    --ink-soft: #b9c2bb;
+    --muted: #8b968e;
+    --paper: #0e1613;
+    --surface: #16211c;
+    --surface-2: #1d2a24;
+    --line: #2a3730;
+    --brand: #58b884;
+    --brand-soft: #16302266;
+    --haldi: #dfa85a;
+    --haldi-soft: #2c211066;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Karla, system-ui, -apple-system, sans-serif;
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  .measure { max-width: 64ch; }
+
+  h1, h2, h3 {
+    font-family: Fraunces, Georgia, serif;
+    text-wrap: balance;
+    margin: 0;
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+  }
+
+  h1 { font-size: clamp(2.6rem, 6vw, 4.2rem); font-weight: 600; }
+  h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); font-weight: 600; }
+  h3 { font-size: 1.12rem; font-weight: 600; }
+
+  p { margin: 0 0 1.05em; }
+  p:last-child { margin-bottom: 0; }
+
+  strong { font-weight: 700; color: var(--ink); }
+  em { font-style: italic; }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.71rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--brand);
+    margin: 0 0 14px;
+    display: block;
+  }
+
+  .lede { font-size: 1.22rem; color: var(--ink-soft); }
+
+  section { padding: 74px 0; border-top: 1px solid var(--line); }
+  section:first-of-type { border-top: none; }
+
+  /* --- Opening ------------------------------------------------------- */
+
+  .hero { padding: 96px 0 78px; }
+
+  .mark {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 46px;
+  }
+  .mark b { color: var(--brand); font-weight: 500; }
+
+  .thesis {
+    font-family: Fraunces, Georgia, serif;
+    font-size: clamp(1.35rem, 2.7vw, 1.85rem);
+    line-height: 1.42;
+    color: var(--ink-soft);
+    max-width: 34ch;
+    margin: 26px 0 0;
+    border-left: 3px solid var(--haldi);
+    padding-left: 22px;
+  }
+
+  /* --- Generic blocks ------------------------------------------------ */
+
+  .grid { display: grid; gap: 20px; }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 24px;
+  }
+
+  .card h3 { margin-bottom: 8px; }
+  .card p { font-size: 0.96rem; color: var(--ink-soft); }
+
+  .stack { display: flex; flex-direction: column; gap: 18px; }
+  .row { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+
+  /* --- Tables -------------------------------------------------------- */
+
+  .scroller { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    min-width: 460px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+
+  thead th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  tr.total td {
+    border-top: 2px solid var(--ink);
+    border-bottom: none;
+    font-weight: 700;
+    font-size: 1.02rem;
+  }
+
+  .served { color: var(--muted); }
+  .gap { color: var(--haldi); font-weight: 700; }
+
+  /* --- Big numbers --------------------------------------------------- */
+
+  .figures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+
+  .figure { background: var(--paper); padding: 26px 22px; }
+
+  .figure .n {
+    font-family: Fraunces, Georgia, serif;
+    font-size: 2.5rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--brand);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .figure .k {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+
+  /* --- Diagrams ------------------------------------------------------ */
+
+  .figure-block {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 28px 24px 22px;
+  }
+
+  .figure-block svg { width: 100%; height: auto; display: block; }
+
+  .caption {
+    font-size: 0.86rem;
+    color: var(--muted);
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+
+  /* --- Wedges -------------------------------------------------------- */
+
+  .wedge { border-top: 2px solid var(--brand); padding-top: 18px; }
+  .wedge h3 { margin-bottom: 10px; }
+  .wedge p { font-size: 0.97rem; color: var(--ink-soft); margin-bottom: 0; }
+
+  .moat {
+    margin-top: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--haldi);
+  }
+
+  /* --- Roadmap ------------------------------------------------------- */
+
+  .phase {
+    display: grid;
+    grid-template-columns: 54px 1fr auto;
+    gap: 18px;
+    align-items: baseline;
+    padding: 15px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .phase .p {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.74rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  .phase .t { font-weight: 500; }
+  .phase .t span { display: block; font-size: 0.88rem; color: var(--muted); font-weight: 400; }
+
+  .pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    white-space: nowrap;
+    border: 1px solid currentColor;
+  }
+
+  .pill.done { color: var(--brand); background: var(--brand-soft); }
+  .pill.next { color: var(--haldi); background: var(--haldi-soft); }
+  .pill.todo { color: var(--muted); }
+
+  /* --- Honesty panel ------------------------------------------------- */
+
+  .ledger { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+
+  .ledger ul { margin: 0; padding-left: 0; list-style: none; }
+
+  .ledger li {
+    padding: 9px 0 9px 26px;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.95rem;
+    position: relative;
+    color: var(--ink-soft);
+  }
+
+  .ledger li::before {
+    position: absolute;
+    left: 0;
+    top: 9px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+  }
+
+  .have li::before { content: '✓'; color: var(--brand); }
+  .havent li::before { content: '—'; color: var(--haldi); }
+
+  /* --- Close --------------------------------------------------------- */
+
+  section.close {
+    background: var(--surface-2);
+    border-top: 2px solid var(--brand);
+    padding: 60px 34px 66px;
+    margin-top: 20px;
+  }
+
+  footer {
+    padding: 34px 0 60px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 620px) {
+    body { font-size: 16px; }
+    section { padding: 54px 0; }
+    .phase { grid-template-columns: 44px 1fr; }
+    .phase .pill { grid-column: 2; justify-self: start; margin-top: 6px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div class="mark"><b>FreshKirana</b> &nbsp;·&nbsp; Investor briefing</div>
+    <h1>The monthly grocery shop,<br>done properly.</h1>
+    <p class="thesis">Your neighbourhood kirana’s full range, ordered in two minutes from your last basket, delivered in a slot you chose.</p>
+  </header>
+
+  <!-- ================================================================= -->
+  <section>
+    <span class="eyebrow">The problem</span>
+    <h2>Indian households shop for groceries in two different ways. Only one of them is served.</h2>
+
+    <div class="scroller" style="margin-top:30px">
+      <table>
+        <thead>
+          <tr>
+            <th>Mode</th>
+            <th>Basket</th>
+            <th>How often</th>
+            <th>Who serves it</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Top-up</strong><br><span class="served">Ran out of milk</span></td>
+            <td>1–4 items<br>₹80–250</td>
+            <td>Several times a week</td>
+            <td class="served">Blinkit, Zepto, Instamart — well served</td>
+          </tr>
+          <tr>
+            <td><strong>The planned shop</strong><br><span class="served">The monthly stock-up</span></td>
+            <td>20–60 items<br>₹800–3,000</td>
+            <td>1–4 times a month</td>
+            <td class="gap">Nobody, really</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="measure" style="margin-top:32px">
+      <p>Today the planned shop means walking to the kirana, or sending a WhatsApp list to a shop that calls back about missing items, negotiates substitutions out loud, and hand-writes the bill. It works. It is also slow, error-prone, and has no prices, no history, and no way to reorder.</p>
+      <p>Quick commerce serves this badly <em>on purpose</em>. A dark store carries 2,000–6,000 items chosen for impulse buying. A planned basket needs the long tail — staples, regional brands, loose produce — that no dark store stocks.</p>
+    </div>
+  </section>
+
+  <!-- ================================================================= -->
+  <section>
+    <span class="eyebrow">What we are building</span>
+    <h2>The kirana already has the range. It is missing everything around it.</h2>
+
+    <div class="measure" style="margin-top:22px">
+      <p>We do not build warehouses or hold stock. We connect three people who are already in the neighbourhood, and give each of them the one thing they are missing.</p>
+    </div>
+
+    <div class="figure-block" style="margin-top:34px">
+      <svg viewBox="0 0 900 300" role="img" aria-label="A shopper orders in the app, the shop receives the order on WhatsApp, a rider delivers it in a chosen slot.">
+        <defs>
+          <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--brand)"/>
+          </marker>
+        </defs>
+
+        <!-- Shopper -->
+        <rect x="10" y="70" width="230" height="150" fill="var(--paper)" stroke="var(--brand)" stroke-width="2"/>
+        <text x="34" y="106" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.6" fill="var(--muted)">THE SHOPPER</text>
+        <text x="34" y="140" font-family="Fraunces, Georgia, serif" font-size="21" fill="var(--ink)">Opens the app</text>
+        <text x="34" y="170" font-family="Karla, sans-serif" font-size="14" fill="var(--ink-soft)">Last month’s basket is</text>
+        <text x="34" y="190" font-family="Karla, sans-serif" font-size="14" fill="var(--ink-soft)">already there. One tap,</text>
+        <text x="34" y="210" font-family="Karla, sans-serif" font-size="14" fill="var(--ink-soft)">then pick a slot.</text>
+
+        <!-- Shop -->
+        <rect x="335" y="70" width="230" height="150" fill="var(--paper)" stroke="var(--brand)" stroke-width="2"/>
+        <text x="359" y="106" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.6" fill="var(--muted)">THE KIRANA</text>
+        <text x="359" y="140" font-family="Fraunces, Georgia, serif" font-size="21" fill="var(--ink)">Gets a WhatsApp</text>
+        <text x="359" y="170" font-family="Karla, sans-serif" font-size="14" fill="var(--ink-soft)">Accepts with one tap.</text>
+        <text x="359" y="190" font-family="Karla, sans-serif" font-size="14" fill="var(--ink-soft)">No new app to learn,</text>
+        <text x="359" y="210" font-family="Karla, sans-serif" font-size="14" fill="var(--ink-soft)">no dashboard, no training.</text>
+
+        <!-- Rider -->
+        <rect x="660" y="70" width="230" height="150" fill="var(--paper)" stroke="var(--brand)" stroke-width="2"/>
+        <text x="684" y="106" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.6" fill="var(--muted)">THE RIDER</text>
+        <text x="684" y="140" font-family="Fraunces, Georgia, serif" font-size="21" fill="var(--ink)">Delivers the slot</text>
+        <text x="684" y="170" font-family="Karla, sans-serif" font-size="14" fill="var(--ink-soft)">Takes cash if that is how</text>
+        <text x="684" y="190" font-family="Karla, sans-serif" font-size="14" fill="var(--ink-soft)">they pay — the amount is</text>
+        <text x="684" y="210" font-family="Karla, sans-serif" font-size="14" fill="var(--ink-soft)">already correct.</text>
+
+        <line x1="248" y1="145" x2="322" y2="145" stroke="var(--brand)" stroke-width="2" marker-end="url(#arw)"/>
+        <line x1="573" y1="145" x2="647" y2="145" stroke="var(--brand)" stroke-width="2" marker-end="url(#arw)"/>
+
+        <text x="285" y="134" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">order</text>
+        <text x="610" y="134" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">packed</text>
+
+        <text x="450" y="266" text-anchor="middle" font-family="Karla, sans-serif" font-size="14" fill="var(--haldi)">Something out of stock? The shop taps once and the shopper decides — swap, or refund that item.</text>
+      </svg>
+      <p class="caption">The whole product in one line. The shop never leaves WhatsApp; the shopper never chases the shop.</p>
+    </div>
+  </section>
+
+  <!-- ================================================================= -->
+  <section>
+    <span class="eyebrow">Why we win</span>
+    <h2>Three advantages a competitor cannot copy quickly.</h2>
+
+    <div class="grid g3" style="margin-top:34px">
+      <div class="wedge">
+        <h3>The shop stays on WhatsApp</h3>
+        <p>A kirana owner will not learn a dashboard. They already live in WhatsApp, so that is where the entire vendor product lives — accepting orders, flagging what is missing, confirming handover.</p>
+        <div class="moat">Dashboard-first rivals must rebuild</div>
+      </div>
+
+      <div class="wedge">
+        <h3>Your basket predicts itself</h3>
+        <p>Groceries are the one category where history genuinely predicts the next order: 70–80% of a household’s items repeat. A 40-item monthly list becomes one tap.</p>
+        <div class="moat">Compounds with every order</div>
+      </div>
+
+      <div class="wedge">
+        <h3>Built for messy stock</h3>
+        <p>Small shops will never have perfect inventory data. We assume that and design around it — confirm before charging, substitute generously, promise slots conservatively.</p>
+        <div class="moat">Rivals assuming clean data break on contact</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================= -->
+  <section>
+    <span class="eyebrow">How the money works</span>
+    <h2>Every order carries its own weight.</h2>
+
+    <div class="measure" style="margin-top:22px">
+      <p>The model below is our planning assumption, to be checked against a real pilot. It is deliberately conservative: no advertising revenue, no private label, no subscription.</p>
+    </div>
+
+    <div class="scroller" style="margin-top:30px">
+      <table>
+        <thead>
+          <tr><th>Per order</th><th class="num">Amount</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Average basket</td><td class="num">₹600</td></tr>
+          <tr><td>Commission from the shop (~10%)</td><td class="num">+₹60</td></tr>
+          <tr><td>Delivery and packaging fees</td><td class="num">+₹30</td></tr>
+          <tr><td>Delivery cost</td><td class="num">−₹40</td></tr>
+          <tr><td>Packaging, payments, support</td><td class="num">−₹14</td></tr>
+          <tr><td>Refunds, shrinkage, failed cash deliveries</td><td class="num">−₹13</td></tr>
+          <tr class="total"><td>Contribution per order</td><td class="num">≈ ₹23</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="row" style="margin-top:36px">
+      <div class="card" style="flex:1 1 300px">
+        <h3>Lever one — basket size</h3>
+        <p>Delivery costs the same whether the basket is ₹600 or ₹900. A larger basket roughly <strong>doubles</strong> contribution. This is exactly what the repeat-basket feature is for.</p>
+      </div>
+      <div class="card" style="flex:1 1 300px">
+        <h3>Lever two — two orders, one trip</h3>
+        <p>Because customers choose a delivery slot rather than demanding ten minutes, we can batch. Two orders on one trip cuts ₹40 to about <strong>₹24</strong>.</p>
+      </div>
+    </div>
+
+    <div class="measure" style="margin-top:28px">
+      <p>Both levers are <em>product</em> decisions, not operational grind. That is the whole reason we chose slots over speed.</p>
+    </div>
+  </section>
+
+  <!-- ================================================================= -->
+  <section>
+    <span class="eyebrow">How it is put together</span>
+    <h2>One system, four front doors.</h2>
+
+    <div class="measure" style="margin-top:22px">
+      <p>Everything runs on Google Cloud and costs almost nothing when idle. The important design choice is that all four audiences talk to the <em>same</em> core — so a price, a stock level, or an order status can never disagree between them.</p>
+    </div>
+
+    <div class="figure-block" style="margin-top:34px">
+      <svg viewBox="0 0 900 400" role="img" aria-label="Four front doors — the shopper app, WhatsApp for shops, the rider app and the ops console — all talk to one core service, which holds the catalogue, orders, payments and money, backed by one database.">
+        <!-- Front doors -->
+        <text x="20" y="26" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.6" fill="var(--muted)">WHO TALKS TO IT</text>
+
+        <rect x="20" y="42" width="200" height="62" fill="var(--paper)" stroke="var(--brand)" stroke-width="2"/>
+        <text x="36" y="70" font-family="Karla, sans-serif" font-size="15" font-weight="700" fill="var(--ink)">Shopper app</text>
+        <text x="36" y="90" font-family="Karla, sans-serif" font-size="12.5" fill="var(--brand)">live today</text>
+
+        <rect x="240" y="42" width="200" height="62" fill="var(--paper)" stroke="var(--brand)" stroke-width="2"/>
+        <text x="256" y="70" font-family="Karla, sans-serif" font-size="15" font-weight="700" fill="var(--ink)">WhatsApp — shops</text>
+        <text x="256" y="90" font-family="Karla, sans-serif" font-size="12.5" fill="var(--brand)">live today</text>
+
+        <rect x="460" y="42" width="200" height="62" fill="var(--paper)" stroke="var(--line)" stroke-width="2" stroke-dasharray="5 4"/>
+        <text x="476" y="70" font-family="Karla, sans-serif" font-size="15" font-weight="700" fill="var(--ink-soft)">Rider app</text>
+        <text x="476" y="90" font-family="Karla, sans-serif" font-size="12.5" fill="var(--muted)">next phase</text>
+
+        <rect x="680" y="42" width="200" height="62" fill="var(--paper)" stroke="var(--line)" stroke-width="2" stroke-dasharray="5 4"/>
+        <text x="696" y="70" font-family="Karla, sans-serif" font-size="15" font-weight="700" fill="var(--ink-soft)">Ops console</text>
+        <text x="696" y="90" font-family="Karla, sans-serif" font-size="12.5" fill="var(--muted)">next phase</text>
+
+        <!-- connectors down to core -->
+        <line x1="120" y1="104" x2="120" y2="150" stroke="var(--line)" stroke-width="2"/>
+        <line x1="340" y1="104" x2="340" y2="150" stroke="var(--line)" stroke-width="2"/>
+        <line x1="560" y1="104" x2="560" y2="150" stroke="var(--line)" stroke-width="2"/>
+        <line x1="780" y1="104" x2="780" y2="150" stroke="var(--line)" stroke-width="2"/>
+        <line x1="120" y1="150" x2="780" y2="150" stroke="var(--line)" stroke-width="2"/>
+        <line x1="450" y1="150" x2="450" y2="176" stroke="var(--brand)" stroke-width="2"/>
+
+        <!-- Core -->
+        <rect x="20" y="176" width="860" height="118" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="2"/>
+        <text x="40" y="203" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.6" fill="var(--brand)">ONE CORE — THE SINGLE SOURCE OF TRUTH</text>
+
+        <g font-family="Karla, sans-serif" font-size="13.5" fill="var(--ink)">
+          <rect x="40" y="220" width="150" height="54" fill="var(--paper)" stroke="var(--line)"/>
+          <text x="56" y="243">Catalogue</text>
+          <text x="56" y="262" font-size="11.5" fill="var(--muted)">what is on the shelf</text>
+
+          <rect x="205" y="220" width="150" height="54" fill="var(--paper)" stroke="var(--line)"/>
+          <text x="221" y="243">Orders</text>
+          <text x="221" y="262" font-size="11.5" fill="var(--muted)">one status, all views</text>
+
+          <rect x="370" y="220" width="150" height="54" fill="var(--paper)" stroke="var(--line)"/>
+          <text x="386" y="243">Stock &amp; slots</text>
+          <text x="386" y="262" font-size="11.5" fill="var(--muted)">held, never oversold</text>
+
+          <rect x="535" y="220" width="150" height="54" fill="var(--paper)" stroke="var(--line)"/>
+          <text x="551" y="243">Payments</text>
+          <text x="551" y="262" font-size="11.5" fill="var(--muted)">UPI and cash</text>
+
+          <rect x="700" y="220" width="160" height="54" fill="var(--paper)" stroke="var(--line)"/>
+          <text x="716" y="243">Refunds</text>
+          <text x="716" y="262" font-size="11.5" fill="var(--muted)">automatic, traceable</text>
+        </g>
+
+        <line x1="450" y1="294" x2="450" y2="322" stroke="var(--brand)" stroke-width="2"/>
+
+        <!-- Data -->
+        <rect x="240" y="322" width="420" height="56" fill="var(--paper)" stroke="var(--brand)" stroke-width="2"/>
+        <text x="450" y="346" text-anchor="middle" font-family="Karla, sans-serif" font-size="14.5" font-weight="700" fill="var(--ink)">One database, in India</text>
+        <text x="450" y="366" text-anchor="middle" font-family="Karla, sans-serif" font-size="12.5" fill="var(--muted)">Mumbai region — the simplest position under India’s data-protection law</text>
+      </svg>
+      <p class="caption">Built so that pulling any one audience out later — a bigger vendor app, a partner integration — does not mean rebuilding the middle.</p>
+    </div>
+  </section>
+
+  <!-- ================================================================= -->
+  <section>
+    <span class="eyebrow">Where we are</span>
+    <h2>Five of eight phases built, tested and running.</h2>
+
+    <div class="figures" style="margin-top:32px">
+      <div class="figure"><div class="n">27</div><div class="k">parts shipped</div></div>
+      <div class="figure"><div class="n">700+</div><div class="k">automated tests</div></div>
+      <div class="figure"><div class="n">5/8</div><div class="k">phases complete</div></div>
+      <div class="figure"><div class="n">0</div><div class="k">pilot orders yet</div></div>
+    </div>
+
+    <div style="margin-top:44px">
+      <div class="phase">
+        <div class="p">01</div>
+        <div class="t">Foundations<span>Cloud, database, deployment, safety rails</span></div>
+        <div class="pill done">Built</div>
+      </div>
+      <div class="phase">
+        <div class="p">02</div>
+        <div class="t">Catalogue &amp; search<span>Products, shops, prices, Indian-language search</span></div>
+        <div class="pill done">Built</div>
+      </div>
+      <div class="phase">
+        <div class="p">03</div>
+        <div class="t">Ordering<span>Basket, slots, checkout, the shop’s WhatsApp flow, tracking</span></div>
+        <div class="pill done">Built</div>
+      </div>
+      <div class="phase">
+        <div class="p">04</div>
+        <div class="t">Stock &amp; payments<span>Holds that prevent overselling, UPI, cash risk, refunds</span></div>
+        <div class="pill done">Built</div>
+      </div>
+      <div class="phase">
+        <div class="p">05</div>
+        <div class="t">Grocery realities<span>Substitutions, weighing loose goods, expiry and recall</span></div>
+        <div class="pill done">Built</div>
+      </div>
+      <div class="phase">
+        <div class="p">06</div>
+        <div class="t">Money infrastructure<span>Ledger, GST invoicing, paying shops out, cash reconciliation</span></div>
+        <div class="pill next">Next</div>
+      </div>
+      <div class="phase">
+        <div class="p">07</div>
+        <div class="t">Delivery<span>Rider app, proof of delivery, failed deliveries</span></div>
+        <div class="pill todo">Planned</div>
+      </div>
+      <div class="phase">
+        <div class="p">08</div>
+        <div class="t">Shop &amp; ops tools<span>Vendor dashboard, admin console, quality scoring</span></div>
+        <div class="pill todo">Planned</div>
+      </div>
+      <div class="phase">
+        <div class="p">09</div>
+        <div class="t">Launch readiness<span>Real sign-in, load testing, accessibility, privacy law</span></div>
+        <div class="pill todo">Planned</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================= -->
+  <section>
+    <span class="eyebrow">Straight answers</span>
+    <h2>What is real today, and what is not.</h2>
+
+    <div class="measure" style="margin-top:22px">
+      <p>Every number above is from a working system. Here is the honest line between what has been built and what has not, so nothing comes as a surprise later.</p>
+    </div>
+
+    <div class="ledger" style="margin-top:34px">
+      <div>
+        <h3 style="margin-bottom:14px">Real and working</h3>
+        <ul class="have">
+          <li>A shopper can browse, order, pay and track — on a phone</li>
+          <li>A shop can run an order start to finish from WhatsApp</li>
+          <li>Stock is held at checkout, so two people cannot buy the last packet</li>
+          <li>Cash orders are risk-scored and confirmed before a shop packs them</li>
+          <li>Refunds are issued automatically when an order is cancelled or an item is missing</li>
+          <li>Loose produce is weighed and the customer is charged for what was delivered</li>
+          <li>An unsafe batch can be pulled and its customers identified</li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 style="margin-bottom:14px">Not built yet</h3>
+        <ul class="havent">
+          <li><strong>No pilot has run.</strong> No real customer, shop or rupee yet</li>
+          <li>Payments work end to end but against test credentials, not a live account</li>
+          <li>Sign-in is a development shortcut — real phone-number login is a later phase</li>
+          <li>Riders and ops have no app; both are later phases</li>
+          <li>Shops have WhatsApp and a minimal screen, not the full dashboard</li>
+          <li>Tax invoices and shop payouts are the next phase</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================= -->
+  <section class="close">
+      <span class="eyebrow">What happens next</span>
+      <h2>The next milestone is five real orders.</h2>
+
+      <div class="measure" style="margin-top:22px">
+        <p>The build is far enough along that the useful next step is not more code — it is one friendly kirana, a handful of real households, and five orders carried end to end. That is what turns every number in the model above from an assumption into a measurement.</p>
+        <p>What we need to get there: a live payment account, one pilot shop, and the delivery and payout phases finished.</p>
+      </div>
+
+      <div class="grid g3" style="margin-top:34px">
+        <div class="card">
+          <h3>Prove the basket</h3>
+          <p>Does the repeat-basket feature actually get used? Target: half of all orders assisted by it by month six.</p>
+        </div>
+        <div class="card">
+          <h3>Prove the shop</h3>
+          <p>Can a real kirana owner run a day of orders on WhatsApp alone, with no training and no hand-holding?</p>
+        </div>
+        <div class="card">
+          <h3>Prove the margin</h3>
+          <p>Does a real basket land near ₹600, and does batching two deliveries onto one trip work in a real neighbourhood?</p>
+        </div>
+      </div>
+  </section>
+
+  <footer>FreshKirana · Investor briefing · Prepared 22 August 2026</footer>
+
+</div>
