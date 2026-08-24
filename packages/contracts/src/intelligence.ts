@@ -65,7 +65,7 @@ export interface SubstituteCandidate {
 export interface SubstituteContext {
   /** The line that cannot be filled. */
   masterProductId: string;
-  vendorId: string;
+  branchId: string;
   quantity: number;
 }
 

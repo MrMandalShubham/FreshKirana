@@ -48,7 +48,7 @@ export default async function CheckoutPage({
   // Slots belong to the store the basket is pinned to (decision D2) — asking
   // for any other store's would offer a window nobody can deliver in.
   const [slots, preview] = await Promise.all([
-    cart.vendorId ? fetchSlots(cart.vendorId) : Promise.resolve([]),
+    cart.branchId ? fetchSlots(cart.branchId) : Promise.resolve([]),
     fetchCheckoutPreview(defaultAddress ? { addressId: defaultAddress.id } : {}),
   ]);
 

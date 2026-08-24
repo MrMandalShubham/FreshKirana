@@ -24,7 +24,7 @@ import { InventoryService } from '../../inventory/contracts';
 import { NotificationService } from '../../notification/contracts';
 import { OrderStateService } from './order-state.service';
 import { OrderService } from './order.service';
-import { VendorOrderFlowService } from './vendor-order-flow.service';
+import { BranchOrderFlowService } from './branch-order-flow.service';
 
 export interface CodAssessment {
   band: CodRiskBand;
@@ -41,7 +41,7 @@ export interface CodAssessment {
  *
  * ## Why an order can wait
  *
- * §2.10.4 requires confirmation *before vendor acceptance*, and §2.6.1 has no
+ * §2.10.4 requires confirmation *before branch acceptance*, and §2.6.1 has no
  * state for "confirming" — so a COD order awaiting confirmation waits in
  * `PENDING_PAYMENT`, which is the state that already means exactly this: not
  * yet released to the store, because the money question is unsettled. For
@@ -68,7 +68,7 @@ export class CodFlowService {
     private readonly state: OrderStateService,
     private readonly inventory: InventoryService,
     private readonly notifications: NotificationService,
-    private readonly vendorFlow: VendorOrderFlowService,
+    private readonly vendorFlow: BranchOrderFlowService,
     private readonly analytics: AnalyticsService,
   ) {}
 
@@ -362,7 +362,7 @@ export class CodFlowService {
       accountId: string;
       orderNumber: string;
       recipientPhone: string;
-      vendorId: string;
+      branchId: string;
       grandTotalPaise: number;
     },
     method: CodConfirmationMethod,
@@ -383,7 +383,7 @@ export class CodFlowService {
       toPhone: order.recipientPhone,
       accountId: order.accountId,
       orderId: order.id,
-      vendorId: order.vendorId,
+      branchId: order.branchId,
       // Buttons for the band where a tap is enough. The OTP band deliberately
       // has none: the whole reason for a code is that tapping is too easy.
       ...(isOtp ? {} : { quickReplies: [CustomerReply.CONFIRM, CustomerReply.DECLINE] }),

@@ -54,7 +54,7 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
   let riderToken: string;
   let opsToken: string;
 
-  let vendorId: string;
+  let branchId: string;
   let addressId: string;
   let offerId: string;
   let categoryId: string;
@@ -75,7 +75,7 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
   async function login(role: Role, vendor?: string): Promise<string> {
     const res = await http()
       .post('/dev/login-as')
-      .send(vendor ? { role, vendorId: vendor } : { role })
+      .send(vendor ? { role, branchId: vendor } : { role })
       .expect(201);
     return (res.body as { token: string }).token;
   }
@@ -105,7 +105,7 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
       .expect(201);
 
     const slots = await http()
-      .get(`/serviceability/stores/${vendorId}/slots`)
+      .get(`/serviceability/stores/${branchId}/slots`)
       .query({ days: 3 })
       .expect(200);
 
@@ -122,7 +122,7 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
   /** A store-side move. Not async: callers chain `.expect(...)`. */
   function vendorMoves(orderId: string, to: OrderStatus, reason?: string) {
     return as(vendorToken)(
-      http().post(`/vendor/${vendorId}/orders/${orderId}/transitions`),
+      http().post(`/branch/${branchId}/orders/${orderId}/transitions`),
     ).send(reason ? { to, reason } : { to });
   }
 
@@ -167,7 +167,7 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
     categoryId = (category.body as { id: string }).id;
 
     const vendor = await http()
-      .post('/admin/vendors')
+      .post('/admin/branches')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         slug: `store-${unique()}`,
@@ -182,16 +182,16 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
         fssaiLicenceNo: `1${Math.floor(Math.random() * 1e13)}`,
       })
       .expect(201);
-    vendorId = (vendor.body as { id: string }).id;
+    branchId = (vendor.body as { id: string }).id;
 
     await http()
-      .patch(`/admin/vendors/${vendorId}`)
+      .patch(`/admin/branches/${branchId}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ status: 'ACTIVE' })
       .expect(200);
 
     await http()
-      .put(`/vendor/${vendorId}/service-area`)
+      .put(`/branch/${branchId}/service-area`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         mode: ServiceAreaMode.RADIUS,
@@ -203,7 +203,7 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
 
     const tomorrow = istDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
     await http()
-      .put(`/vendor/${vendorId}/slot-definitions`)
+      .put(`/branch/${branchId}/slot-definitions`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         dayOfWeek: istDayOfWeek(tomorrow),
@@ -214,7 +214,7 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
       })
       .expect(200);
 
-    vendorToken = await login(Role.VENDOR_STAFF, vendorId);
+    vendorToken = await login(Role.VENDOR_STAFF, branchId);
 
     const product = await http()
       .post('/admin/catalog/products')
@@ -237,7 +237,7 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
       .expect(201);
 
     const offer = await http()
-      .post(`/vendor/${vendorId}/offers`)
+      .post(`/branch/${branchId}/offers`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         masterProductId: (product.body as { id: string }).id,
@@ -367,7 +367,7 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
       expect(customer.nextActions?.map((a) => a.to)).toEqual([OrderStatus.CANCELLED]);
 
       const queue = await as(vendorToken)(
-        http().get(`/vendor/${vendorId}/orders`),
+        http().get(`/branch/${branchId}/orders`),
       ).expect(200);
       const mine = (queue.body as OrderView[]).find((o) => o.id === orderId)!;
       expect(mine.nextActions?.map((a) => a.to).sort()).toEqual([
@@ -474,7 +474,7 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
     it('gives the delivery slot back', async () => {
       // A cancelled order holding a place is capacity nobody can use.
       const slotsBefore = await http()
-        .get(`/serviceability/stores/${vendorId}/slots`)
+        .get(`/serviceability/stores/${branchId}/slots`)
         .query({ days: 3 })
         .expect(200);
       const target = (slotsBefore.body as SlotView[]).find((s) => s.isBookable)!;
@@ -483,7 +483,7 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
       const orderId = (await placeOrder()).id;
 
       const during = await http()
-        .get(`/serviceability/stores/${vendorId}/slots`)
+        .get(`/serviceability/stores/${branchId}/slots`)
         .query({ days: 3 })
         .expect(200);
       expect((during.body as SlotView[]).find((s) => s.id === target.id)!.booked).toBe(
@@ -495,7 +495,7 @@ describe.skipIf(!dbUp)('order state machine (e2e)', () => {
         .expect(201);
 
       const after = await http()
-        .get(`/serviceability/stores/${vendorId}/slots`)
+        .get(`/serviceability/stores/${branchId}/slots`)
         .query({ days: 3 })
         .expect(200);
       expect((after.body as SlotView[]).find((s) => s.id === target.id)!.booked).toBe(

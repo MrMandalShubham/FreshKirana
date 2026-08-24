@@ -17,8 +17,8 @@ const dbUp = await requireDatabase('catalog.product_request');
 describe.skipIf(!dbUp)('catalog seeding (e2e)', () => {
   let app: INestApplication;
   let adminToken: string;
-  let vendorA: string;
-  let vendorB: string;
+  let branchA: string;
+  let branchB: string;
   let staffAToken: string;
   let categorySlug: string;
 
@@ -50,9 +50,9 @@ describe.skipIf(!dbUp)('catalog seeding (e2e)', () => {
   const CSV_HEADER =
     'slug,name,category_slug,net_quantity,uom,hsn_code,gst_rate_bp,ean_barcode,is_prepackaged,manufacturer_packer,country_of_origin,consumer_care_contact,activate';
 
-  async function createVendor(): Promise<string> {
+  async function createBranch(): Promise<string> {
     const res = await http()
-      .post('/admin/vendors')
+      .post('/admin/branches')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         slug: `shop-${unique()}`,
@@ -95,12 +95,12 @@ describe.skipIf(!dbUp)('catalog seeding (e2e)', () => {
       .send({ slug: categorySlug, name: 'Staples' })
       .expect(201);
 
-    vendorA = await createVendor();
-    vendorB = await createVendor();
+    branchA = await createBranch();
+    branchB = await createBranch();
 
     const staffA = await http()
       .post('/dev/login-as')
-      .send({ role: Role.VENDOR_STAFF, vendorId: vendorA })
+      .send({ role: Role.VENDOR_STAFF, branchId: branchA })
       .expect(201);
     staffAToken = (staffA.body as { token: string }).token;
   });
@@ -246,7 +246,7 @@ describe.skipIf(!dbUp)('catalog seeding (e2e)', () => {
 
     it('lets a vendor submit a product we do not have', async () => {
       const res = await http()
-        .post(`/vendor/${vendorA}/product-requests`)
+        .post(`/branch/${branchA}/product-requests`)
         .set('Authorization', `Bearer ${staffAToken}`)
         .send({
           proposedName: `Regional Pickle ${unique()}`,
@@ -277,7 +277,7 @@ describe.skipIf(!dbUp)('catalog seeding (e2e)', () => {
       );
 
       const res = await http()
-        .post(`/vendor/${vendorA}/product-requests`)
+        .post(`/branch/${branchA}/product-requests`)
         .set('Authorization', `Bearer ${staffAToken}`)
         .send({ proposedName: 'Whatever They Called It', proposedEanBarcode: ean })
         .expect(409);
@@ -287,7 +287,7 @@ describe.skipIf(!dbUp)('catalog seeding (e2e)', () => {
 
     it("denies vendor A sight of vendor B's requests", async () => {
       await http()
-        .get(`/vendor/${vendorB}/product-requests`)
+        .get(`/branch/${branchB}/product-requests`)
         .set('Authorization', `Bearer ${staffAToken}`)
         .expect(403);
     });
@@ -339,7 +339,7 @@ describe.skipIf(!dbUp)('catalog seeding (e2e)', () => {
       expect(body.request.status).toBe('APPROVED');
       expect(body.request.resolvedMasterProductId).toBe(body.product.id);
 
-      // The point of capturing price at request time: the vendor is not asked twice.
+      // The point of capturing price at request time: the branch is not asked twice.
       expect(body.offer).not.toBeNull();
       expect(body.offer?.sellingPricePaise).toBe(13500);
     });
@@ -356,7 +356,7 @@ describe.skipIf(!dbUp)('catalog seeding (e2e)', () => {
 
     it('rejects as a duplicate and points the vendor at the real product', async () => {
       const submitted = await http()
-        .post(`/vendor/${vendorA}/product-requests`)
+        .post(`/branch/${branchA}/product-requests`)
         .set('Authorization', `Bearer ${staffAToken}`)
         .send({ proposedName: `Duplicate Submission ${unique()}` })
         .expect(201);
@@ -391,9 +391,9 @@ describe.skipIf(!dbUp)('catalog seeding (e2e)', () => {
       await expect(
         db.execute(`
           insert into catalog.product_request
-            (vendor_id, proposed_name, status, resolved_master_product_id)
+            (branch_id, proposed_name, status, resolved_master_product_id)
           values
-            ('${vendorA}', 'Orphaned approval', 'APPROVED', null)
+            ('${branchA}', 'Orphaned approval', 'APPROVED', null)
         `),
       ).rejects.toThrow(/product_request_resolution_coherent/);
     });

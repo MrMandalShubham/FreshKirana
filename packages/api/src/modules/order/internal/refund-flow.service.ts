@@ -30,7 +30,7 @@ import { OrderService } from './order.service';
  *
  * ## Automatic, not requested
  *
- * §1.8.1's confirmation text is "cancel before vendor acceptance — refund
+ * §1.8.1's confirmation text is "cancel before branch acceptance — refund
  * initiated automatically". A refund a customer has to ask for is a refund a
  * fraction of customers will not ask for, and the difference between those two
  * designs is money quietly kept from people who are owed it.
@@ -260,7 +260,7 @@ export class RefundFlowService {
       accountId: string;
       orderNumber: string;
       recipientPhone: string;
-      vendorId: string;
+      branchId: string;
     },
     view: RefundView,
   ): Promise<void> {
@@ -271,7 +271,7 @@ export class RefundFlowService {
         toPhone: order.recipientPhone,
         accountId: order.accountId,
         orderId: order.id,
-        vendorId: order.vendorId,
+        branchId: order.branchId,
         payload: {
           orderNumber: order.orderNumber,
           amountPaise: view.amountPaise,

@@ -25,13 +25,13 @@ export class PricingService {
   };
 
   /**
-   * Fees for a vendor's city.
+   * Fees for a branch's city.
    *
-   * Takes a vendor id already, even though every vendor currently gets the same
+   * Takes a branch id already, even though every branch currently gets the same
    * answer: the signature is the part that is expensive to change later, once
    * callers exist across cart, checkout and settlement.
    */
-  getFees(_vendorId?: string): FeeConfig {
+  getFees(_branchId?: string): FeeConfig {
     return {
       minimumOrderValuePaise: this.fromEnv(
         'MOV_PAISE',

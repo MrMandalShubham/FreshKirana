@@ -52,7 +52,7 @@ export class RuleSubstituteRanker implements SubstituteRanker {
       .from(vendorOffer)
       .where(
         and(
-          eq(vendorOffer.vendorId, context.vendorId),
+          eq(vendorOffer.branchId, context.branchId),
           ne(vendorOffer.masterProductId, context.masterProductId),
         ),
       );

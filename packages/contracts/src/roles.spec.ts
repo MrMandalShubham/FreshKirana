@@ -7,8 +7,8 @@ import {
   ScopeType,
   hasRole,
   hasRoleAtVendor,
-  isVendorScoped,
-  vendorScopeIds,
+  isBranchScoped,
+  branchScopeIds,
 } from './roles';
 
 const VENDOR_A = 'vendor-a';
@@ -24,10 +24,10 @@ describe('role vocabulary', () => {
   });
 
   it('scopes only vendor roles to a resource', () => {
-    expect(isVendorScoped(Role.VENDOR_OWNER)).toBe(true);
-    expect(isVendorScoped(Role.VENDOR_STAFF)).toBe(true);
-    expect(isVendorScoped(Role.CUSTOMER)).toBe(false);
-    expect(isVendorScoped(Role.ADMIN)).toBe(false);
+    expect(isBranchScoped(Role.VENDOR_OWNER)).toBe(true);
+    expect(isBranchScoped(Role.VENDOR_STAFF)).toBe(true);
+    expect(isBranchScoped(Role.CUSTOMER)).toBe(false);
+    expect(isBranchScoped(Role.ADMIN)).toBe(false);
   });
 
   it('flags the roles that will require MFA at P8.6', () => {
@@ -84,6 +84,6 @@ describe('hasRoleAtVendor - §3.2 resource-level scoping', () => {
     expect(hasRoleAtVendor(multi, VENDOR_A, Role.VENDOR_OWNER)).toBe(true);
     expect(hasRoleAtVendor(multi, VENDOR_B, Role.VENDOR_OWNER)).toBe(false);
     expect(hasRoleAtVendor(multi, VENDOR_B, Role.VENDOR_STAFF)).toBe(true);
-    expect(vendorScopeIds(multi).sort()).toEqual([VENDOR_A, VENDOR_B]);
+    expect(branchScopeIds(multi).sort()).toEqual([VENDOR_A, VENDOR_B]);
   });
 });

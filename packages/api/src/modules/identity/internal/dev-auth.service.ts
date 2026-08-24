@@ -3,7 +3,7 @@ import { ROLE_SCOPE, ROLES, type Role, ScopeType } from '@freshkirana/contracts'
 import { AccountRepository } from './account.repository';
 import { TokenService } from './token.service';
 
-/** Deterministic vendor ids for seeded vendor-scoped roles. */
+/** Deterministic branch ids for seeded branch-scoped roles. */
 export const SEED_VENDOR_A = '00000000-0000-4000-8000-0000000000a1';
 export const SEED_VENDOR_B = '00000000-0000-4000-8000-0000000000b2';
 
@@ -40,11 +40,11 @@ export class DevAuthService {
    */
   async loginAs(
     role: Role,
-    vendorId: string = SEED_VENDOR_A,
+    branchId: string = SEED_VENDOR_A,
     phone?: string,
-  ): Promise<{ token: string; accountId: string; role: Role; vendorId: string | null }> {
+  ): Promise<{ token: string; accountId: string; role: Role; branchId: string | null }> {
     const scopeType = ROLE_SCOPE[role];
-    const scopeId = scopeType === ScopeType.VENDOR ? vendorId : null;
+    const scopeId = scopeType === ScopeType.VENDOR ? branchId : null;
 
     const accountId = phone
       ? await this.ensureAccountWithPhone(phone, role)
@@ -55,7 +55,7 @@ export class DevAuthService {
       token: await this.tokens.issue(accountId),
       accountId,
       role,
-      vendorId: scopeId,
+      branchId: scopeId,
     };
   }
 
@@ -71,10 +71,10 @@ export class DevAuthService {
   }
 
   /**
-   * A second seeded account for the *same* role at a *different* vendor.
-   * Exists so the §3.2 cross-vendor denial can actually be exercised.
+   * A second seeded account for the *same* role at a *different* branch.
+   * Exists so the §3.2 cross-branch denial can actually be exercised.
    */
-  async loginAsVendorB(role: Role): Promise<{ token: string; vendorId: string }> {
+  async loginAsVendorB(role: Role): Promise<{ token: string; branchId: string }> {
     const phone = `${seedPhoneFor(role)}-b`;
     const existing = await this.accounts.findByPhone(phone);
     const accountId =
@@ -93,7 +93,7 @@ export class DevAuthService {
       scopeId: SEED_VENDOR_B,
     });
 
-    return { token: await this.tokens.issue(accountId), vendorId: SEED_VENDOR_B };
+    return { token: await this.tokens.issue(accountId), branchId: SEED_VENDOR_B };
   }
 
   private async ensureAccountWithPhone(phone: string, role: Role): Promise<string> {

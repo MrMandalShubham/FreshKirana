@@ -6,7 +6,7 @@ import { IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-va
  *
  * Product *and* batch, because a recall names a manufacturer's lot rather than
  * a product — withdrawing every packet of a brand when one lot is bad is both
- * ruinous for the vendor and a signal customers learn to ignore.
+ * ruinous for the branch and a signal customers learn to ignore.
  */
 export class RaiseRecallDto {
   @IsUUID() masterProductId!: string;

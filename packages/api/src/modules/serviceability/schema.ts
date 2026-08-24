@@ -41,11 +41,11 @@ const geographyPolygon = customType<{ data: string; driverData: string }>({
  * Where a store will deliver (spec §2.8.1).
  *
  * A polygon is preferred because real delivery boundaries follow roads, rivers
- * and railway lines. The radius fallback exists so a vendor can be live the day
+ * and railway lines. The radius fallback exists so a branch can be live the day
  * they sign up — a pin and "about 3 km" takes thirty seconds, and waiting for a
  * drawn polygon would keep them off the platform entirely.
  *
- * A vendor with no service area serves **nobody**. Failing closed is the only
+ * A branch with no service area serves **nobody**. Failing closed is the only
  * safe default: the alternative is promising delivery to an address no rider
  * can reach.
  */
@@ -56,8 +56,8 @@ export const serviceArea = serviceabilitySchema.table(
       .primaryKey()
       .default(sql`gen_random_uuid()`),
 
-    /** Owned by the vendor module. Validated through its contracts, never joined. */
-    vendorId: uuid('vendor_id').notNull(),
+    /** Owned by the branch module. Validated through its contracts, never joined. */
+    branchId: uuid('branch_id').notNull(),
 
     /** POLYGON | RADIUS — which of the two below is authoritative. */
     mode: text('mode').notNull().default('RADIUS'),
@@ -81,7 +81,7 @@ export const serviceArea = serviceabilitySchema.table(
   (table) => [
     // One service area per store. Two would mean two answers to "do you
     // deliver here", and no rule for which wins.
-    uniqueIndex('service_area_vendor_key').on(table.vendorId),
+    uniqueIndex('service_area_vendor_key').on(table.branchId),
 
     check(
       'service_area_mode_is_backed',
@@ -112,7 +112,7 @@ export const slotDefinition = serviceabilitySchema.table(
       .primaryKey()
       .default(sql`gen_random_uuid()`),
 
-    vendorId: uuid('vendor_id').notNull(),
+    branchId: uuid('branch_id').notNull(),
 
     /** 0 = Sunday, matching JavaScript's `getUTCDay`. */
     dayOfWeek: integer('day_of_week').notNull(),
@@ -142,11 +142,11 @@ export const slotDefinition = serviceabilitySchema.table(
   },
   (table) => [
     uniqueIndex('slot_definition_window_key').on(
-      table.vendorId,
+      table.branchId,
       table.dayOfWeek,
       table.startMinute,
     ),
-    index('slot_definition_vendor_idx').on(table.vendorId),
+    index('slot_definition_branch_idx').on(table.branchId),
 
     check('slot_definition_day_of_week', sql`${table.dayOfWeek} between 0 and 6`),
     check(
@@ -180,7 +180,7 @@ export const slotInstance = serviceabilitySchema.table(
       .primaryKey()
       .default(sql`gen_random_uuid()`),
 
-    vendorId: uuid('vendor_id').notNull(),
+    branchId: uuid('branch_id').notNull(),
     slotDefinitionId: uuid('slot_definition_id')
       .notNull()
       .references(() => slotDefinition.id, { onDelete: 'cascade' }),
@@ -211,14 +211,14 @@ export const slotInstance = serviceabilitySchema.table(
     // The key that makes lazy materialisation safe: two requests racing to
     // create the same slot produce one row, not two.
     uniqueIndex('slot_instance_date_key').on(table.slotDefinitionId, table.serviceDate),
-    index('slot_instance_vendor_date_idx').on(table.vendorId, table.serviceDate),
+    index('slot_instance_vendor_date_idx').on(table.branchId, table.serviceDate),
 
     /**
      * The oversell condition, enforced by the database.
      *
      * The booking statement already refuses to increment past capacity, but a
      * service check is a promise and a CHECK is a guarantee — and this is the
-     * constraint that decides whether a shopper is told "no" now or a vendor
+     * constraint that decides whether a shopper is told "no" now or a branch
      * is told "sorry" at 7pm.
      */
     check(

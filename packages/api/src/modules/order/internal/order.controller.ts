@@ -20,7 +20,7 @@ import {
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, MaxLength, Min, Max } from 'class-validator';
 import { AnalyticsService } from '../../analytics/contracts';
-import { CurrentUser, Roles, VendorScopeGuard } from '../../identity/contracts';
+import { CurrentUser, Roles, BranchScopeGuard } from '../../identity/contracts';
 import { OrderStateService } from './order-state.service';
 import { OrderService } from './order.service';
 import { UsualBasketService } from './usual-basket.service';
@@ -123,14 +123,14 @@ export class OrderController {
 }
 
 /**
- * A store's order queue, in the **vendor** vocabulary (§2.6.3).
+ * A store's order queue, in the **branch** vocabulary (§2.6.3).
  *
  * The same order that reads "Being packed" to a customer reads "Picking" here.
  * One canonical state, two words for it — never two state machines.
  */
 @Roles(Role.VENDOR_OWNER, Role.VENDOR_STAFF, Role.ADMIN, Role.OPS)
-@UseGuards(VendorScopeGuard)
-@Controller('vendor/:vendorId/orders')
+@UseGuards(BranchScopeGuard)
+@Controller('branch/:branchId/orders')
 export class VendorOrderController {
   constructor(
     private readonly orders: OrderService,
@@ -140,11 +140,11 @@ export class VendorOrderController {
   @Get()
   async list(
     @CurrentUser() principal: Principal,
-    @Param('vendorId') vendorId: string,
+    @Param('branchId') branchId: string,
     @Query() query: ListVendorOrdersQueryDto,
   ) {
-    const orders = await this.orders.listForVendor(vendorId, query);
-    const role = this.roleAt(principal, vendorId);
+    const orders = await this.orders.listForVendor(branchId, query);
+    const role = this.roleAt(principal, branchId);
 
     return orders.map((order) => ({
       ...order,
@@ -156,15 +156,15 @@ export class VendorOrderController {
   @Post(':orderId/transitions')
   async transition(
     @CurrentUser() principal: Principal,
-    @Param('vendorId') vendorId: string,
+    @Param('branchId') branchId: string,
     @Param('orderId') orderId: string,
     @Body() dto: TransitionDto,
   ) {
     const { order } = await this.state.transition(
       orderId,
       dto.to,
-      { accountId: principal.accountId, role: this.roleAt(principal, vendorId) },
-      { reason: dto.reason, vendorId },
+      { accountId: principal.accountId, role: this.roleAt(principal, branchId) },
+      { reason: dto.reason, branchId },
     );
 
     return {
@@ -180,9 +180,9 @@ export class VendorOrderController {
    * transition table lets them do. Taking `principal.roles[0]` instead would let
    * someone who is staff at one store act with an admin role they hold globally.
    */
-  private roleAt(principal: Principal, vendorId: string): Role {
-    if (hasRoleAtVendor(principal, vendorId, Role.VENDOR_OWNER)) return Role.VENDOR_OWNER;
-    if (hasRoleAtVendor(principal, vendorId, Role.VENDOR_STAFF)) return Role.VENDOR_STAFF;
+  private roleAt(principal: Principal, branchId: string): Role {
+    if (hasRoleAtVendor(principal, branchId, Role.VENDOR_OWNER)) return Role.VENDOR_OWNER;
+    if (hasRoleAtVendor(principal, branchId, Role.VENDOR_STAFF)) return Role.VENDOR_STAFF;
     return principal.roles.some((role) => role.role === Role.ADMIN)
       ? Role.ADMIN
       : Role.OPS;

@@ -153,14 +153,14 @@ export class UsualBasketService implements BasketPredictor {
   async lastOffersFor(
     accountId: string,
     masterProductIds: readonly string[],
-  ): Promise<Map<string, { vendorOfferId: string; vendorId: string; name: string }>> {
+  ): Promise<Map<string, { vendorOfferId: string; branchId: string; name: string }>> {
     if (masterProductIds.length === 0) return new Map();
 
     const rows = await this.db
       .select({
         masterProductId: orderLine.masterProductId,
         vendorOfferId: sql<string>`(array_agg(${orderLine.vendorOfferId} order by ${order.placedAt} desc))[1]`,
-        vendorId: sql<string>`(array_agg(${order.vendorId} order by ${order.placedAt} desc))[1]`,
+        branchId: sql<string>`(array_agg(${order.branchId} order by ${order.placedAt} desc))[1]`,
         name: sql<string>`(array_agg(${orderLine.name} order by ${order.placedAt} desc))[1]`,
       })
       .from(orderLine)

@@ -142,7 +142,7 @@ export class PaymentRecoveryService {
       toPhone: order.recipientPhone,
       accountId: order.accountId,
       orderId: order.id,
-      vendorId: order.vendorId,
+      branchId: order.branchId,
       payload: {
         orderNumber: order.orderNumber,
         amountPaise: order.grandTotalPaise,

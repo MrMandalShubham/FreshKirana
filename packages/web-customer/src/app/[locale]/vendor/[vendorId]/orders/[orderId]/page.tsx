@@ -21,16 +21,16 @@ export const dynamic = 'force-dynamic';
 export default async function PickingPage({
   params,
 }: {
-  params: Promise<{ locale: Locale; vendorId: string; orderId: string }>;
+  params: Promise<{ locale: Locale; branchId: string; orderId: string }>;
 }) {
-  const { locale, vendorId, orderId } = await params;
+  const { locale, branchId, orderId } = await params;
   const t = getDictionary(locale);
 
-  if (!(await isSignedIn())) redirect(`/${locale}/signin?vendor=${vendorId}`);
+  if (!(await isSignedIn())) redirect(`/${locale}/signin?vendor=${branchId}`);
 
   // Read from the store's own list, so this page cannot show an order that
   // belongs to another shop even if somebody guesses the id (§3.2).
-  const orders = await fetchVendorOrders(vendorId);
+  const orders = await fetchVendorOrders(branchId);
   const order = orders.find((candidate) => candidate.id === orderId);
   if (!order) notFound();
 
@@ -44,7 +44,7 @@ export default async function PickingPage({
       </p>
 
       <PickingList
-        vendorId={vendorId}
+        branchId={branchId}
         orderId={order.id}
         status={order.status}
         lines={order.lines}
@@ -61,7 +61,7 @@ export default async function PickingPage({
         </p>
       </section>
 
-      <Link className="link-button" href={`/${locale}/vendor/${vendorId}`}>
+      <Link className="link-button" href={`/${locale}/vendor/${branchId}`}>
         {t.vendorBackToQueue}
       </Link>
     </main>

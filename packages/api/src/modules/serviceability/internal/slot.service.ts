@@ -13,7 +13,7 @@ import {
 import { and, asc, eq, gte, inArray, sql } from 'drizzle-orm';
 import { DATABASE } from '../../../db/db.module';
 import type { Database, Transaction } from '../../../db';
-import { VendorService } from '../../vendor/contracts';
+import { BranchService } from '../../branch/contracts';
 import { slotDefinition, slotInstance } from '../schema';
 
 export interface SlotDefinitionInput {
@@ -28,7 +28,7 @@ export interface SlotDefinitionInput {
 
 export interface SlotView {
   id: string;
-  vendorId: string;
+  branchId: string;
   serviceDate: string;
   startsAt: Date;
   endsAt: Date;
@@ -50,18 +50,18 @@ const MAX_HORIZON_DAYS = 7;
 export class SlotService {
   constructor(
     @Inject(DATABASE) private readonly db: Database,
-    private readonly vendors: VendorService,
+    private readonly vendors: BranchService,
   ) {}
 
   // -------------------------------------------------------------------------
   // Definitions — the store's weekly pattern
   // -------------------------------------------------------------------------
 
-  async defineSlot(vendorId: string, input: SlotDefinitionInput) {
-    await this.vendors.findById(vendorId);
+  async defineSlot(branchId: string, input: SlotDefinitionInput) {
+    await this.vendors.findById(branchId);
 
     const values = {
-      vendorId,
+      branchId,
       dayOfWeek: input.dayOfWeek,
       startMinute: input.startMinute,
       endMinute: input.endMinute,
@@ -71,14 +71,14 @@ export class SlotService {
       isActive: input.isActive ?? true,
     };
 
-    // Re-defining the same window updates it rather than colliding: a vendor
+    // Re-defining the same window updates it rather than colliding: a branch
     // editing "Tuesday 10–12" means that one, not a new one.
     const rows = await this.db
       .insert(slotDefinition)
       .values(values)
       .onConflictDoUpdate({
         target: [
-          slotDefinition.vendorId,
+          slotDefinition.branchId,
           slotDefinition.dayOfWeek,
           slotDefinition.startMinute,
         ],
@@ -89,19 +89,19 @@ export class SlotService {
     return rows[0]!;
   }
 
-  async listDefinitions(vendorId: string) {
+  async listDefinitions(branchId: string) {
     return this.db
       .select()
       .from(slotDefinition)
-      .where(eq(slotDefinition.vendorId, vendorId))
+      .where(eq(slotDefinition.branchId, branchId))
       .orderBy(asc(slotDefinition.dayOfWeek), asc(slotDefinition.startMinute));
   }
 
-  async removeDefinition(vendorId: string, definitionId: string): Promise<void> {
+  async removeDefinition(branchId: string, definitionId: string): Promise<void> {
     const rows = await this.db
       .delete(slotDefinition)
       .where(
-        and(eq(slotDefinition.id, definitionId), eq(slotDefinition.vendorId, vendorId)),
+        and(eq(slotDefinition.id, definitionId), eq(slotDefinition.branchId, branchId)),
       )
       .returning({ id: slotDefinition.id });
 
@@ -122,21 +122,21 @@ export class SlotService {
    * unique key on (definition, date) makes two concurrent readers harmless.
    */
   async listSlots(
-    vendorId: string,
+    branchId: string,
     options: { days?: number; now?: Date } = {},
   ): Promise<SlotView[]> {
     const now = options.now ?? new Date();
     const days = Math.min(options.days ?? DEFAULT_HORIZON_DAYS, MAX_HORIZON_DAYS);
     const dateKeys = upcomingDateKeys(now, days);
 
-    await this.materialise(vendorId, dateKeys);
+    await this.materialise(branchId, dateKeys);
 
     const rows = await this.db
       .select()
       .from(slotInstance)
       .where(
         and(
-          eq(slotInstance.vendorId, vendorId),
+          eq(slotInstance.branchId, branchId),
           inArray(slotInstance.serviceDate, dateKeys),
           // Today's slots that have already ended are noise, not information.
           gte(slotInstance.endsAt, now),
@@ -226,9 +226,9 @@ export class SlotService {
     return this.toView(released, new Date());
   }
 
-  /** Vendor holiday, festival, or an ops-declared closure (§2.8.2). */
+  /** Branch holiday, festival, or an ops-declared closure (§2.8.2). */
   async setStatus(
-    vendorId: string,
+    branchId: string,
     slotInstanceId: string,
     status: StoredSlotStatus,
   ): Promise<SlotView> {
@@ -236,7 +236,7 @@ export class SlotService {
       .update(slotInstance)
       .set({ status, updatedAt: new Date() })
       .where(
-        and(eq(slotInstance.id, slotInstanceId), eq(slotInstance.vendorId, vendorId)),
+        and(eq(slotInstance.id, slotInstanceId), eq(slotInstance.branchId, branchId)),
       )
       .returning();
 
@@ -254,12 +254,12 @@ export class SlotService {
    * definition's capacity should not silently change a day people have already
    * booked into, and lowering it must never strand orders that already exist.
    */
-  private async materialise(vendorId: string, dateKeys: string[]): Promise<void> {
+  private async materialise(branchId: string, dateKeys: string[]): Promise<void> {
     const definitions = await this.db
       .select()
       .from(slotDefinition)
       .where(
-        and(eq(slotDefinition.vendorId, vendorId), eq(slotDefinition.isActive, true)),
+        and(eq(slotDefinition.branchId, branchId), eq(slotDefinition.isActive, true)),
       );
 
     if (definitions.length === 0) return;
@@ -271,7 +271,7 @@ export class SlotService {
         if (definition.dayOfWeek !== dayOfWeek) continue;
 
         values.push({
-          vendorId,
+          branchId,
           slotDefinitionId: definition.id,
           serviceDate: dateKey,
           startsAt: istInstant(dateKey, definition.startMinute),
@@ -295,7 +295,7 @@ export class SlotService {
   private toView(
     row: {
       id: string;
-      vendorId: string;
+      branchId: string;
       serviceDate: string;
       startsAt: Date;
       endsAt: Date;
@@ -318,7 +318,7 @@ export class SlotService {
 
     return {
       id: row.id,
-      vendorId: row.vendorId,
+      branchId: row.branchId,
       serviceDate: row.serviceDate,
       startsAt: row.startsAt,
       endsAt: row.endsAt,

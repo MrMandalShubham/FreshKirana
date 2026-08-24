@@ -17,7 +17,7 @@ import { OfferModule } from './modules/offer/offer.module';
 import { SearchModule } from './modules/search/search.module';
 import { ServiceabilityModule } from './modules/serviceability/serviceability.module';
 import { UserModule } from './modules/user/user.module';
-import { VendorModule } from './modules/vendor/vendor.module';
+import { BranchModule } from './modules/branch/branch.module';
 import { ObservabilityModule } from './observability/observability.module';
 
 /**
@@ -38,7 +38,7 @@ import { ObservabilityModule } from './observability/observability.module';
     AnalyticsModule,
     UserModule,
     CatalogModule,
-    VendorModule,
+    BranchModule,
     LedgerModule,
     OfferModule,
     SearchModule,

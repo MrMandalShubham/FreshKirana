@@ -65,7 +65,7 @@ export const brand = catalogSchema.table(
 /**
  * The canonical description of a purchasable thing (spec §2.4.1, decision D1).
  *
- * Admin-governed: vendors do not create these, they attach offers to them
+ * Admin-governed: branches do not create these, they attach offers to them
  * (P1.2). That is what keeps search deduplicated and price comparison possible.
  */
 export const masterProduct = catalogSchema.table(
@@ -189,17 +189,17 @@ export const masterProduct = catalogSchema.table(
 );
 
 /**
- * A vendor asking for a product the master catalog does not yet have
+ * A branch asking for a product the master catalog does not yet have
  * (spec §1.9.1, §2.4.1).
  *
- * This is the release valve on decision D1. Vendors cannot create master
+ * This is the release valve on decision D1. Branches cannot create master
  * products — that is what keeps search deduplicated — but a kirana stocking a
  * regional brand nobody has catalogued must have some way to sell it. They
  * submit; an admin creates the canonical product; their offer attaches
  * automatically.
  *
  * Without this queue, D1 would simply mean "you cannot sell what we have not
- * thought of", and vendor adoption (§1.9) would stall on day one.
+ * thought of", and branch adoption (§1.9) would stall on day one.
  */
 export const productRequest = catalogSchema.table(
   'product_request',
@@ -208,15 +208,15 @@ export const productRequest = catalogSchema.table(
       .primaryKey()
       .default(sql`gen_random_uuid()`),
 
-    /** Owned by the vendor module — validated via contracts, never joined. */
-    vendorId: uuid('vendor_id').notNull(),
+    /** Owned by the branch module — validated via contracts, never joined. */
+    branchId: uuid('branch_id').notNull(),
     /** Owned by identity. Who to tell when this is resolved. */
     requestedByAccountId: uuid('requested_by_account_id'),
 
     /** Scanned at the shelf where available; the strongest dedupe signal. */
     eanBarcode: text('ean_barcode'),
 
-    /** What the vendor typed. Deliberately loose — they are describing, not cataloguing. */
+    /** What the branch typed. Deliberately loose — they are describing, not cataloguing. */
     proposedName: text('proposed_name').notNull(),
     proposedBrand: text('proposed_brand'),
     proposedNetQuantity: integer('proposed_net_quantity'),
@@ -229,7 +229,7 @@ export const productRequest = catalogSchema.table(
       .default(sql`'{}'::text[]`),
 
     /**
-     * Price and stock to apply if this is approved, so the vendor is not asked
+     * Price and stock to apply if this is approved, so the branch is not asked
      * twice. The offer is created for them on approval.
      */
     desiredMrpPaise: integer('desired_mrp_paise'),
@@ -252,7 +252,7 @@ export const productRequest = catalogSchema.table(
   (table) => [
     // The admin queue's only query: oldest pending first.
     index('product_request_status_idx').on(table.status, table.createdAt),
-    index('product_request_vendor_idx').on(table.vendorId, table.status),
+    index('product_request_branch_idx').on(table.branchId, table.status),
     index('product_request_ean_idx')
       .on(table.eanBarcode)
       .where(sql`${table.eanBarcode} is not null`),

@@ -82,11 +82,11 @@ describe.skipIf(!dbUp)('the public webhook service', () => {
       ['GET', '/cart'],
       ['POST', '/cart/items'],
       ['POST', '/checkout/place'],
-      ['GET', '/admin/vendors'],
+      ['GET', '/admin/branches'],
       ['POST', '/dev/login-as'],
       ['GET', '/catalog/categories'],
       ['GET', '/search'],
-      ['POST', '/internal/vendor-sla/sweep'],
+      ['POST', '/internal/branch-sla/sweep'],
       ['POST', '/internal/payments/reconcile'],
       ['GET', '/metrics'],
     ];

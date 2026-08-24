@@ -11,8 +11,8 @@
 export { OrderService } from './internal/order.service';
 export type { CreateOrderInput, CreateOrderLineInput } from './internal/order.service';
 
-export { VendorOrderFlowService } from './internal/vendor-order-flow.service';
-export type { InboundOutcome } from './internal/vendor-order-flow.service';
+export { BranchOrderFlowService } from './internal/branch-order-flow.service';
+export type { InboundOutcome } from './internal/branch-order-flow.service';
 
 export { UsualBasketService } from './internal/usual-basket.service';
 export type { BuyAgainItem } from './internal/usual-basket.service';

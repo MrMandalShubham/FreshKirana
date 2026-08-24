@@ -11,13 +11,13 @@ import { applyPatch } from '../../../common/merge-patch';
 import { DATABASE } from '../../../db/db.module';
 import type { Database } from '../../../db';
 import { AccountRepository } from '../../identity/contracts';
-import { vendor } from '../schema';
+import { branch } from '../schema';
 import {
-  type AddVendorStaffDto,
-  type CreateVendorDto,
-  type UpdateVendorDto,
-  VendorStatus,
-} from './vendor.dto';
+  type AddBranchStaffDto,
+  type CreateBranchDto,
+  type UpdateBranchDto,
+  BranchStatus,
+} from './branch.dto';
 
 const PG_UNIQUE_VIOLATION = '23505';
 const PG_CHECK_VIOLATION = '23514';
@@ -31,16 +31,16 @@ function pgConstraint(error: unknown): string | undefined {
 }
 
 @Injectable()
-export class VendorService {
+export class BranchService {
   constructor(
     @Inject(DATABASE) private readonly db: Database,
     private readonly accounts: AccountRepository,
   ) {}
 
-  async create(dto: CreateVendorDto) {
+  async create(dto: CreateBranchDto) {
     try {
       const rows = await this.db
-        .insert(vendor)
+        .insert(branch)
         .values({
           slug: dto.slug,
           legalName: dto.legalName,
@@ -56,9 +56,9 @@ export class VendorService {
           fssaiExpiryDate: dto.fssaiExpiryDate ?? null,
           defaultInventoryMode: dto.defaultInventoryMode ?? 'TOGGLE',
           storeConfig: dto.storeConfig ?? {},
-          // Vendors are never born ACTIVE: approval is a deliberate admin act
+          // Branches are never born ACTIVE: approval is a deliberate admin act
           // (§1.5.4), and going live requires an FSSAI licence.
-          status: VendorStatus.PENDING,
+          status: BranchStatus.PENDING,
         })
         .returning();
       return rows[0];
@@ -68,25 +68,25 @@ export class VendorService {
   }
 
   async findById(id: string) {
-    const rows = await this.db.select().from(vendor).where(eq(vendor.id, id)).limit(1);
+    const rows = await this.db.select().from(branch).where(eq(branch.id, id)).limit(1);
     const found = rows[0];
-    if (!found) throw new NotFoundException(`Vendor ${id} not found`);
+    if (!found) throw new NotFoundException(`Branch ${id} not found`);
     return found;
   }
 
   async list(filters: { status?: string; city?: string }) {
     const where: SQL[] = [];
-    if (filters.status) where.push(eq(vendor.status, filters.status));
-    if (filters.city) where.push(eq(vendor.city, filters.city));
+    if (filters.status) where.push(eq(branch.status, filters.status));
+    if (filters.city) where.push(eq(branch.city, filters.city));
 
     return this.db
       .select()
-      .from(vendor)
+      .from(branch)
       .where(where.length > 0 ? and(...where) : undefined)
-      .orderBy(asc(vendor.displayName));
+      .orderBy(asc(branch.displayName));
   }
 
-  async update(id: string, dto: UpdateVendorDto) {
+  async update(id: string, dto: UpdateBranchDto) {
     const existing = await this.findById(id);
 
     // Checked here for a clear message; the database CHECK is the guarantee.
@@ -94,22 +94,22 @@ export class VendorService {
     // holding undefined, and spreading it would erase the stored licence — see
     // common/merge-patch.ts.
     const merged = applyPatch(existing, dto);
-    if (merged.status === VendorStatus.ACTIVE && !merged.fssaiLicenceNo?.trim()) {
+    if (merged.status === BranchStatus.ACTIVE && !merged.fssaiLicenceNo?.trim()) {
       throw new BadRequestException(
-        'A vendor cannot be ACTIVE without an FSSAI licence number (§3.7.3)',
+        'A branch cannot be ACTIVE without an FSSAI licence number (§3.7.3)',
       );
     }
     if (merged.gstRegistrationType === 'REGISTERED' && !merged.gstin?.trim()) {
       throw new BadRequestException(
-        'A GST-registered vendor must have a GSTIN — the invoice is issued under it (§3.7.1)',
+        'A GST-registered branch must have a GSTIN — the invoice is issued under it (§3.7.1)',
       );
     }
 
     try {
       const rows = await this.db
-        .update(vendor)
+        .update(branch)
         .set({ ...dto, updatedAt: new Date() })
-        .where(eq(vendor.id, id))
+        .where(eq(branch.id, id))
         .returning();
       return rows[0];
     } catch (error) {
@@ -118,14 +118,14 @@ export class VendorService {
   }
 
   /**
-   * Adds staff by granting a **vendor-scoped** role (§3.2).
+   * Adds staff by granting a **branch-scoped** role (§3.2).
    *
    * Membership is recorded in the identity module rather than duplicated here,
-   * so exactly one place answers "who may act as this vendor". Reached through
+   * so exactly one place answers "who may act as this branch". Reached through
    * identity's contracts — never by touching its schema.
    */
-  async addStaff(vendorId: string, dto: AddVendorStaffDto) {
-    await this.findById(vendorId);
+  async addStaff(branchId: string, dto: AddBranchStaffDto) {
+    await this.findById(branchId);
 
     const existing = await this.accounts.findByPhone(dto.phone);
     const accountId =
@@ -141,34 +141,34 @@ export class VendorService {
       accountId,
       role: dto.role,
       scopeType: ScopeType.VENDOR,
-      scopeId: vendorId,
+      scopeId: branchId,
     });
 
-    return { accountId, vendorId, role: dto.role };
+    return { accountId, branchId, role: dto.role };
   }
 
   private translateWriteError(error: unknown, slug?: string): unknown {
     if (pgCode(error) === PG_UNIQUE_VIOLATION) {
-      return new ConflictException(`Vendor slug "${slug}" already exists`);
+      return new ConflictException(`Branch slug "${slug}" already exists`);
     }
 
     if (pgCode(error) === PG_CHECK_VIOLATION) {
       switch (pgConstraint(error)) {
-        case 'vendor_fssai_required_when_active':
+        case 'branch_fssai_required_when_active':
           return new BadRequestException(
-            'A vendor cannot be ACTIVE without an FSSAI licence number (§3.7.3)',
+            'A branch cannot be ACTIVE without an FSSAI licence number (§3.7.3)',
           );
-        case 'vendor_gstin_present_when_registered':
+        case 'branch_gstin_present_when_registered':
           return new BadRequestException(
-            'A GST-registered vendor must have a GSTIN (§3.7.1)',
+            'A GST-registered branch must have a GSTIN (§3.7.1)',
           );
-        case 'vendor_gstin_shape':
+        case 'branch_gstin_shape':
           return new BadRequestException('GSTIN is not a valid 15-character GSTIN');
-        case 'vendor_pincode_shape':
+        case 'branch_pincode_shape':
           return new BadRequestException('pincode must be 6 digits and not start with 0');
         default:
           return new BadRequestException(
-            `Vendor violates constraint ${pgConstraint(error)}`,
+            `Branch violates constraint ${pgConstraint(error)}`,
           );
       }
     }

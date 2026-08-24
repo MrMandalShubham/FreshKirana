@@ -21,9 +21,9 @@ export const cartSchema = pgSchema('cart');
 /**
  * A shopper's basket (spec §1.5.1, §4.2).
  *
- * ## Belongs to one vendor
+ * ## Belongs to one branch
  *
- * Decision D2 fixes one order to one store, so a cart pins to a vendor as soon
+ * Decision D2 fixes one order to one store, so a cart pins to a branch as soon
  * as the first item goes in. That is a genuine constraint on the experience —
  * a shopper cannot mix two shops in one basket — and it is enforced here rather
  * than discovered at checkout, where it would mean discarding their work.
@@ -47,7 +47,7 @@ export const cart = cartSchema.table(
     anonId: text('anon_id'),
 
     /** Set by the first line, cleared when the cart empties (D2). */
-    vendorId: uuid('vendor_id'),
+    branchId: uuid('branch_id'),
 
     /** AUTO_SUBSTITUTE | ASK_ME | REFUND_ITEM (§1.7.2). Chosen at checkout, defaulted here. */
     substitutionPreference: text('substitution_preference')
@@ -74,7 +74,7 @@ export const cart = cartSchema.table(
       .on(table.anonId)
       .where(sql`${table.status} = 'ACTIVE' and ${table.anonId} is not null`),
 
-    index('cart_vendor_idx').on(table.vendorId),
+    index('cart_branch_idx').on(table.branchId),
 
     /**
      * A cart must be reachable by someone. A row with neither identity is
@@ -95,7 +95,7 @@ export const cart = cartSchema.table(
  * loose goods — see QuantityMode in contracts. `unitPricePaise` is the price
  * *when added*: it is kept to detect a change, never to charge by. Grocery
  * prices move daily, and honouring a stale snapshot would either short the
- * vendor or overcharge the shopper.
+ * branch or overcharge the shopper.
  */
 export const cartLine = cartSchema.table(
   'cart_line',

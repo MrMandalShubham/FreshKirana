@@ -7,7 +7,7 @@ import { NotificationModule } from '../notification/notification.module';
 import { OfferModule } from '../offer/offer.module';
 import { PaymentModule } from '../payment/payment.module';
 import { ServiceabilityModule } from '../serviceability/serviceability.module';
-import { VendorModule } from '../vendor/vendor.module';
+import { BranchModule } from '../branch/branch.module';
 import { CodFlowService } from './internal/cod-flow.service';
 import {
   CodConfirmationController,
@@ -52,8 +52,8 @@ import {
   VendorMessagesController,
   VendorSlaController,
   WhatsAppWebhookController,
-} from './internal/vendor-order-flow.controller';
-import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
+} from './internal/branch-order-flow.controller';
+import { BranchOrderFlowService } from './internal/branch-order-flow.service';
 
 /**
  * Order module — the canonical order, the §2.6 state machine, and the store's
@@ -63,7 +63,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
  * `./contracts`; `./schema` and `./internal` are private (§2.1.1, rule R2).
  *
  * Depends on `serviceability` because cancelling releases the delivery slot in
- * the same transaction, on `notification` to reach the store, and on `vendor`
+ * the same transaction, on `notification` to reach the store, and on `branch`
  * for the number to reach it at. The dependency runs one way — notification
  * knows nothing about orders — which is why the half that decides what a tapped
  * button means lives here.
@@ -76,7 +76,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
     NotificationModule,
     InventoryModule,
     PaymentModule,
-    VendorModule,
+    BranchModule,
     // Switching a failed payment to cash is a credit decision, so it goes
     // through the same §2.17.2 scorer P3.4's confirmation flow will use.
     CodModule,
@@ -108,7 +108,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
   providers: [
     OrderService,
     OrderStateService,
-    VendorOrderFlowService,
+    BranchOrderFlowService,
     UsualBasketService,
     PaymentFlowService,
     PaymentRecoveryService,
@@ -122,7 +122,7 @@ import { VendorOrderFlowService } from './internal/vendor-order-flow.service';
   exports: [
     OrderService,
     OrderStateService,
-    VendorOrderFlowService,
+    BranchOrderFlowService,
     UsualBasketService,
     PaymentFlowService,
     PaymentRecoveryService,

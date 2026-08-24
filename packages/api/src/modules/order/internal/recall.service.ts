@@ -17,7 +17,7 @@ export interface AffectedOrder {
   accountId: string;
   recipientName: string;
   recipientPhone: string;
-  vendorId: string;
+  branchId: string;
   status: string;
   placedAt: Date;
   lineName: string;
@@ -137,9 +137,9 @@ export class RecallService {
           toPhone: entry.recipientPhone,
           accountId: entry.accountId,
           orderId: entry.orderId,
-          // The store that sold it. §2.12's evidence log is per-vendor, and a
+          // The store that sold it. §2.12's evidence log is per-branch, and a
           // recall is exactly the kind of thing somebody asks about later.
-          vendorId: entry.vendorId,
+          branchId: entry.branchId,
           payload: {
             orderNumber: entry.orderNumber,
             item: entry.lineName,
@@ -222,7 +222,7 @@ export class RecallService {
         orderId: order.id,
         orderNumber: order.orderNumber,
         accountId: order.accountId,
-        vendorId: order.vendorId,
+        branchId: order.branchId,
         recipientName: order.recipientName,
         recipientPhone: order.recipientPhone,
         status: order.status,

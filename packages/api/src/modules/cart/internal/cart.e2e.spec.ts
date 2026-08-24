@@ -26,14 +26,14 @@ describe.skipIf(!dbUp)('cart (e2e)', () => {
   let adminToken: string;
   let categoryId: string;
 
-  let vendorA: string;
-  let vendorB: string;
+  let branchA: string;
+  let branchB: string;
 
   /** 5 kg pack at Rs255, MRP Rs280. */
   let packagedOfferA: string;
   /** Loose tomatoes, Rs40 per 1000 g. */
   let looseOfferA: string;
-  /** Same product listed by vendor B, for the D2 conflict. */
+  /** Same product listed by branch B, for the D2 conflict. */
   let packagedOfferB: string;
 
   const unique = () => randomUUID().slice(0, 8);
@@ -49,9 +49,9 @@ describe.skipIf(!dbUp)('cart (e2e)', () => {
   /** A fresh anonymous basket per test, so tests cannot share one. */
   const newToken = () => `cart-${randomUUID()}`;
 
-  async function createVendor(): Promise<string> {
+  async function createBranch(): Promise<string> {
     const res = await http()
-      .post('/admin/vendors')
+      .post('/admin/branches')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         slug: `shop-${unique()}`,
@@ -103,14 +103,14 @@ describe.skipIf(!dbUp)('cart (e2e)', () => {
   }
 
   async function createOffer(
-    vendorId: string,
+    branchId: string,
     masterProductId: string,
     sellingPricePaise: number,
     mrpPaise: number,
     opts: { stock?: number } = {},
   ): Promise<string> {
     const res = await http()
-      .post(`/vendor/${vendorId}/offers`)
+      .post(`/branch/${branchId}/offers`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         masterProductId,
@@ -167,19 +167,19 @@ describe.skipIf(!dbUp)('cart (e2e)', () => {
       .expect(201);
     categoryId = (category.body as { id: string }).id;
 
-    vendorA = await createVendor();
-    vendorB = await createVendor();
+    branchA = await createBranch();
+    branchB = await createBranch();
 
     const packaged = await createProduct({ netQuantity: 5, uom: Uom.KG });
-    packagedOfferA = await createOffer(vendorA, packaged, 25500, 28000);
-    packagedOfferB = await createOffer(vendorB, packaged, 24000, 28000);
+    packagedOfferA = await createOffer(branchA, packaged, 25500, 28000);
+    packagedOfferB = await createOffer(branchB, packaged, 24000, 28000);
 
     const loose = await createProduct({
       netQuantity: 1000,
       uom: Uom.G,
       isVariableWeight: true,
     });
-    looseOfferA = await createOffer(vendorA, loose, 4000, 4500);
+    looseOfferA = await createOffer(branchA, loose, 4000, 4500);
   });
 
   afterAll(async () => {
@@ -199,7 +199,7 @@ describe.skipIf(!dbUp)('cart (e2e)', () => {
 
       expect(view.lines).toHaveLength(1);
       expect(view.lines[0]?.quantity).toBe(2);
-      expect(view.vendorId).toBe(vendorA);
+      expect(view.branchId).toBe(branchA);
     });
 
     it('persists across requests', async () => {
@@ -224,7 +224,7 @@ describe.skipIf(!dbUp)('cart (e2e)', () => {
     it('pins the basket to the first vendor', async () => {
       const token = newToken();
       const view = await addItem(token, packagedOfferA);
-      expect(view.vendorId).toBe(vendorA);
+      expect(view.branchId).toBe(branchA);
     });
 
     it('refuses a second shop, and says what the conflict is', async () => {
@@ -239,15 +239,15 @@ describe.skipIf(!dbUp)('cart (e2e)', () => {
 
       const body = res.body as {
         code?: string;
-        currentVendorId?: string;
-        requestedVendorId?: string;
+        currentBranchId?: string;
+        requestedBranchId?: string;
       };
 
       // The response has to carry both ids: the UI cannot offer "switch shop"
       // without knowing what it is switching between.
       expect(body.code).toBe('CART_VENDOR_CONFLICT');
-      expect(body.currentVendorId).toBe(vendorA);
-      expect(body.requestedVendorId).toBe(vendorB);
+      expect(body.currentBranchId).toBe(branchA);
+      expect(body.requestedBranchId).toBe(branchB);
     });
 
     it('frees the basket for any shop once emptied', async () => {
@@ -259,11 +259,11 @@ describe.skipIf(!dbUp)('cart (e2e)', () => {
         .set('x-cart-token', token)
         .expect(200);
 
-      expect((emptied.body as CartView).vendorId).toBeNull();
+      expect((emptied.body as CartView).branchId).toBeNull();
 
       // The other shop is now allowed.
       const switched = await addItem(token, packagedOfferB);
-      expect(switched.vendorId).toBe(vendorB);
+      expect(switched.branchId).toBe(branchB);
     });
   });
 
@@ -373,15 +373,15 @@ describe.skipIf(!dbUp)('cart (e2e)', () => {
 
   describe('prices move', () => {
     it('charges the live price and flags that it changed', async () => {
-      // A snapshot would either short the vendor or overcharge the shopper.
+      // A snapshot would either short the branch or overcharge the shopper.
       const product = await createProduct({ netQuantity: 1, uom: Uom.KG });
-      const offer = await createOffer(vendorA, product, 10000, 12000);
+      const offer = await createOffer(branchA, product, 10000, 12000);
 
       const token = newToken();
       await addItem(token, offer, 1);
 
       await http()
-        .patch(`/vendor/${vendorA}/offers/${offer}`)
+        .patch(`/branch/${branchA}/offers/${offer}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ sellingPricePaise: 11000 })
         .expect(200);
@@ -399,13 +399,13 @@ describe.skipIf(!dbUp)('cart (e2e)', () => {
       // Removing it silently would let a shopper reach checkout believing they
       // had ordered something they had not.
       const product = await createProduct({ netQuantity: 1, uom: Uom.KG });
-      const offer = await createOffer(vendorA, product, 9000, 9000, { stock: 5 });
+      const offer = await createOffer(branchA, product, 9000, 9000, { stock: 5 });
 
       const token = newToken();
       await addItem(token, offer, 1);
 
       await http()
-        .patch(`/vendor/${vendorA}/offers/${offer}`)
+        .patch(`/branch/${branchA}/offers/${offer}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ isAvailable: false })
         .expect(200);
@@ -420,7 +420,7 @@ describe.skipIf(!dbUp)('cart (e2e)', () => {
 
     it('refuses to add something already out of stock', async () => {
       const product = await createProduct({ netQuantity: 1, uom: Uom.KG });
-      const offer = await createOffer(vendorA, product, 9000, 9000, { stock: 0 });
+      const offer = await createOffer(branchA, product, 9000, 9000, { stock: 0 });
 
       await http()
         .post('/cart/items')
@@ -452,7 +452,7 @@ describe.skipIf(!dbUp)('cart (e2e)', () => {
       const view = res.body as CartView;
 
       expect(view.lines).toHaveLength(0);
-      expect(view.vendorId).toBeNull();
+      expect(view.branchId).toBeNull();
     });
 
     it("returns 404, not 403, for another basket's line", async () => {

@@ -32,7 +32,7 @@ export const orderSchema = pgSchema('order');
  *
  * The delivery address, the slot window, the product names and the prices are
  * all copied in rather than referenced. A customer may edit or delete an
- * address tomorrow, a vendor may re-price or delist an offer tonight, and the
+ * address tomorrow, a branch may re-price or delist an offer tonight, and the
  * order must still say what was agreed. An order that changes retroactively is
  * an order nobody can support, invoice or audit.
  *
@@ -54,8 +54,8 @@ export const order = orderSchema.table(
 
     /** Owned by identity. Validated through contracts, never joined. */
     accountId: uuid('account_id').notNull(),
-    /** Owned by vendor. One order, one store — decision D2. */
-    vendorId: uuid('vendor_id').notNull(),
+    /** Owned by branch. One order, one store — decision D2. */
+    branchId: uuid('branch_id').notNull(),
 
     /**
      * The cart this came from.
@@ -134,13 +134,13 @@ export const order = orderSchema.table(
     uniqueIndex('order_cart_key').on(table.cartId),
 
     index('order_account_idx').on(table.accountId, table.placedAt),
-    index('order_vendor_idx').on(table.vendorId, table.status),
+    index('order_branch_idx').on(table.branchId, table.status),
     index('order_slot_idx').on(table.slotInstanceId),
 
     /**
      * The total must be the sum of its parts.
      *
-     * Not a formality: this is the number a customer pays and a vendor is
+     * Not a formality: this is the number a customer pays and a branch is
      * settled against, and every later part — refunds, substitutions, actual
      * weights — edits these columns. A drift of one paisa here becomes a
      * reconciliation exception in §2.11 that somebody has to chase by hand.

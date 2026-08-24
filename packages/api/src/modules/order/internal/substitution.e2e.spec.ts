@@ -66,7 +66,7 @@ describe.skipIf(!dbUp)('substitutions (e2e)', () => {
 
   let adminToken: string;
   let vendorToken: string;
-  let vendorId: string;
+  let branchId: string;
   let categoryId: string;
 
   /** The product every order is built from, so a substitute is findable. */
@@ -116,7 +116,7 @@ describe.skipIf(!dbUp)('substitutions (e2e)', () => {
       .expect(201);
 
     const offer = await http()
-      .post(`/vendor/${vendorId}/offers`)
+      .post(`/branch/${branchId}/offers`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         masterProductId: (product.body as { id: string }).id,
@@ -143,7 +143,7 @@ describe.skipIf(!dbUp)('substitutions (e2e)', () => {
       .expect(201);
 
     const slots = await http()
-      .get(`/serviceability/stores/${vendorId}/slots`)
+      .get(`/serviceability/stores/${branchId}/slots`)
       .query({ days: 3 })
       .expect(200);
     const slot = (slots.body as SlotView[]).find((s) => s.isBookable)!;
@@ -167,7 +167,7 @@ describe.skipIf(!dbUp)('substitutions (e2e)', () => {
 
   function move(orderId: string, to: OrderStatus) {
     return as(vendorToken)(
-      http().post(`/vendor/${vendorId}/orders/${orderId}/transitions`),
+      http().post(`/branch/${branchId}/orders/${orderId}/transitions`),
     )
       .send({ to })
       .expect(201);
@@ -180,7 +180,7 @@ describe.skipIf(!dbUp)('substitutions (e2e)', () => {
 
   function markOutOfStock(orderId: string, lineId: string) {
     return as(vendorToken)(
-      http().post(`/vendor/${vendorId}/orders/${orderId}/lines/${lineId}/out-of-stock`),
+      http().post(`/branch/${branchId}/orders/${orderId}/lines/${lineId}/out-of-stock`),
     );
   }
 
@@ -216,7 +216,7 @@ describe.skipIf(!dbUp)('substitutions (e2e)', () => {
     adminToken = (admin.body as { token: string }).token;
 
     const vendor = await http()
-      .post('/admin/vendors')
+      .post('/admin/branches')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         slug: `store-${unique()}`,
@@ -231,16 +231,16 @@ describe.skipIf(!dbUp)('substitutions (e2e)', () => {
         fssaiLicenceNo: `1${Math.floor(Math.random() * 1e13)}`,
       })
       .expect(201);
-    vendorId = (vendor.body as { id: string }).id;
+    branchId = (vendor.body as { id: string }).id;
 
     await http()
-      .patch(`/admin/vendors/${vendorId}`)
+      .patch(`/admin/branches/${branchId}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ status: 'ACTIVE' })
       .expect(200);
 
     await http()
-      .put(`/vendor/${vendorId}/service-area`)
+      .put(`/branch/${branchId}/service-area`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         mode: ServiceAreaMode.RADIUS,
@@ -252,7 +252,7 @@ describe.skipIf(!dbUp)('substitutions (e2e)', () => {
 
     const tomorrow = istDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
     await http()
-      .put(`/vendor/${vendorId}/slot-definitions`)
+      .put(`/branch/${branchId}/slot-definitions`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         dayOfWeek: istDayOfWeek(tomorrow),
@@ -272,7 +272,7 @@ describe.skipIf(!dbUp)('substitutions (e2e)', () => {
 
     const vendorLogin = await http()
       .post('/dev/login-as')
-      .send({ role: Role.VENDOR_STAFF, vendorId })
+      .send({ role: Role.VENDOR_STAFF, branchId })
       .expect(201);
     vendorToken = (vendorLogin.body as { token: string }).token;
 
@@ -310,7 +310,7 @@ describe.skipIf(!dbUp)('substitutions (e2e)', () => {
       await markOutOfStock(order.id, order.lines[0]!.id).expect(201);
       await new Promise((resolve) => setTimeout(resolve, 900));
 
-      const messages = await as(adminToken)(http().get(`/vendor/${vendorId}/messages`))
+      const messages = await as(adminToken)(http().get(`/branch/${branchId}/messages`))
         .query({ limit: 100 })
         .expect(200);
 
@@ -569,7 +569,7 @@ describe.skipIf(!dbUp)('substitutions (e2e)', () => {
         .expect(201);
 
       const slots = await http()
-        .get(`/serviceability/stores/${vendorId}/slots`)
+        .get(`/serviceability/stores/${branchId}/slots`)
         .query({ days: 3 })
         .expect(200);
       const slot = (slots.body as SlotView[]).find((s) => s.isBookable)!;
@@ -604,7 +604,7 @@ describe.skipIf(!dbUp)('substitutions (e2e)', () => {
       const { order } = await orderBeingPicked(SubstitutionPreference.ASK_ME);
 
       const other = await http()
-        .post('/admin/vendors')
+        .post('/admin/branches')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           slug: `store-${unique()}`,
@@ -623,12 +623,12 @@ describe.skipIf(!dbUp)('substitutions (e2e)', () => {
 
       const otherLogin = await http()
         .post('/dev/login-as')
-        .send({ role: Role.VENDOR_STAFF, vendorId: otherId })
+        .send({ role: Role.VENDOR_STAFF, branchId: otherId })
         .expect(201);
 
       await as((otherLogin.body as { token: string }).token)(
         http().post(
-          `/vendor/${otherId}/orders/${order.id}/lines/${order.lines[0]!.id}/out-of-stock`,
+          `/branch/${otherId}/orders/${order.id}/lines/${order.lines[0]!.id}/out-of-stock`,
         ),
       ).expect(404);
     });

@@ -10,7 +10,7 @@ import { and, count, desc, eq, lte, sql, type SQL } from 'drizzle-orm';
 import { DATABASE } from '../../../db/db.module';
 import type { Database, Transaction } from '../../../db';
 import { CatalogService, ProductStatus } from '../../catalog/contracts';
-import { VendorService, VendorStatus } from '../../vendor/contracts';
+import { BranchService, BranchStatus } from '../../branch/contracts';
 import { vendorOffer } from '../schema';
 import {
   type CreateOfferDto,
@@ -35,20 +35,20 @@ export class OfferService {
   constructor(
     @Inject(DATABASE) private readonly db: Database,
     private readonly catalog: CatalogService,
-    private readonly vendors: VendorService,
+    private readonly vendors: BranchService,
   ) {}
 
   /**
-   * Creates a vendor's listing for a master product.
+   * Creates a branch's listing for a master product.
    *
    * Existence of both sides is checked through the owning modules' contracts.
    * There are no cross-schema foreign keys (see schema.ts), so this check *is*
    * the referential integrity — skipping it would let an offer point at a
    * product that never existed.
    */
-  async create(vendorId: string, dto: CreateOfferDto) {
-    const vendor = await this.vendors.findById(vendorId);
-    if (vendor.status === VendorStatus.SUSPENDED) {
+  async create(branchId: string, dto: CreateOfferDto) {
+    const vendor = await this.vendors.findById(branchId);
+    if (vendor.status === BranchStatus.SUSPENDED) {
       throw new BadRequestException('A suspended vendor cannot create listings');
     }
 
@@ -67,7 +67,7 @@ export class OfferService {
       const rows = await this.db
         .insert(vendorOffer)
         .values({
-          vendorId,
+          branchId,
           masterProductId: dto.masterProductId,
           mrpPaise: dto.mrpPaise,
           sellingPricePaise: dto.sellingPricePaise,
@@ -87,11 +87,11 @@ export class OfferService {
   }
 
   /**
-   * One offer by id, regardless of vendor. Null rather than throwing.
+   * One offer by id, regardless of branch. Null rather than throwing.
    *
-   * Unscoped on purpose, and therefore **not** for vendor-facing routes: cart
+   * Unscoped on purpose, and therefore **not** for branch-facing routes: cart
    * and checkout hold an offer id the shopper chose and need to price it. Every
-   * vendor-scoped read still goes through `findForVendor` (§3.2).
+   * branch-scoped read still goes through `findForVendor` (§3.2).
    */
   async findById(offerId: string) {
     const rows = await this.db
@@ -102,16 +102,16 @@ export class OfferService {
     return rows[0] ?? null;
   }
 
-  async findForVendor(vendorId: string, offerId: string) {
+  async findForVendor(branchId: string, offerId: string) {
     const rows = await this.db
       .select()
       .from(vendorOffer)
-      .where(and(eq(vendorOffer.id, offerId), eq(vendorOffer.vendorId, vendorId)))
+      .where(and(eq(vendorOffer.id, offerId), eq(vendorOffer.branchId, branchId)))
       .limit(1);
 
     const found = rows[0];
     if (!found) {
-      // Scoped by vendor deliberately: another vendor's offer is *not found*
+      // Scoped by branch deliberately: another branch's offer is *not found*
       // here, never "forbidden". Distinguishing the two would leak the fact
       // that a given offer exists (§3.2).
       throw new NotFoundException(`Offer ${offerId} not found for this vendor`);
@@ -119,8 +119,8 @@ export class OfferService {
     return found;
   }
 
-  async update(vendorId: string, offerId: string, dto: UpdateOfferDto) {
-    const existing = await this.findForVendor(vendorId, offerId);
+  async update(branchId: string, offerId: string, dto: UpdateOfferDto) {
+    const existing = await this.findForVendor(branchId, offerId);
 
     const mrp = dto.mrpPaise ?? existing.mrpPaise;
     const price = dto.sellingPricePaise ?? existing.sellingPricePaise;
@@ -137,7 +137,7 @@ export class OfferService {
       const rows = await this.db
         .update(vendorOffer)
         .set({ ...dto, updatedAt: new Date() })
-        .where(and(eq(vendorOffer.id, offerId), eq(vendorOffer.vendorId, vendorId)))
+        .where(and(eq(vendorOffer.id, offerId), eq(vendorOffer.branchId, branchId)))
         .returning();
       return rows[0];
     } catch (error) {
@@ -145,11 +145,11 @@ export class OfferService {
     }
   }
 
-  async listForVendor(vendorId: string, query: ListOffersQueryDto) {
+  async listForVendor(branchId: string, query: ListOffersQueryDto) {
     const limit = query.limit ?? 25;
     const offset = query.offset ?? 0;
 
-    const filters: SQL[] = [eq(vendorOffer.vendorId, vendorId)];
+    const filters: SQL[] = [eq(vendorOffer.branchId, branchId)];
     if (query.status) filters.push(eq(vendorOffer.status, query.status));
     if (query.lowStockOnly) {
       filters.push(lte(vendorOffer.stockOnHand, vendorOffer.lowStockThreshold));
@@ -171,7 +171,7 @@ export class OfferService {
     return { items, total: total[0]?.value ?? 0, limit, offset };
   }
 
-  /** Offers for one master product, across vendors. Used by search (P1.4). */
+  /** Offers for one master product, across branches. Used by search (P1.4). */
   async listForProduct(masterProductId: string) {
     return this.db
       .select()
@@ -187,7 +187,7 @@ export class OfferService {
   /**
    * Whether an offer can actually be bought right now (§1.9.2).
    *
-   * Deliberately mode-aware: a TOGGLE-mode vendor keeps no counts, so demanding
+   * Deliberately mode-aware: a TOGGLE-mode branch keeps no counts, so demanding
    * `stockOnHand > 0` would make every such shop permanently out of stock. That
    * is the accommodation the tiered inventory model exists to make.
    */

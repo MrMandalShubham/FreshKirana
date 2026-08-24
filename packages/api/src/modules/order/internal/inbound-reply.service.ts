@@ -6,8 +6,8 @@ import {
 } from '@freshkirana/contracts';
 import { NotificationService } from '../../notification/contracts';
 import { CodFlowService } from './cod-flow.service';
-import type { InboundOutcome } from './vendor-order-flow.service';
-import { VendorOrderFlowService } from './vendor-order-flow.service';
+import type { InboundOutcome } from './branch-order-flow.service';
+import { BranchOrderFlowService } from './branch-order-flow.service';
 
 /**
  * Who tapped the button (spec §1.9.3, §2.10.4).
@@ -18,9 +18,9 @@ import { VendorOrderFlowService } from './vendor-order-flow.service';
  * owner ordering their own groceries would defeat that.
  *
  * Exists as its own service to keep the dependency acyclic: it depends on both
- * flows, and neither depends on it. Folding this branch into the vendor flow
- * would have made the vendor flow depend on the COD flow, which already depends
- * on the vendor flow to announce a confirmed order.
+ * flows, and neither depends on it. Folding this branch into the branch flow
+ * would have made the branch flow depend on the COD flow, which already depends
+ * on the branch flow to announce a confirmed order.
  */
 @Injectable()
 export class InboundReplyService {
@@ -28,7 +28,7 @@ export class InboundReplyService {
 
   constructor(
     private readonly notifications: NotificationService,
-    private readonly vendorFlow: VendorOrderFlowService,
+    private readonly vendorFlow: BranchOrderFlowService,
     private readonly codFlow: CodFlowService,
   ) {}
 

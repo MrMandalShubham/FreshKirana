@@ -26,7 +26,7 @@ const dbUp = await requireDatabase('serviceability.service_area');
  *
  * The database is shared and accumulates test stores, all of which are real
  * serviceable results. Pinning every suite to the same coordinates means a
- * "nearest stores" list eventually fills with vendors from other suites and
+ * "nearest stores" list eventually fills with branches from other suites and
  * earlier runs, and an assertion that *this* store appears starts failing for
  * reasons that have nothing to do with the code. Still inside the India
  * bounding box the schema enforces.
@@ -80,9 +80,9 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
     return request(app.getHttpServer());
   }
 
-  async function createVendor(activate: boolean): Promise<string> {
+  async function createBranch(activate: boolean): Promise<string> {
     const res = await http()
-      .post('/admin/vendors')
+      .post('/admin/branches')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         slug: `store-${unique()}`,
@@ -102,7 +102,7 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
 
     if (activate) {
       await http()
-        .patch(`/admin/vendors/${id}`)
+        .patch(`/admin/branches/${id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ status: 'ACTIVE' })
         .expect(200);
@@ -112,9 +112,9 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
   }
 
   /** Not async: callers chain `.expect(...)` onto the supertest request. */
-  function setRadiusArea(vendorId: string, radiusMeters: number) {
+  function setRadiusArea(branchId: string, radiusMeters: number) {
     return http()
-      .put(`/vendor/${vendorId}/service-area`)
+      .put(`/branch/${branchId}/service-area`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         mode: ServiceAreaMode.RADIUS,
@@ -126,13 +126,13 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
 
   /** A slot on a given date, far enough ahead that its cutoff has not passed. */
   async function defineSlotFor(
-    vendorId: string,
+    branchId: string,
     dateKey: string,
     capacity: { picking: number; delivery: number },
     startMinute = 1_020, // 17:00 IST
   ) {
     return http()
-      .put(`/vendor/${vendorId}/slot-definitions`)
+      .put(`/branch/${branchId}/slot-definitions`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         dayOfWeek: istDayOfWeek(dateKey),
@@ -147,9 +147,9 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
   /** Tomorrow in IST — always beyond any cutoff, whatever time the suite runs. */
   const tomorrow = () => istDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
-  async function slotsFor(vendorId: string): Promise<SlotView[]> {
+  async function slotsFor(branchId: string): Promise<SlotView[]> {
     const res = await http()
-      .get(`/serviceability/stores/${vendorId}/slots`)
+      .get(`/serviceability/stores/${branchId}/slots`)
       .query({ days: 3 })
       .expect(200);
     return res.body as SlotView[];
@@ -181,12 +181,12 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
       .expect(201);
     customerToken = (customer.body as { token: string }).token;
 
-    polygonVendor = await createVendor(true);
-    radiusVendor = await createVendor(true);
-    noAreaVendor = await createVendor(true);
+    polygonVendor = await createBranch(true);
+    radiusVendor = await createBranch(true);
+    noAreaVendor = await createBranch(true);
 
     await http()
-      .put(`/vendor/${polygonVendor}/service-area`)
+      .put(`/branch/${polygonVendor}/service-area`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         mode: ServiceAreaMode.POLYGON,
@@ -327,25 +327,25 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
       const res = await http().get('/serviceability/check').query(NEARBY).expect(200);
       const body = res.body as {
         serviceable: boolean;
-        stores: Array<{ vendorId: string }>;
+        stores: Array<{ branchId: string }>;
       };
 
       expect(body.serviceable).toBe(true);
-      expect(body.stores.map((s) => s.vendorId)).toContain(polygonVendor);
+      expect(body.stores.map((s) => s.branchId)).toContain(polygonVendor);
     });
 
     it('refuses a pin outside it', async () => {
       const res = await http().get('/serviceability/check').query(FAR_AWAY).expect(200);
-      const body = res.body as { stores: Array<{ vendorId: string }> };
+      const body = res.body as { stores: Array<{ branchId: string }> };
 
-      expect(body.stores.map((s) => s.vendorId)).not.toContain(polygonVendor);
+      expect(body.stores.map((s) => s.branchId)).not.toContain(polygonVendor);
     });
 
     it('reads the polygon back as GeoJSON', async () => {
       // The raw geography column is a binary blob; a client that cannot read
       // its own service area cannot edit it.
       const res = await http()
-        .get(`/vendor/${polygonVendor}/service-area`)
+        .get(`/branch/${polygonVendor}/service-area`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
@@ -360,7 +360,7 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
 
     it('refuses a polygon whose ring does not close', async () => {
       const res = await http()
-        .put(`/vendor/${polygonVendor}/service-area`)
+        .put(`/branch/${polygonVendor}/service-area`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           mode: ServiceAreaMode.POLYGON,
@@ -384,7 +384,7 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
 
     it('refuses POLYGON mode with no polygon', async () => {
       await http()
-        .put(`/vendor/${polygonVendor}/service-area`)
+        .put(`/branch/${polygonVendor}/service-area`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           mode: ServiceAreaMode.POLYGON,
@@ -399,10 +399,10 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
     it('serves a pin inside the radius', async () => {
       const res = await http().get('/serviceability/check').query(NEARBY).expect(200);
       const body = res.body as {
-        stores: Array<{ vendorId: string; distanceMeters: number }>;
+        stores: Array<{ branchId: string; distanceMeters: number }>;
       };
 
-      const store = body.stores.find((s) => s.vendorId === radiusVendor);
+      const store = body.stores.find((s) => s.branchId === radiusVendor);
       expect(store).toBeDefined();
       // ~1.5 km north of the store, measured on the spheroid.
       expect(store!.distanceMeters).toBeGreaterThan(1_000);
@@ -415,8 +415,8 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
 
       const res = await http().get('/serviceability/check').query(NEARBY).expect(200);
       expect(
-        (res.body as { stores: Array<{ vendorId: string }> }).stores.map(
-          (s) => s.vendorId,
+        (res.body as { stores: Array<{ branchId: string }> }).stores.map(
+          (s) => s.branchId,
         ),
       ).not.toContain(radiusVendor);
 
@@ -434,7 +434,7 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
 
     it('refuses RADIUS mode with no radius', async () => {
       await http()
-        .put(`/vendor/${radiusVendor}/service-area`)
+        .put(`/branch/${radiusVendor}/service-area`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           mode: ServiceAreaMode.RADIUS,
@@ -451,30 +451,30 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
       // rider can reach.
       const res = await http().get('/serviceability/check').query(NEARBY).expect(200);
       expect(
-        (res.body as { stores: Array<{ vendorId: string }> }).stores.map(
-          (s) => s.vendorId,
+        (res.body as { stores: Array<{ branchId: string }> }).stores.map(
+          (s) => s.branchId,
         ),
       ).not.toContain(noAreaVendor);
     });
 
     it('never offers a store that is not approved, however close it is', async () => {
-      const pending = await createVendor(false);
+      const pending = await createBranch(false);
       await setRadiusArea(pending, 3_000).expect(200);
 
       const res = await http().get('/serviceability/check').query(NEARBY).expect(200);
       expect(
-        (res.body as { stores: Array<{ vendorId: string }> }).stores.map(
-          (s) => s.vendorId,
+        (res.body as { stores: Array<{ branchId: string }> }).stores.map(
+          (s) => s.branchId,
         ),
       ).not.toContain(pending);
     });
 
     it('drops a store once its area is deactivated', async () => {
-      const temporary = await createVendor(true);
+      const temporary = await createBranch(true);
       await setRadiusArea(temporary, 3_000).expect(200);
 
       await http()
-        .put(`/vendor/${temporary}/service-area`)
+        .put(`/branch/${temporary}/service-area`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           mode: ServiceAreaMode.RADIUS,
@@ -487,8 +487,8 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
 
       const res = await http().get('/serviceability/check').query(NEARBY).expect(200);
       expect(
-        (res.body as { stores: Array<{ vendorId: string }> }).stores.map(
-          (s) => s.vendorId,
+        (res.body as { stores: Array<{ branchId: string }> }).stores.map(
+          (s) => s.branchId,
         ),
       ).not.toContain(temporary);
     });
@@ -527,7 +527,7 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
     let slotVendor: string;
 
     beforeAll(async () => {
-      slotVendor = await createVendor(true);
+      slotVendor = await createBranch(true);
       await setRadiusArea(slotVendor, 3_000).expect(200);
       await defineSlotFor(slotVendor, tomorrow(), { picking: 3, delivery: 5 });
     });
@@ -562,15 +562,15 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
   });
 
   describe('capacity — the oversell condition', () => {
-    let vendorId: string;
+    let branchId: string;
     let slot: SlotView;
 
     beforeAll(async () => {
-      vendorId = await createVendor(true);
-      await setRadiusArea(vendorId, 3_000).expect(200);
-      await defineSlotFor(vendorId, tomorrow(), { picking: 5, delivery: 5 }, 900);
+      branchId = await createBranch(true);
+      await setRadiusArea(branchId, 3_000).expect(200);
+      await defineSlotFor(branchId, tomorrow(), { picking: 5, delivery: 5 }, 900);
 
-      const slots = await slotsFor(vendorId);
+      const slots = await slotsFor(branchId);
       slot = slots[0]!;
     });
 
@@ -581,7 +581,7 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
         await slotService.book(slot.id);
       }
 
-      const slots = await slotsFor(vendorId);
+      const slots = await slotsFor(branchId);
       const full = slots.find((s) => s.id === slot.id);
 
       expect(full).toBeDefined();
@@ -607,7 +607,7 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
     it('lets exactly capacity through when everyone arrives at once', async () => {
       // The condition this whole model exists for: 20 checkouts racing for 5
       // places must produce 5 orders, not 20 promises the store cannot pack.
-      const contested = await createVendor(true);
+      const contested = await createBranch(true);
       await defineSlotFor(contested, tomorrow(), { picking: 5, delivery: 9 }, 780);
 
       const slots = await slotsFor(contested);
@@ -631,7 +631,7 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
     it('closes a slot once its cutoff has passed', async () => {
       // A slot starting 30 minutes from now, with a 90-minute cutoff, is
       // already past it — the store cannot pick an order that fast.
-      const vendorId = await createVendor(true);
+      const branchId = await createBranch(true);
       const now = new Date();
       const minuteOfDayIst = Math.floor(
         ((now.getTime() + 330 * 60_000) % (24 * 60 * 60_000)) / 60_000,
@@ -643,7 +643,7 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
       if (startMinute + 120 >= 1_440) return;
 
       await http()
-        .put(`/vendor/${vendorId}/slot-definitions`)
+        .put(`/branch/${branchId}/slot-definitions`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           dayOfWeek: istDayOfWeek(istDateKey(now)),
@@ -655,7 +655,7 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
         })
         .expect(200);
 
-      const slots = await slotsFor(vendorId);
+      const slots = await slotsFor(branchId);
       const today = slots.find((s) => s.serviceDate === istDateKey(now));
 
       expect(today).toBeDefined();
@@ -668,14 +668,14 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
     });
 
     it('blacks out a slot for a holiday', async () => {
-      const vendorId = await createVendor(true);
-      await defineSlotFor(vendorId, tomorrow(), { picking: 5, delivery: 5 }, 600);
+      const branchId = await createBranch(true);
+      await defineSlotFor(branchId, tomorrow(), { picking: 5, delivery: 5 }, 600);
 
-      const slots = await slotsFor(vendorId);
+      const slots = await slotsFor(branchId);
       const target = slots[0]!;
 
       await http()
-        .patch(`/vendor/${vendorId}/slots/${target.id}`)
+        .patch(`/branch/${branchId}/slots/${target.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ status: StoredSlotStatus.BLACKOUT })
         .expect(200);
@@ -693,17 +693,17 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
     it("denies one store's staff sight of another's slots", async () => {
       const staff = await http()
         .post('/dev/login-as')
-        .send({ role: Role.VENDOR_STAFF, vendorId: polygonVendor })
+        .send({ role: Role.VENDOR_STAFF, branchId: polygonVendor })
         .expect(201);
       const staffToken = (staff.body as { token: string }).token;
 
       await http()
-        .get(`/vendor/${radiusVendor}/slots`)
+        .get(`/branch/${radiusVendor}/slots`)
         .set('Authorization', `Bearer ${staffToken}`)
         .expect(403);
 
       await http()
-        .get(`/vendor/${polygonVendor}/slots`)
+        .get(`/branch/${polygonVendor}/slots`)
         .set('Authorization', `Bearer ${staffToken}`)
         .expect(200);
     });
@@ -711,11 +711,11 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
     it("denies writing another store's service area", async () => {
       const staff = await http()
         .post('/dev/login-as')
-        .send({ role: Role.VENDOR_STAFF, vendorId: polygonVendor })
+        .send({ role: Role.VENDOR_STAFF, branchId: polygonVendor })
         .expect(201);
 
       await http()
-        .put(`/vendor/${radiusVendor}/service-area`)
+        .put(`/branch/${radiusVendor}/service-area`)
         .set('Authorization', `Bearer ${(staff.body as { token: string }).token}`)
         .send({
           mode: ServiceAreaMode.RADIUS,
@@ -730,22 +730,22 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
   describe('the database constraints, not just the service checks', () => {
     it('refuses to oversell a slot written directly to the table', async () => {
       const db = createDatabase();
-      const vendorId = randomUUID();
+      const branchId = randomUUID();
       const definitionId = randomUUID();
 
       await db.execute(`
         insert into serviceability.slot_definition
-          (id, vendor_id, day_of_week, start_minute, end_minute,
+          (id, branch_id, day_of_week, start_minute, end_minute,
            picking_capacity_orders, delivery_capacity_orders, cutoff_minutes_before)
-        values ('${definitionId}', '${vendorId}', 1, 600, 720, 5, 5, 90)
+        values ('${definitionId}', '${branchId}', 1, 600, 720, 5, 5, 90)
       `);
 
       await expect(
         db.execute(`
           insert into serviceability.slot_instance
-            (vendor_id, slot_definition_id, service_date, starts_at, ends_at,
+            (branch_id, slot_definition_id, service_date, starts_at, ends_at,
              capacity, booked, cutoff_minutes_before)
-          values ('${vendorId}', '${definitionId}', '2026-09-01',
+          values ('${branchId}', '${definitionId}', '2026-09-01',
                   '2026-09-01T04:30:00Z', '2026-09-01T06:30:00Z', 5, 6, 90)
         `),
       ).rejects.toThrow(/slot_instance_not_oversold/);
@@ -756,7 +756,7 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
       await expect(
         db.execute(`
           insert into serviceability.slot_definition
-            (vendor_id, day_of_week, start_minute, end_minute,
+            (branch_id, day_of_week, start_minute, end_minute,
              picking_capacity_orders, delivery_capacity_orders)
           values ('${randomUUID()}', 1, 720, 600, 5, 5)
         `),
@@ -768,7 +768,7 @@ describe.skipIf(!dbUp)('serviceability and slots (e2e)', () => {
       await expect(
         db.execute(`
           insert into serviceability.service_area
-            (vendor_id, mode, centre_latitude, centre_longitude)
+            (branch_id, mode, centre_latitude, centre_longitude)
           values ('${randomUUID()}', 'RADIUS', 12.97, 77.59)
         `),
       ).rejects.toThrow(/service_area_mode_is_backed/);

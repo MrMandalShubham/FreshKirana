@@ -21,13 +21,13 @@ export const GstRegistrationType = {
   UNREGISTERED: 'UNREGISTERED',
 } as const;
 
-export const VendorStatus = {
+export const BranchStatus = {
   PENDING: 'PENDING',
   ACTIVE: 'ACTIVE',
   SUSPENDED: 'SUSPENDED',
 } as const;
 
-export class CreateVendorDto {
+export class CreateBranchDto {
   @Matches(SLUG, { message: 'slug must be lowercase kebab-case' })
   @MaxLength(100)
   slug!: string;
@@ -55,7 +55,7 @@ export class CreateVendorDto {
   @IsOptional() @IsObject() storeConfig?: Record<string, unknown>;
 }
 
-export class UpdateVendorDto {
+export class UpdateBranchDto {
   @IsOptional() @IsString() @MaxLength(200) legalName?: string;
   @IsOptional() @IsString() @MaxLength(200) displayName?: string;
   @IsOptional() @Matches(E164) phone?: string;
@@ -69,12 +69,12 @@ export class UpdateVendorDto {
   @IsOptional() @IsISO8601() fssaiExpiryDate?: string;
   @IsOptional() @IsIn(Object.values(InventoryMode)) defaultInventoryMode?: InventoryMode;
   @IsOptional() @IsObject() storeConfig?: Record<string, unknown>;
-  @IsOptional() @IsIn(Object.values(VendorStatus)) status?: string;
+  @IsOptional() @IsIn(Object.values(BranchStatus)) status?: string;
   @IsOptional() @IsString() @MaxLength(500) suspensionReason?: string;
 }
 
-/** Grants an account a role *at this vendor*. The scope is the whole point (§3.2). */
-export class AddVendorStaffDto {
+/** Grants an account a role *at this branch*. The scope is the whole point (§3.2). */
+export class AddBranchStaffDto {
   @Matches(E164, { message: 'phone must be E.164' }) phone!: string;
   @IsString() @MinLength(1) @MaxLength(200) displayName!: string;
 

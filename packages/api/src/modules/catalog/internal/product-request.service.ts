@@ -23,7 +23,7 @@ export const ProductRequestStatus = {
 /**
  * The product-request queue (spec §1.9.1).
  *
- * Decision D1 stops vendors creating master products. This is how a vendor
+ * Decision D1 stops branches creating master products. This is how a branch
  * still sells a regional brand nobody has catalogued: they describe it, an
  * admin creates the canonical product, and their offer attaches.
  */
@@ -38,11 +38,11 @@ export class ProductRequestService {
   /**
    * Submits a request, checking for an existing product first.
    *
-   * A vendor scanning a barcode we already have should be told so immediately
+   * A branch scanning a barcode we already have should be told so immediately
    * rather than waiting on a queue — most requests are this case, and turning
    * them into admin work would drown the queue that matters.
    */
-  async submit(vendorId: string, accountId: string | null, dto: CreateProductRequestDto) {
+  async submit(branchId: string, accountId: string | null, dto: CreateProductRequestDto) {
     const candidates = await this.duplicates.findCandidates({
       name: dto.proposedName,
       eanBarcode: dto.proposedEanBarcode,
@@ -62,7 +62,7 @@ export class ProductRequestService {
     const rows = await this.db
       .insert(productRequest)
       .values({
-        vendorId,
+        branchId,
         requestedByAccountId: accountId,
         eanBarcode: dto.proposedEanBarcode ?? null,
         proposedName: dto.proposedName,
@@ -79,7 +79,7 @@ export class ProductRequestService {
       })
       .returning();
 
-    // Weaker matches are advisory: returned so the vendor can self-serve, but
+    // Weaker matches are advisory: returned so the branch can self-serve, but
     // not blocking, because a same-name different-product is real.
     return { request: rows[0], possibleMatches: candidates };
   }
@@ -96,8 +96,8 @@ export class ProductRequestService {
     return found;
   }
 
-  async listForVendor(vendorId: string, status?: string) {
-    const filters: SQL[] = [eq(productRequest.vendorId, vendorId)];
+  async listForVendor(branchId: string, status?: string) {
+    const filters: SQL[] = [eq(productRequest.branchId, branchId)];
     if (status) filters.push(eq(productRequest.status, status));
 
     return this.db
@@ -119,7 +119,7 @@ export class ProductRequestService {
   /**
    * Approves a request by creating the master product it describes.
    *
-   * Returns the created product so the caller can attach the vendor's offer —
+   * Returns the created product so the caller can attach the branch's offer —
    * that orchestration lives in the admin module, because catalog must not
    * depend on offer (which already depends on catalog).
    */
@@ -177,7 +177,7 @@ export class ProductRequestService {
     return { request: rows[0], product };
   }
 
-  /** Rejects outright, or points the vendor at the product it duplicates. */
+  /** Rejects outright, or points the branch at the product it duplicates. */
   async reject(
     id: string,
     reviewerAccountId: string,
@@ -187,7 +187,7 @@ export class ProductRequestService {
     this.assertPending(request.status);
 
     if (input.duplicateOfMasterProductId) {
-      // Confirms the product exists before pointing the vendor at it.
+      // Confirms the product exists before pointing the branch at it.
       await this.catalog.getProduct(input.duplicateOfMasterProductId);
     }
 

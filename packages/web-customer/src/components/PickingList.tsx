@@ -25,14 +25,14 @@ const STEP_LABEL: Record<string, keyof ReturnType<typeof getDictionary>> = {
  * they already pressed something.
  */
 export function PickingList({
-  vendorId,
+  branchId,
   orderId,
   status,
   lines,
   nextActions,
   locale,
 }: {
-  vendorId: string;
+  branchId: string;
   orderId: string;
   status: string;
   lines: OrderLine[];
@@ -52,7 +52,7 @@ export function PickingList({
 
     startTransition(async () => {
       const form = new FormData();
-      form.set('vendorId', vendorId);
+      form.set('branchId', branchId);
       form.set('orderId', orderId);
       form.set('to', to);
 
@@ -68,7 +68,7 @@ export function PickingList({
 
     startTransition(async () => {
       const form = new FormData();
-      form.set('vendorId', vendorId);
+      form.set('branchId', branchId);
       form.set('orderId', orderId);
       form.set('lineId', lineId);
 
@@ -94,7 +94,7 @@ export function PickingList({
 
     startTransition(async () => {
       const form = new FormData();
-      form.set('vendorId', vendorId);
+      form.set('branchId', branchId);
       form.set('orderId', orderId);
       form.set('lineId', lineId);
       form.set('actualGrams', String(Math.round(grams)));

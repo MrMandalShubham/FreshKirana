@@ -7,10 +7,10 @@ import { RecallService } from './recall.service';
 /**
  * Withdrawing an unsafe lot (spec §1.7.3).
  *
- * Admin and ops only, and never a vendor: a shop discovering a problem should
+ * Admin and ops only, and never a branch: a shop discovering a problem should
  * be able to raise it, but a shop deciding unilaterally that a recall is over —
  * or quietly not raising one — is the failure mode this exists to prevent. The
- * vendor-facing path is a support conversation until P7.2 gives ops a console.
+ * branch-facing path is a support conversation until P7.2 gives ops a console.
  */
 @Roles(Role.ADMIN, Role.OPS)
 @Controller('admin/recalls')

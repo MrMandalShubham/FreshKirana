@@ -13,7 +13,7 @@ import {
 import { eq, sql } from 'drizzle-orm';
 import { DATABASE } from '../../../db/db.module';
 import type { Database } from '../../../db';
-import { VendorService, VendorStatus } from '../../vendor/contracts';
+import { BranchService, BranchStatus } from '../../branch/contracts';
 import { serviceArea, waitlistEntry } from '../schema';
 
 /** A GeoJSON Polygon, as the admin console draws it. */
@@ -33,7 +33,7 @@ export interface ServiceAreaInput {
 }
 
 export interface ServiceableStore {
-  vendorId: string;
+  branchId: string;
   distanceMeters: number;
 }
 
@@ -51,7 +51,7 @@ const pointOf = (point: LatLng) =>
 export class ServiceAreaService {
   constructor(
     @Inject(DATABASE) private readonly db: Database,
-    private readonly vendors: VendorService,
+    private readonly vendors: BranchService,
   ) {}
 
   /**
@@ -60,33 +60,33 @@ export class ServiceAreaService {
    * Replace rather than append: two areas would mean two answers to "do you
    * deliver here", with no rule for which wins.
    */
-  async setForVendor(vendorId: string, input: ServiceAreaInput) {
-    await this.vendors.findById(vendorId);
+  async setForVendor(branchId: string, input: ServiceAreaInput) {
+    await this.vendors.findById(branchId);
     this.assertPlausibleCoordinates({
       latitude: input.centreLatitude,
       longitude: input.centreLongitude,
     });
 
-    const values = this.toRowValues(vendorId, input);
+    const values = this.toRowValues(branchId, input);
 
     await this.db
       .insert(serviceArea)
       .values(values)
       .onConflictDoUpdate({
-        target: serviceArea.vendorId,
+        target: serviceArea.branchId,
         set: { ...values, updatedAt: new Date() },
       });
 
-    return this.findForVendor(vendorId);
+    return this.findForVendor(branchId);
   }
 
-  async findForVendor(vendorId: string) {
+  async findForVendor(branchId: string) {
     // The polygon has to come back as GeoJSON: the raw geography column is a
     // binary blob no client can read.
     const rows = await this.db
       .select({
         id: serviceArea.id,
-        vendorId: serviceArea.vendorId,
+        branchId: serviceArea.branchId,
         mode: serviceArea.mode,
         centreLatitude: serviceArea.centreLatitude,
         centreLongitude: serviceArea.centreLongitude,
@@ -95,11 +95,11 @@ export class ServiceAreaService {
         polygon: sql<string | null>`ST_AsGeoJSON(${serviceArea.polygon})`,
       })
       .from(serviceArea)
-      .where(eq(serviceArea.vendorId, vendorId))
+      .where(eq(serviceArea.branchId, branchId))
       .limit(1);
 
     const found = rows[0];
-    if (!found) throw new NotFoundException(`Vendor ${vendorId} has no service area`);
+    if (!found) throw new NotFoundException(`Vendor ${branchId} has no service area`);
 
     return {
       ...found,
@@ -111,7 +111,7 @@ export class ServiceAreaService {
    * Which stores will deliver to this point, nearest first (spec §2.8.1).
    *
    * §2.8.1 also ranks by catalog coverage of the customer's usual basket and by
-   * vendor quality score. Neither exists yet — the usual basket arrives with
+   * branch quality score. Neither exists yet — the usual basket arrives with
    * P2.7 and SLA scores with P6.3 — so this ranks by distance alone and the
    * signature is shaped to take more later.
    */
@@ -123,7 +123,7 @@ export class ServiceAreaService {
 
     const rows = await this.db
       .select({
-        vendorId: serviceArea.vendorId,
+        branchId: serviceArea.branchId,
         distanceMeters: sql<number>`ST_Distance(${here}, ${centre})`,
       })
       .from(serviceArea)
@@ -135,23 +135,23 @@ export class ServiceAreaService {
             )`,
       )
       .orderBy(sql`ST_Distance(${here}, ${centre})`)
-      // Over-fetch, because the vendor-status filter below removes rows. Cutting
+      // Over-fetch, because the branch-status filter below removes rows. Cutting
       // to `limit` in SQL first would let a handful of suspended stores squeeze
       // out open ones that are genuinely nearby — the shopper would be told the
       // area is thin when it is not.
       .limit(Math.min(limit * 5, 200));
 
     // A store that is suspended or still pending approval must not be offered,
-    // however close it is. Checked through the vendor module's contract rather
+    // however close it is. Checked through the branch module's contract rather
     // than by joining its schema (§2.1.1).
     const serviceable: ServiceableStore[] = [];
     for (const row of rows) {
       if (serviceable.length >= limit) break;
 
-      const vendor = await this.vendors.findById(row.vendorId).catch(() => null);
-      if (vendor?.status !== VendorStatus.ACTIVE) continue;
+      const vendor = await this.vendors.findById(row.branchId).catch(() => null);
+      if (vendor?.status !== BranchStatus.ACTIVE) continue;
       serviceable.push({
-        vendorId: row.vendorId,
+        branchId: row.branchId,
         distanceMeters: Math.round(Number(row.distanceMeters)),
       });
     }
@@ -206,7 +206,7 @@ export class ServiceAreaService {
       .limit(limit);
   }
 
-  private toRowValues(vendorId: string, input: ServiceAreaInput) {
+  private toRowValues(branchId: string, input: ServiceAreaInput) {
     const mode = input.mode;
 
     if (mode === ServiceAreaMode.POLYGON) {
@@ -216,7 +216,7 @@ export class ServiceAreaService {
       this.assertClosedRing(input.polygon);
 
       return {
-        vendorId,
+        branchId,
         mode,
         centreLatitude: input.centreLatitude,
         centreLongitude: input.centreLongitude,
@@ -233,7 +233,7 @@ export class ServiceAreaService {
     }
 
     return {
-      vendorId,
+      branchId,
       mode: ServiceAreaMode.RADIUS,
       centreLatitude: input.centreLatitude,
       centreLongitude: input.centreLongitude,

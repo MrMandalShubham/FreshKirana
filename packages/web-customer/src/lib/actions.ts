@@ -87,7 +87,7 @@ export async function signIn(locale: string): Promise<ActionResult> {
  */
 export async function signInAsVendor(
   locale: string,
-  vendorId: string,
+  branchId: string,
 ): Promise<ActionResult> {
   if (!devLoginAvailable()) {
     return { ok: false, error: 'Sign-in is not available in this environment' };
@@ -95,7 +95,7 @@ export async function signInAsVendor(
 
   const result = await sendJson<{ token: string }>('/dev/login-as', {
     method: 'POST',
-    body: { role: 'VENDOR_STAFF', vendorId },
+    body: { role: 'VENDOR_STAFF', branchId },
   });
 
   if (!result.ok || !result.data?.token) return failed(result);
@@ -103,7 +103,7 @@ export async function signInAsVendor(
   await setSessionToken(result.data.token);
 
   revalidatePath('/', 'layout');
-  redirect(`/${locale}/vendor/${vendorId}`);
+  redirect(`/${locale}/vendor/${branchId}`);
 }
 
 export async function signOut(locale: string): Promise<void> {
@@ -419,12 +419,12 @@ export async function verifyCodOtp(formData: FormData): Promise<VerifyCodResult>
 
 /** Moves an order along, as the store. Accept, start picking, mark packed. */
 export async function vendorMoveOrder(formData: FormData): Promise<ActionResult> {
-  const vendorId = String(formData.get('vendorId') ?? '');
+  const branchId = String(formData.get('branchId') ?? '');
   const orderId = String(formData.get('orderId') ?? '');
   const to = String(formData.get('to') ?? '');
 
   const result = await sendJson(
-    `/vendor/${encodeURIComponent(vendorId)}/orders/${encodeURIComponent(orderId)}/transitions`,
+    `/vendor/${encodeURIComponent(branchId)}/orders/${encodeURIComponent(orderId)}/transitions`,
     { method: 'POST', body: { to } },
   );
 
@@ -442,12 +442,12 @@ export async function vendorMoveOrder(formData: FormData): Promise<ActionResult>
  * be deciding for somebody who already said what they wanted.
  */
 export async function markLineOutOfStock(formData: FormData): Promise<ActionResult> {
-  const vendorId = String(formData.get('vendorId') ?? '');
+  const branchId = String(formData.get('branchId') ?? '');
   const orderId = String(formData.get('orderId') ?? '');
   const lineId = String(formData.get('lineId') ?? '');
 
   const result = await sendJson(
-    `/vendor/${encodeURIComponent(vendorId)}/orders/${encodeURIComponent(orderId)}` +
+    `/vendor/${encodeURIComponent(branchId)}/orders/${encodeURIComponent(orderId)}` +
       `/lines/${encodeURIComponent(lineId)}/out-of-stock`,
     { method: 'POST' },
   );
@@ -473,7 +473,7 @@ export interface WeighResult extends ActionResult {
 }
 
 export async function weighLine(formData: FormData): Promise<WeighResult> {
-  const vendorId = String(formData.get('vendorId') ?? '');
+  const branchId = String(formData.get('branchId') ?? '');
   const orderId = String(formData.get('orderId') ?? '');
   const lineId = String(formData.get('lineId') ?? '');
   const actualGrams = Number(formData.get('actualGrams') ?? 0);
@@ -485,7 +485,7 @@ export async function weighLine(formData: FormData): Promise<WeighResult> {
     needsConsent: boolean;
     absorbed: boolean;
   }>(
-    `/vendor/${encodeURIComponent(vendorId)}/orders/${encodeURIComponent(orderId)}` +
+    `/vendor/${encodeURIComponent(branchId)}/orders/${encodeURIComponent(orderId)}` +
       `/lines/${encodeURIComponent(lineId)}/weight`,
     { method: 'POST', body: consented ? { actualGrams, consented } : { actualGrams } },
   );

@@ -36,7 +36,7 @@ export interface CartTotals {
 
 export interface Cart {
   id: string;
-  vendorId: string | null;
+  branchId: string | null;
   substitutionPreference: string;
   lines: CartLine[];
   totals: CartTotals;
@@ -61,7 +61,7 @@ export interface Address {
 
 export interface Slot {
   id: string;
-  vendorId: string;
+  branchId: string;
   serviceDate: string;
   startsAt: string;
   endsAt: string;
@@ -168,7 +168,7 @@ export interface RecoveryOffer {
 export interface UsualBasketItem {
   masterProductId: string;
   vendorOfferId: string;
-  vendorId: string;
+  branchId: string;
   name: string;
   quantity: number;
   netQuantity: number;
@@ -216,9 +216,9 @@ export async function fetchAddresses(): Promise<Address[]> {
   return result.data ?? [];
 }
 
-export async function fetchSlots(vendorId: string): Promise<Slot[]> {
+export async function fetchSlots(branchId: string): Promise<Slot[]> {
   const result = await getPrivateJson<Slot[]>(
-    `/serviceability/stores/${encodeURIComponent(vendorId)}/slots?days=3`,
+    `/serviceability/stores/${encodeURIComponent(branchId)}/slots?days=3`,
   );
   return result.data ?? [];
 }
@@ -296,9 +296,9 @@ export async function fetchCancellationPreview(
  * Everything the shop still has to act on, newest last so the oldest — the one
  * closest to breaching its §1.9.4 acceptance SLA — is at the top of the list.
  */
-export async function fetchVendorOrders(vendorId: string): Promise<Order[]> {
+export async function fetchVendorOrders(branchId: string): Promise<Order[]> {
   const result = await getPrivateJson<Order[]>(
-    `/vendor/${encodeURIComponent(vendorId)}/orders?limit=50`,
+    `/vendor/${encodeURIComponent(branchId)}/orders?limit=50`,
   );
   return result.data ?? [];
 }

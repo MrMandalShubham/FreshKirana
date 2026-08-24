@@ -80,7 +80,7 @@ export class CheckoutController {
       properties: {
         orderId: order.id,
         orderNumber: order.orderNumber,
-        vendorId: order.vendorId,
+        branchId: order.branchId,
         paymentMethod: order.paymentMethod,
         grandTotalPaise: order.grandTotalPaise,
         lineCount: order.lines.length,

@@ -65,7 +65,7 @@ interface PlacedOrder {
   status: string;
   paymentStatus: string;
   paymentMethod: string;
-  vendorId: string;
+  branchId: string;
   substitutionPreference: string;
   recipientName: string;
   addressPincode: string;
@@ -98,9 +98,9 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
   let customerToken: string;
   let accountId: string;
 
-  let vendorId: string;
-  /** A second store, for the wrong-slot and wrong-vendor cases. */
-  let otherVendorId: string;
+  let branchId: string;
+  /** A second store, for the wrong-slot and wrong-branch cases. */
+  let otherBranchId: string;
 
   let addressId: string;
   let farAddressId: string;
@@ -125,9 +125,9 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
   const asCustomer = (req: request.Test) =>
     req.set('Authorization', `Bearer ${customerToken}`);
 
-  async function createVendor(): Promise<string> {
+  async function createBranch(): Promise<string> {
     const res = await http()
-      .post('/admin/vendors')
+      .post('/admin/branches')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         slug: `store-${unique()}`,
@@ -146,13 +146,13 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
     const id = (res.body as { id: string }).id;
 
     await http()
-      .patch(`/admin/vendors/${id}`)
+      .patch(`/admin/branches/${id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ status: 'ACTIVE' })
       .expect(200);
 
     await http()
-      .put(`/vendor/${id}/service-area`)
+      .put(`/branch/${id}/service-area`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         mode: ServiceAreaMode.RADIUS,
@@ -208,7 +208,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
     mrpPaise: number,
   ): Promise<string> {
     const res = await http()
-      .post(`/vendor/${vendor}/offers`)
+      .post(`/branch/${vendor}/offers`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         masterProductId,
@@ -227,7 +227,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
 
   async function defineSlot(vendor: string, startMinute: number, capacity = 10) {
     await http()
-      .put(`/vendor/${vendor}/slot-definitions`)
+      .put(`/branch/${vendor}/slot-definitions`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         dayOfWeek: istDayOfWeek(tomorrow()),
@@ -335,11 +335,11 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
       .expect(201);
     categoryId = (category.body as { id: string }).id;
 
-    vendorId = await createVendor();
-    otherVendorId = await createVendor();
+    branchId = await createBranch();
+    otherBranchId = await createBranch();
 
-    await defineSlot(vendorId, 600); // 10:00–12:00 IST tomorrow
-    await defineSlot(otherVendorId, 780);
+    await defineSlot(branchId, 600); // 10:00–12:00 IST tomorrow
+    await defineSlot(otherBranchId, 780);
 
     const packaged = await createProduct({
       netQuantity: 5,
@@ -347,7 +347,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
       gstRateBp: GST_RATE_BP.FIVE,
       hsnCode: '1101',
     });
-    offerId = await createOffer(vendorId, packaged, 25_500, 28_000);
+    offerId = await createOffer(branchId, packaged, 25_500, 28_000);
 
     const loose = await createProduct({
       netQuantity: 1_000,
@@ -356,7 +356,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
       hsnCode: '0702',
       isVariableWeight: true,
     });
-    looseOfferId = await createOffer(vendorId, loose, 4_000, 4_500);
+    looseOfferId = await createOffer(branchId, loose, 4_000, 4_500);
 
     addressId = await createAddress(NEARBY);
     farAddressId = await createAddress(FAR_AWAY, '570001');
@@ -373,7 +373,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
     beforeAll(async () => {
       await resetCart();
       await addToCart(offerId, 2); // ₹510
-      slot = await bookableSlot(vendorId);
+      slot = await bookableSlot(branchId);
 
       order = await place({
         addressId,
@@ -441,7 +441,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
     });
 
     it('takes a place in the slot', async () => {
-      const after = await slotsFor(vendorId);
+      const after = await slotsFor(branchId);
       const booked = after.find((s) => s.id === slot.id);
       expect(booked?.booked).toBeGreaterThan(0);
     });
@@ -460,7 +460,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
 
     it('appears in the store queue', async () => {
       const res = await http()
-        .get(`/vendor/${vendorId}/orders`)
+        .get(`/branch/${branchId}/orders`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
@@ -477,7 +477,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
       await addToCart(offerId, 1); // ₹255 at 5%
       await addToCart(looseOfferId, 500); // ₹20 at 0%
 
-      const slot = await bookableSlot(vendorId);
+      const slot = await bookableSlot(branchId);
       const order = await place({ addressId, slotInstanceId: slot.id });
 
       const taxed = order.lines.find((l) => l.gstRateBp === GST_RATE_BP.FIVE)!;
@@ -508,7 +508,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
     });
 
     it('clears once an address and a slot are chosen', async () => {
-      const slot = await bookableSlot(vendorId);
+      const slot = await bookableSlot(branchId);
 
       const res = await asCustomer(http().get('/checkout/preview'))
         .query({ addressId, slotInstanceId: slot.id })
@@ -518,7 +518,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
     });
 
     it('quotes the same totals the order will carry', async () => {
-      const slot = await bookableSlot(vendorId);
+      const slot = await bookableSlot(branchId);
       const res = await asCustomer(http().get('/checkout/preview'))
         .query({ addressId, slotInstanceId: slot.id })
         .expect(200);
@@ -536,9 +536,9 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
     });
 
     it('refuses an address this store cannot reach', async () => {
-      // The basket is pinned to a vendor (D2), so the question is not whether
+      // The basket is pinned to a branch (D2), so the question is not whether
       // *anyone* delivers there — it is whether this store does.
-      const slot = await bookableSlot(vendorId);
+      const slot = await bookableSlot(branchId);
       const res = await asCustomer(http().post('/checkout/place'))
         .send({ addressId: farAddressId, slotInstanceId: slot.id })
         .expect(409);
@@ -547,7 +547,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
     });
 
     it("refuses another store's slot", async () => {
-      const otherSlot = await bookableSlot(otherVendorId);
+      const otherSlot = await bookableSlot(otherBranchId);
       const res = await asCustomer(http().post('/checkout/place'))
         .send({ addressId, slotInstanceId: otherSlot.id })
         .expect(409);
@@ -556,10 +556,10 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
     });
 
     it('refuses a slot past its cutoff', async () => {
-      const slot = await bookableSlot(vendorId);
+      const slot = await bookableSlot(branchId);
 
       await http()
-        .patch(`/vendor/${vendorId}/slots/${slot.id}`)
+        .patch(`/branch/${branchId}/slots/${slot.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ status: StoredSlotStatus.CLOSED })
         .expect(200);
@@ -571,7 +571,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
       expect(JSON.stringify(res.body)).toContain('SLOT_CLOSED');
 
       await http()
-        .patch(`/vendor/${vendorId}/slots/${slot.id}`)
+        .patch(`/branch/${branchId}/slots/${slot.id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ status: StoredSlotStatus.OPEN })
         .expect(200);
@@ -583,7 +583,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
         .send({ role: Role.VENDOR_OWNER })
         .expect(201);
 
-      const slot = await bookableSlot(vendorId);
+      const slot = await bookableSlot(branchId);
       const res = await http()
         .post('/checkout/place')
         .set('Authorization', `Bearer ${(other.body as { token: string }).token}`)
@@ -595,7 +595,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
 
     it('refuses an empty basket', async () => {
       await resetCart();
-      const slot = await bookableSlot(vendorId);
+      const slot = await bookableSlot(branchId);
 
       const res = await asCustomer(http().post('/checkout/place'))
         .send({ addressId, slotInstanceId: slot.id })
@@ -610,7 +610,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
       // built for them — taking money we cannot service is worse than refusing.
       await resetCart();
       await addToCart(offerId, 1);
-      const slot = await bookableSlot(vendorId);
+      const slot = await bookableSlot(branchId);
 
       await asCustomer(http().post('/checkout/place'))
         .send({
@@ -633,9 +633,9 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
       // rolls back and it returns the winner's order.
       await resetCart();
       await addToCart(offerId, 1);
-      const slot = await bookableSlot(vendorId);
+      const slot = await bookableSlot(branchId);
 
-      const before = await slotsFor(vendorId);
+      const before = await slotsFor(branchId);
       const bookedBefore = before.find((s) => s.id === slot.id)!.booked;
 
       const [first, second] = await Promise.all([
@@ -660,7 +660,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
       const ids = new Set(placed.map((r) => (r.body as PlacedOrder).id));
       expect(ids.size).toBe(1);
 
-      const after = await slotsFor(vendorId);
+      const after = await slotsFor(branchId);
       expect(after.find((s) => s.id === slot.id)!.booked).toBe(bookedBefore + 1);
 
       const orderNumber = (placed[0]!.body as PlacedOrder).orderNumber;
@@ -677,7 +677,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
       // key lands with reservations in P3.1.
       await resetCart();
       await addToCart(offerId, 1);
-      const slot = await bookableSlot(vendorId);
+      const slot = await bookableSlot(branchId);
 
       const first = await place({ addressId, slotInstanceId: slot.id });
 
@@ -698,7 +698,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
       // The slot is booked inside the same transaction as the order, so losing
       // the race writes nothing at all — no order, and no place held against a
       // store for an order that does not exist.
-      const vendor = await createVendor();
+      const vendor = await createBranch();
       await defineSlot(vendor, 900, 1);
 
       const soleProduct = await createProduct({
@@ -741,7 +741,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
       await expect(
         db.execute(`
           insert into "order"."order"
-            (order_number, account_id, vendor_id, cart_id, status, payment_status,
+            (order_number, account_id, branch_id, cart_id, status, payment_status,
              payment_method, substitution_preference, address_id, recipient_name,
              recipient_phone, address_line1, address_city, address_state,
              address_pincode, address_latitude, address_longitude,
@@ -765,7 +765,7 @@ describe.skipIf(!dbUp)('checkout (e2e)', () => {
 
       const insert = (number: string) => `
         insert into "order"."order"
-          (order_number, account_id, vendor_id, cart_id, status, payment_status,
+          (order_number, account_id, branch_id, cart_id, status, payment_status,
            payment_method, substitution_preference, address_id, recipient_name,
            recipient_phone, address_line1, address_city, address_state,
            address_pincode, address_latitude, address_longitude,

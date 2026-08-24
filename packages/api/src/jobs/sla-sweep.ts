@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
 import { AppModule } from '../app.module';
 import { loadEnv } from '../config/env';
-import { VendorOrderFlowService } from '../modules/order/contracts';
+import { BranchOrderFlowService } from '../modules/order/contracts';
 
 loadEnv();
 
@@ -18,7 +18,7 @@ loadEnv();
  *
  * ## Why a job and not an HTTP endpoint
  *
- * `POST /internal/vendor-sla/sweep` still exists for an operator who wants to
+ * `POST /internal/branch-sla/sweep` still exists for an operator who wants to
  * force a pass. But a *scheduled* trigger over HTTP would mean the API carries
  * a second authentication path — Cloud Scheduler presents a Google identity
  * token, not one of ours — and after P8.6 makes the API public that path is
@@ -38,7 +38,7 @@ export async function runSlaSweep(): Promise<{
   });
 
   try {
-    const flow = context.get(VendorOrderFlowService);
+    const flow = context.get(BranchOrderFlowService);
     return await flow.sweepAcceptanceSla();
   } finally {
     await context.close();

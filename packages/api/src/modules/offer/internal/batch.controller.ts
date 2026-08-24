@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { Role } from '@freshkirana/contracts';
-import { Roles, VendorScopeGuard } from '../../identity/contracts';
+import { Roles, BranchScopeGuard } from '../../identity/contracts';
 import { BatchService } from './batch.service';
 import { ReceiveBatchDto } from './batch.dto';
 
@@ -12,8 +12,8 @@ import { ReceiveBatchDto } from './batch.dto';
  * search.
  */
 @Roles(Role.VENDOR_OWNER, Role.VENDOR_STAFF, Role.ADMIN, Role.OPS)
-@UseGuards(VendorScopeGuard)
-@Controller('vendor/:vendorId/offers/:offerId/batches')
+@UseGuards(BranchScopeGuard)
+@Controller('branch/:branchId/offers/:offerId/batches')
 export class BatchController {
   constructor(private readonly batches: BatchService) {}
 

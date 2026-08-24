@@ -40,7 +40,7 @@ export interface SearchResultItem {
    * disagree with the number already on screen.
    */
   bestOfferId: string | null;
-  bestVendorId: string | null;
+  bestBranchId: string | null;
   /** Drives the §2.7.3 rule that an unavailable offer never outranks an available one. */
   isAvailable: boolean;
   offerCount: number;

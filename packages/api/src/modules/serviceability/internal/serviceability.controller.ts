@@ -87,9 +87,9 @@ export class ServiceabilityController {
   }
 
   @Public()
-  @Get('stores/:vendorId/slots')
-  slotsFor(@Param('vendorId') vendorId: string, @Query() query: SlotQueryDto) {
-    return this.slots.listSlots(vendorId, { days: query.days });
+  @Get('stores/:branchId/slots')
+  slotsFor(@Param('branchId') branchId: string, @Query() query: SlotQueryDto) {
+    return this.slots.listSlots(branchId, { days: query.days });
   }
 
   @Public()

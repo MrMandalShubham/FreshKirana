@@ -29,9 +29,9 @@ const dbUp = await requireDatabase('identity.account');
 describe.skipIf(!dbUp)('auth (e2e)', () => {
   let app: INestApplication;
 
-  async function tokenFor(role: Role, vendorId?: string): Promise<string> {
+  async function tokenFor(role: Role, branchId?: string): Promise<string> {
     const body: Record<string, unknown> = { role };
-    if (vendorId) body['vendorId'] = vendorId;
+    if (branchId) body['branchId'] = branchId;
 
     const res = await request(app.getHttpServer())
       .post('/dev/login-as')
@@ -112,7 +112,7 @@ describe.skipIf(!dbUp)('auth (e2e)', () => {
 
       // Assert the assignment *exists*, rather than that it is the first one.
       // Dev accounts are shared across suites and accumulate roles at several
-      // vendors, so picking roles[0] would depend on test execution order.
+      // branches, so picking roles[0] would depend on test execution order.
       expect(
         principal.roles.some(
           (r) =>
@@ -165,7 +165,7 @@ describe.skipIf(!dbUp)('auth (e2e)', () => {
 
   describe('resource-level scoping (§3.2)', () => {
     it("denies vendor staff access to another vendor's scope", async () => {
-      // The failure this prevents is vendor-to-vendor data leakage: the role is
+      // The failure this prevents is branch-to-branch data leakage: the role is
       // identical at every store, so only the scope distinguishes them.
       const token = await tokenFor(Role.VENDOR_STAFF, SEED_VENDOR_A);
       const res = await request(app.getHttpServer())

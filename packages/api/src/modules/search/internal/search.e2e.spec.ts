@@ -23,7 +23,7 @@ describe.skipIf(!dbUp)('search (e2e)', () => {
   let app: INestApplication;
   let adminToken: string;
   let categoryId: string;
-  let vendorId: string;
+  let branchId: string;
 
   /**
    * One token per run, woven into every product name.
@@ -79,7 +79,7 @@ describe.skipIf(!dbUp)('search (e2e)', () => {
     opts: { available?: boolean; mode?: string } = {},
   ) {
     await http()
-      .post(`/vendor/${vendorId}/offers`)
+      .post(`/branch/${branchId}/offers`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         masterProductId,
@@ -138,7 +138,7 @@ describe.skipIf(!dbUp)('search (e2e)', () => {
     categoryId = (category.body as { id: string }).id;
 
     const vendor = await http()
-      .post('/admin/vendors')
+      .post('/admin/branches')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         slug: `v-${unique()}`,
@@ -153,7 +153,7 @@ describe.skipIf(!dbUp)('search (e2e)', () => {
         fssaiLicenceNo: `1${Math.floor(Math.random() * 1e13)}`,
       })
       .expect(201);
-    vendorId = (vendor.body as { id: string }).id;
+    branchId = (vendor.body as { id: string }).id;
 
     await http()
       .post('/admin/search/synonyms/seed')

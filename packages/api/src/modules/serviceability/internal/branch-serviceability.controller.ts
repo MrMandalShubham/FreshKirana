@@ -22,7 +22,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { Roles, VendorScopeGuard } from '../../identity/contracts';
+import { Roles, BranchScopeGuard } from '../../identity/contracts';
 import { type PolygonGeoJson, ServiceAreaService } from './service-area.service';
 import { SlotQueryDto } from './serviceability.controller';
 import { SlotService } from './slot.service';
@@ -69,60 +69,60 @@ export class SetSlotStatusDto {
 /**
  * A store's own service area and slot pattern (spec §2.8).
  *
- * Scoped by `:vendorId` and guarded by `VendorScopeGuard`, like every other
- * vendor route: a shop's staff reach their own shop and nothing else (§3.2).
+ * Scoped by `:branchId` and guarded by `BranchScopeGuard`, like every other
+ * branch route: a shop's staff reach their own shop and nothing else (§3.2).
  */
 @Roles(Role.VENDOR_OWNER, Role.VENDOR_STAFF, Role.ADMIN, Role.OPS)
-@UseGuards(VendorScopeGuard)
-@Controller('vendor/:vendorId')
-export class VendorServiceabilityController {
+@UseGuards(BranchScopeGuard)
+@Controller('branch/:branchId')
+export class BranchServiceabilityController {
   constructor(
     private readonly areas: ServiceAreaService,
     private readonly slots: SlotService,
   ) {}
 
   @Put('service-area')
-  setServiceArea(@Param('vendorId') vendorId: string, @Body() dto: SetServiceAreaDto) {
-    return this.areas.setForVendor(vendorId, dto);
+  setServiceArea(@Param('branchId') branchId: string, @Body() dto: SetServiceAreaDto) {
+    return this.areas.setForVendor(branchId, dto);
   }
 
   @Get('service-area')
-  getServiceArea(@Param('vendorId') vendorId: string) {
-    return this.areas.findForVendor(vendorId);
+  getServiceArea(@Param('branchId') branchId: string) {
+    return this.areas.findForVendor(branchId);
   }
 
   @Put('slot-definitions')
-  defineSlot(@Param('vendorId') vendorId: string, @Body() dto: DefineSlotDto) {
-    return this.slots.defineSlot(vendorId, dto);
+  defineSlot(@Param('branchId') branchId: string, @Body() dto: DefineSlotDto) {
+    return this.slots.defineSlot(branchId, dto);
   }
 
   @Get('slot-definitions')
-  listDefinitions(@Param('vendorId') vendorId: string) {
-    return this.slots.listDefinitions(vendorId);
+  listDefinitions(@Param('branchId') branchId: string) {
+    return this.slots.listDefinitions(branchId);
   }
 
   @Delete('slot-definitions/:definitionId')
   async removeDefinition(
-    @Param('vendorId') vendorId: string,
+    @Param('branchId') branchId: string,
     @Param('definitionId') definitionId: string,
   ) {
-    await this.slots.removeDefinition(vendorId, definitionId);
+    await this.slots.removeDefinition(branchId, definitionId);
     return { removed: true };
   }
 
   /** The store's own view of its slots, including how full each one is. */
   @Get('slots')
-  listSlots(@Param('vendorId') vendorId: string, @Query() query: SlotQueryDto) {
-    return this.slots.listSlots(vendorId, { days: query.days });
+  listSlots(@Param('branchId') branchId: string, @Query() query: SlotQueryDto) {
+    return this.slots.listSlots(branchId, { days: query.days });
   }
 
   /** Close a slot for a holiday, festival, or an ops-declared closure. */
   @Patch('slots/:slotInstanceId')
   setSlotStatus(
-    @Param('vendorId') vendorId: string,
+    @Param('branchId') branchId: string,
     @Param('slotInstanceId') slotInstanceId: string,
     @Body() dto: SetSlotStatusDto,
   ) {
-    return this.slots.setStatus(vendorId, slotInstanceId, dto.status);
+    return this.slots.setStatus(branchId, slotInstanceId, dto.status);
   }
 }

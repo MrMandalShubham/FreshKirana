@@ -13,8 +13,8 @@ export const identitySchema = pgSchema('identity');
  * An authenticatable principal.
  *
  * Deliberately thin: it holds only what authentication needs. Customer
- * profiles, addresses and consent live in the `user` module; vendor details
- * live in `vendor` (§2.2).
+ * profiles, addresses and consent live in the `user` module; branch details
+ * live in `branch` (§2.2).
  *
  * Credentials are absent by design — P0.3a has no authentication ceremony.
  * OTP secrets, refresh-token families and sessions arrive with P8.6.
@@ -50,7 +50,7 @@ export const account = identitySchema.table(
  * The scope is what makes authorisation resource-level rather than merely
  * role-level: VENDOR_STAFF is not an authority over all stores, it is an
  * authority over one. Checking the role without the scope is the bug that
- * leaks one vendor's orders to another.
+ * leaks one branch's orders to another.
  */
 export const accountRole = identitySchema.table(
   'account_role',
@@ -70,8 +70,8 @@ export const accountRole = identitySchema.table(
     scopeType: text('scope_type').notNull(),
 
     /**
-     * Vendor id for VENDOR-scoped roles, null for GLOBAL.
-     * Not a foreign key yet — the vendor table arrives in P1.2.
+     * Branch id for VENDOR-scoped roles, null for GLOBAL.
+     * Not a foreign key yet — the branch table arrives in P1.2.
      */
     scopeId: uuid('scope_id'),
 

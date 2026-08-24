@@ -47,7 +47,7 @@ export interface InboundReply {
  * approval takes one to two weeks and the account is a program dependency
  * (B1) — building against a real API first would have stalled this part behind
  * paperwork, and building without an interface would have meant rewriting the
- * vendor flow when the account arrived.
+ * branch flow when the account arrived.
  */
 export abstract class WhatsAppChannel {
   abstract readonly name: string;

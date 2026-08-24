@@ -76,15 +76,15 @@ export class WeighingService {
   async weigh(input: {
     orderId: string;
     orderLineId: string;
-    vendorId: string;
+    branchId: string;
     actualGrams: number;
     consented?: boolean;
     /** Which lot it came out of (§1.7.3). Optional until P7.1's scanner. */
     offerBatchId?: string;
   }): Promise<WeighedLineView> {
     const found = await this.orders.findById(input.orderId);
-    if (!found || found.vendorId !== input.vendorId) {
-      // Scoped like every other vendor route (§3.2).
+    if (!found || found.branchId !== input.branchId) {
+      // Scoped like every other branch route (§3.2).
       throw new NotFoundException('No such order');
     }
 
@@ -269,7 +269,7 @@ export class WeighingService {
     parent: {
       id: string;
       accountId: string;
-      vendorId: string;
+      branchId: string;
       orderNumber: string;
       recipientPhone: string;
     },
@@ -283,7 +283,7 @@ export class WeighingService {
       toPhone: parent.recipientPhone,
       accountId: parent.accountId,
       orderId: parent.id,
-      vendorId: parent.vendorId,
+      branchId: parent.branchId,
       payload: {
         orderNumber: parent.orderNumber,
         item: line.name,

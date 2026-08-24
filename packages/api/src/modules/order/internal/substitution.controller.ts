@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { type Principal, Role } from '@freshkirana/contracts';
-import { CurrentUser, Roles, VendorScopeGuard } from '../../identity/contracts';
+import { CurrentUser, Roles, BranchScopeGuard } from '../../identity/contracts';
 import { AcceptSubstitutionDto } from './substitution.dto';
 import { SubstitutionService } from './substitution.service';
 import { WeighLineDto } from './weighing.dto';
@@ -15,8 +15,8 @@ import { WeighingService } from './weighing.service';
  * wanted.
  */
 @Roles(Role.VENDOR_OWNER, Role.VENDOR_STAFF, Role.ADMIN, Role.OPS)
-@UseGuards(VendorScopeGuard)
-@Controller('vendor/:vendorId/orders/:orderId/lines/:lineId')
+@UseGuards(BranchScopeGuard)
+@Controller('branch/:branchId/orders/:orderId/lines/:lineId')
 export class PickerSubstitutionController {
   constructor(
     private readonly substitutions: SubstitutionService,
@@ -25,11 +25,11 @@ export class PickerSubstitutionController {
 
   @Post('out-of-stock')
   markOutOfStock(
-    @Param('vendorId') vendorId: string,
+    @Param('branchId') branchId: string,
     @Param('orderId') orderId: string,
     @Param('lineId') lineId: string,
   ) {
-    return this.substitutions.raise({ orderId, orderLineId: lineId, vendorId });
+    return this.substitutions.raise({ orderId, orderLineId: lineId, branchId });
   }
 
   /**
@@ -41,7 +41,7 @@ export class PickerSubstitutionController {
    */
   @Post('weight')
   weigh(
-    @Param('vendorId') vendorId: string,
+    @Param('branchId') branchId: string,
     @Param('orderId') orderId: string,
     @Param('lineId') lineId: string,
     @Body() dto: WeighLineDto,
@@ -49,7 +49,7 @@ export class PickerSubstitutionController {
     return this.weighing.weigh({
       orderId,
       orderLineId: lineId,
-      vendorId,
+      branchId,
       actualGrams: dto.actualGrams,
       ...(dto.consented === undefined ? {} : { consented: dto.consented }),
       ...(dto.offerBatchId === undefined ? {} : { offerBatchId: dto.offerBatchId }),

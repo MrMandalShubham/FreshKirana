@@ -11,7 +11,7 @@ import {
   needsReminder,
 } from '@freshkirana/contracts';
 import { NotificationService } from '../../notification/contracts';
-import { VendorService } from '../../vendor/contracts';
+import { BranchService } from '../../branch/contracts';
 import { OrderStateService } from './order-state.service';
 import { OrderService } from './order.service';
 
@@ -37,18 +37,18 @@ export interface InboundOutcome {
  * ## Why WhatsApp at all
  *
  * §0.3 and §1.9.3 are the strategy: a kirana owner will not learn a dashboard,
- * and a vendor product that requires one has no vendors. Every action here has
+ * and a branch product that requires one has no branches. Every action here has
  * to work from a phone, tapped with one thumb, without an app.
  */
 @Injectable()
-export class VendorOrderFlowService {
-  private readonly logger = new Logger(VendorOrderFlowService.name);
+export class BranchOrderFlowService {
+  private readonly logger = new Logger(BranchOrderFlowService.name);
 
   constructor(
     private readonly notifications: NotificationService,
     private readonly orders: OrderService,
     private readonly state: OrderStateService,
-    private readonly vendors: VendorService,
+    private readonly vendors: BranchService,
   ) {}
 
   /** §1.9.4, configurable because peak hours halve the window. */
@@ -77,14 +77,14 @@ export class VendorOrderFlowService {
     const order = await this.orders.findById(orderId);
     if (!order) return;
 
-    const vendor = await this.vendors.findById(order.vendorId).catch(() => null);
+    const vendor = await this.vendors.findById(order.branchId).catch(() => null);
     if (!vendor) return;
 
     await this.notifications.send({
       toPhone: vendor.phone,
       template: NotificationTemplate.ORDER_NEW,
       quickReplies: [VendorReply.ACCEPT, VendorReply.REJECT],
-      vendorId: order.vendorId,
+      branchId: order.branchId,
       orderId: order.id,
       payload: {
         orderNumber: order.orderNumber,
@@ -151,7 +151,7 @@ export class VendorOrderFlowService {
         target,
         { accountId: null, role: Role.VENDOR_OWNER },
         {
-          vendorId: original.vendorId ?? undefined,
+          branchId: original.branchId ?? undefined,
           reason:
             reply.reply === VendorReply.REJECT
               ? 'Store rejected over WhatsApp'
@@ -208,14 +208,14 @@ export class VendorOrderFlowService {
         );
         if (alreadyReminded) continue;
 
-        const vendor = await this.vendors.findById(order.vendorId).catch(() => null);
+        const vendor = await this.vendors.findById(order.branchId).catch(() => null);
         if (!vendor) continue;
 
         await this.notifications.send({
           toPhone: vendor.phone,
           template: NotificationTemplate.ORDER_REMINDER,
           quickReplies: [VendorReply.ACCEPT, VendorReply.REJECT],
-          vendorId: order.vendorId,
+          branchId: order.branchId,
           orderId: order.id,
           payload: {
             orderNumber: order.orderNumber,
@@ -248,10 +248,10 @@ export class VendorOrderFlowService {
    * next-best store, and REASSIGNING is where that will happen — routing it
    * through that state now means the audit trail already distinguishes "the
    * store ignored us" from "the customer changed their mind", which is what
-   * §6.4 vendor scoring reads. Until reassignment exists (deferred), the second
+   * §6.4 branch scoring reads. Until reassignment exists (deferred), the second
    * step cancels.
    */
-  private async breach(order: { id: string; vendorId: string; orderNumber: string }) {
+  private async breach(order: { id: string; branchId: string; orderNumber: string }) {
     const actor = { accountId: null, role: Role.OPS };
 
     await this.state.transition(order.id, OrderStatus.REASSIGNING, actor, {
@@ -266,7 +266,7 @@ export class VendorOrderFlowService {
     );
 
     this.logger.warn(
-      `Order ${order.orderNumber} cancelled: store ${order.vendorId} missed the acceptance SLA`,
+      `Order ${order.orderNumber} cancelled: store ${order.branchId} missed the acceptance SLA`,
     );
 
     return cancelled;

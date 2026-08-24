@@ -39,8 +39,8 @@ export interface TransitionActor {
 
 export interface TransitionOptions {
   reason?: string;
-  /** Restricts the move to an order of this vendor. Vendor-scoped routes set it. */
-  vendorId?: string;
+  /** Restricts the move to an order of this branch. Branch-scoped routes set it. */
+  branchId?: string;
   /** Restricts the move to this account's own order. Customer routes set it. */
   accountId?: string;
 }
@@ -179,7 +179,7 @@ export class OrderStateService {
   private async tellTheCustomer(updated: {
     id: string;
     accountId: string;
-    vendorId: string;
+    branchId: string;
     status: string;
     orderNumber: string;
     recipientPhone: string;
@@ -197,7 +197,7 @@ export class OrderStateService {
       template,
       payload,
       accountId: updated.accountId,
-      vendorId: updated.vendorId,
+      branchId: updated.branchId,
       orderId: updated.id,
       toPhone: updated.recipientPhone,
     };
@@ -313,7 +313,7 @@ export class OrderStateService {
 
   private async load(orderId: string, options: TransitionOptions) {
     const filters = [eq(order.id, orderId)];
-    if (options.vendorId) filters.push(eq(order.vendorId, options.vendorId));
+    if (options.branchId) filters.push(eq(order.branchId, options.branchId));
     if (options.accountId) filters.push(eq(order.accountId, options.accountId));
 
     const rows = await this.db
@@ -334,7 +334,7 @@ export class OrderStateService {
  * Which reason code a cancellation carries (§1.8.2, §1.8.4).
  *
  * Kept distinct because they allocate liability differently and feed different
- * numbers: a store that cancels after accepting is a §6.4 vendor-score problem,
+ * numbers: a store that cancels after accepting is a §6.4 branch-score problem,
  * and a customer who cancels before that is not a problem at all.
  */
 function reasonFor(role: TransitionActorRole): RefundReason {

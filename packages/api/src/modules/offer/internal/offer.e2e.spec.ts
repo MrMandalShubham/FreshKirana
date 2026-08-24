@@ -23,11 +23,11 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
   let app: INestApplication;
   let adminToken: string;
 
-  /** Vendor A, and a staff account that holds a role only at A. */
-  let vendorA: string;
+  /** Branch A, and a staff account that holds a role only at A. */
+  let branchA: string;
   let staffAToken: string;
-  /** Vendor B, for proving the cross-vendor denial. */
-  let vendorB: string;
+  /** Branch B, for proving the cross-branch denial. */
+  let branchB: string;
 
   let productId: string;
   let offerAId: string;
@@ -44,9 +44,9 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
 
-  async function createVendor(name: string): Promise<string> {
+  async function createBranch(name: string): Promise<string> {
     const res = await http()
-      .post('/admin/vendors')
+      .post('/admin/branches')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         slug: `${slugify(name)}-${unique()}`,
@@ -82,14 +82,14 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
       .expect(201);
     adminToken = (admin.body as { token: string }).token;
 
-    vendorA = await createVendor('Sharma Stores');
-    vendorB = await createVendor('Gupta Kirana');
+    branchA = await createBranch('Sharma Stores');
+    branchB = await createBranch('Gupta Kirana');
 
-    // A staff account scoped to vendor A only. `dev/login-as` with an explicit
-    // vendorId is exactly the seam that makes this testable.
+    // A staff account scoped to branch A only. `dev/login-as` with an explicit
+    // branchId is exactly the seam that makes this testable.
     const staffA = await http()
       .post('/dev/login-as')
-      .send({ role: Role.VENDOR_STAFF, vendorId: vendorA })
+      .send({ role: Role.VENDOR_STAFF, branchId: branchA })
       .expect(201);
     staffAToken = (staffA.body as { token: string }).token;
 
@@ -127,7 +127,7 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
   describe('vendor onboarding', () => {
     it('creates vendors as PENDING — approval is a deliberate act', async () => {
       const res = await http()
-        .get(`/admin/vendors/${vendorA}`)
+        .get(`/admin/branches/${branchA}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
       expect((res.body as { status: string }).status).toBe('PENDING');
@@ -135,7 +135,7 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
 
     it('refuses to activate a vendor without an FSSAI licence (§3.7.3)', async () => {
       const res = await http()
-        .post('/admin/vendors')
+        .post('/admin/branches')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           slug: `no-fssai-${unique()}`,
@@ -153,7 +153,7 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
       const id = (res.body as { id: string }).id;
 
       const activation = await http()
-        .patch(`/admin/vendors/${id}`)
+        .patch(`/admin/branches/${id}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ status: 'ACTIVE' })
         .expect(400);
@@ -163,11 +163,11 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
 
     it('activates a vendor that has a licence', async () => {
       // The positive case, which nothing covered until P2.2 needed an ACTIVE
-      // vendor: approval sends only `status`, and merging the patch with a
-      // spread blanked the licence it was about to check — so no vendor could
+      // branch: approval sends only `status`, and merging the patch with a
+      // spread blanked the licence it was about to check — so no branch could
       // ever be approved. See common/merge-patch.ts.
       const res = await http()
-        .patch(`/admin/vendors/${vendorB}`)
+        .patch(`/admin/branches/${branchB}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ status: 'ACTIVE' })
         .expect(200);
@@ -177,7 +177,7 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
 
     it('requires a GSTIN when the vendor claims GST registration (§3.7.1)', async () => {
       await http()
-        .patch(`/admin/vendors/${vendorA}`)
+        .patch(`/admin/branches/${branchA}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ gstRegistrationType: 'REGISTERED' })
         .expect(400);
@@ -185,7 +185,7 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
 
     it('rejects a malformed pincode', async () => {
       await http()
-        .post('/admin/vendors')
+        .post('/admin/branches')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           slug: `bad-pin-${unique()}`,
@@ -203,7 +203,7 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
   describe('creating offers', () => {
     it("lets vendor A's staff list a product", async () => {
       const res = await http()
-        .post(`/vendor/${vendorA}/offers`)
+        .post(`/branch/${branchA}/offers`)
         .set('Authorization', `Bearer ${staffAToken}`)
         .send({
           masterProductId: productId,
@@ -222,7 +222,7 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
 
     it('refuses a price above MRP — unlawful, so not merely discouraged', async () => {
       const res = await http()
-        .post(`/vendor/${vendorB}/offers`)
+        .post(`/branch/${branchB}/offers`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ masterProductId: productId, mrpPaise: 28000, sellingPricePaise: 30000 })
         .expect(400);
@@ -232,7 +232,7 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
 
     it('refuses a second offer for the same product', async () => {
       await http()
-        .post(`/vendor/${vendorA}/offers`)
+        .post(`/branch/${branchA}/offers`)
         .set('Authorization', `Bearer ${staffAToken}`)
         .send({ masterProductId: productId, mrpPaise: 28000, sellingPricePaise: 26000 })
         .expect(409);
@@ -242,7 +242,7 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
       // With no cross-schema foreign key, this check *is* the referential
       // integrity — see offer/schema.ts.
       await http()
-        .post(`/vendor/${vendorA}/offers`)
+        .post(`/branch/${branchA}/offers`)
         .set('Authorization', `Bearer ${staffAToken}`)
         .send({ masterProductId: randomUUID(), mrpPaise: 100, sellingPricePaise: 100 })
         .expect(404);
@@ -252,21 +252,21 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
   describe('resource-level scoping (§3.2) — the leak this prevents', () => {
     it("denies vendor A's staff access to vendor B's offers", async () => {
       await http()
-        .get(`/vendor/${vendorB}/offers`)
+        .get(`/branch/${branchB}/offers`)
         .set('Authorization', `Bearer ${staffAToken}`)
         .expect(403);
     });
 
     it("denies vendor A's staff sight of vendor B's profile", async () => {
       await http()
-        .get(`/vendor/${vendorB}/profile`)
+        .get(`/branch/${branchB}/profile`)
         .set('Authorization', `Bearer ${staffAToken}`)
         .expect(403);
     });
 
     it("denies vendor A's staff writing an offer for vendor B", async () => {
       await http()
-        .post(`/vendor/${vendorB}/offers`)
+        .post(`/branch/${branchB}/offers`)
         .set('Authorization', `Bearer ${staffAToken}`)
         .send({ masterProductId: productId, mrpPaise: 28000, sellingPricePaise: 20000 })
         .expect(403);
@@ -274,14 +274,14 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
 
     it("allows vendor A's staff their own store", async () => {
       await http()
-        .get(`/vendor/${vendorA}/offers`)
+        .get(`/branch/${branchA}/offers`)
         .set('Authorization', `Bearer ${staffAToken}`)
         .expect(200);
     });
 
     it('allows admin across every vendor', async () => {
       await http()
-        .get(`/vendor/${vendorB}/offers`)
+        .get(`/branch/${branchB}/offers`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
     });
@@ -290,7 +290,7 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
   describe('stock and price management', () => {
     it('updates price and stock', async () => {
       const res = await http()
-        .patch(`/vendor/${vendorA}/offers/${offerAId}`)
+        .patch(`/branch/${branchA}/offers/${offerAId}`)
         .set('Authorization', `Bearer ${staffAToken}`)
         .send({ sellingPricePaise: 24900, stockOnHand: 20 })
         .expect(200);
@@ -300,13 +300,13 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
 
     it('filters to low stock only', async () => {
       await http()
-        .patch(`/vendor/${vendorA}/offers/${offerAId}`)
+        .patch(`/branch/${branchA}/offers/${offerAId}`)
         .set('Authorization', `Bearer ${staffAToken}`)
         .send({ stockOnHand: 2, lowStockThreshold: 3 })
         .expect(200);
 
       const res = await http()
-        .get(`/vendor/${vendorA}/offers`)
+        .get(`/branch/${branchA}/offers`)
         .query({ lowStockOnly: true, limit: 10 })
         .set('Authorization', `Bearer ${staffAToken}`)
         .expect(200);
@@ -317,7 +317,7 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
     it("returns 404, not 403, for another vendor's offer id", async () => {
       // Deliberate: a 403 here would confirm the offer exists.
       await http()
-        .get(`/vendor/${vendorB}/offers/${offerAId}`)
+        .get(`/branch/${branchB}/offers/${offerAId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
     });
@@ -329,9 +329,9 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
       await expect(
         db.execute(`
           insert into offer.vendor_offer
-            (vendor_id, master_product_id, mrp_paise, selling_price_paise)
+            (branch_id, master_product_id, mrp_paise, selling_price_paise)
           values
-            ('${vendorB}', '${randomUUID()}', 10000, 20000)
+            ('${branchB}', '${randomUUID()}', 10000, 20000)
         `),
       ).rejects.toThrow(/vendor_offer_price_not_above_mrp/);
     });
@@ -341,10 +341,10 @@ describe.skipIf(!dbUp)('vendors and offers (e2e)', () => {
       await expect(
         db.execute(`
           insert into offer.vendor_offer
-            (vendor_id, master_product_id, mrp_paise, selling_price_paise,
+            (branch_id, master_product_id, mrp_paise, selling_price_paise,
              stock_on_hand, stock_reserved)
           values
-            ('${vendorB}', '${randomUUID()}', 10000, 9000, 2, 5)
+            ('${branchB}', '${randomUUID()}', 10000, 9000, 2, 5)
         `),
       ).rejects.toThrow(/vendor_offer_reserved_within_stock/);
     });

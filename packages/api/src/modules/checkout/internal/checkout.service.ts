@@ -22,7 +22,7 @@ import { PaymentService } from '../../payment/contracts';
 import {
   CodFlowService,
   OrderService,
-  VendorOrderFlowService,
+  BranchOrderFlowService,
 } from '../../order/contracts';
 import {
   ServiceAreaService,
@@ -87,7 +87,7 @@ export class CheckoutService {
     private readonly areas: ServiceAreaService,
     private readonly slots: SlotService,
     private readonly orders: OrderService,
-    private readonly vendorFlow: VendorOrderFlowService,
+    private readonly vendorFlow: BranchOrderFlowService,
     private readonly codFlow: CodFlowService,
     private readonly inventory: InventoryService,
     private readonly payments: PaymentService,
@@ -128,13 +128,13 @@ export class CheckoutService {
       blockers.push({ code: 'ADDRESS_REQUIRED', message: 'Choose a delivery address' });
     }
 
-    // The cart is pinned to a vendor (D2), so the question is not "is this
+    // The cart is pinned to a branch (D2), so the question is not "is this
     // address serviceable by anyone" but "by *this* store". A shopper who
     // filled a basket at one shop and then chose an address that shop cannot
     // reach must be told here, not at the door.
-    if (address && cart.vendorId) {
+    if (address && cart.branchId) {
       const serviceable = await this.areas.resolveStores(address, 50);
-      if (!serviceable.some((store) => store.vendorId === cart.vendorId)) {
+      if (!serviceable.some((store) => store.branchId === cart.branchId)) {
         blockers.push({
           code: 'ADDRESS_NOT_SERVICEABLE',
           message: 'This store does not deliver to that address',
@@ -151,7 +151,7 @@ export class CheckoutService {
           code: 'SLOT_NOT_FOUND',
           message: 'That delivery slot no longer exists',
         });
-      } else if (cart.vendorId && slot.vendorId !== cart.vendorId) {
+      } else if (cart.branchId && slot.branchId !== cart.branchId) {
         blockers.push({
           code: 'SLOT_WRONG_VENDOR',
           message: 'That slot belongs to a different store',
@@ -391,7 +391,7 @@ export class CheckoutService {
           const created = await this.orders.create(
             {
               accountId,
-              vendorId: cart.vendorId!,
+              branchId: cart.branchId!,
               cartId: activeCart.id,
               paymentMethod: method,
               substitutionPreference,

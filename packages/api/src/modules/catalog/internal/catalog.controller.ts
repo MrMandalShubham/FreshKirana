@@ -14,8 +14,8 @@ import { CatalogService } from './catalog.service';
  * Catalog governance (spec §1.5.4, §4.5).
  *
  * Admin and ops only — decision D1 puts the master catalog under central
- * control precisely so vendors cannot each invent their own version of the
- * same product. Vendors attach *offers* (P1.2); they do not create products.
+ * control precisely so branches cannot each invent their own version of the
+ * same product. Branches attach *offers* (P1.2); they do not create products.
  * Unmatched items go through the product-request queue in P1.3.
  */
 @Roles(Role.ADMIN, Role.OPS)

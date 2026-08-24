@@ -58,7 +58,7 @@ describe.skipIf(!dbUp)('payment recovery (e2e)', () => {
   let adminToken: string;
   let customerToken: string;
 
-  let vendorId: string;
+  let branchId: string;
   let categoryId: string;
   let addressId: string;
 
@@ -95,7 +95,7 @@ describe.skipIf(!dbUp)('payment recovery (e2e)', () => {
       .expect(201);
 
     const offer = await http()
-      .post(`/vendor/${vendorId}/offers`)
+      .post(`/branch/${branchId}/offers`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         masterProductId: (product.body as { id: string }).id,
@@ -116,7 +116,7 @@ describe.skipIf(!dbUp)('payment recovery (e2e)', () => {
       .expect(201);
 
     const slots = await http()
-      .get(`/serviceability/stores/${vendorId}/slots`)
+      .get(`/serviceability/stores/${branchId}/slots`)
       .query({ days: 3 })
       .expect(200);
     const slot = (slots.body as SlotView[]).find((s) => s.isBookable)!;
@@ -215,7 +215,7 @@ describe.skipIf(!dbUp)('payment recovery (e2e)', () => {
     customerToken = (customer.body as { token: string }).token;
 
     const vendor = await http()
-      .post('/admin/vendors')
+      .post('/admin/branches')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         slug: `store-${unique()}`,
@@ -230,16 +230,16 @@ describe.skipIf(!dbUp)('payment recovery (e2e)', () => {
         fssaiLicenceNo: `1${Math.floor(Math.random() * 1e13)}`,
       })
       .expect(201);
-    vendorId = (vendor.body as { id: string }).id;
+    branchId = (vendor.body as { id: string }).id;
 
     await http()
-      .patch(`/admin/vendors/${vendorId}`)
+      .patch(`/admin/branches/${branchId}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ status: 'ACTIVE' })
       .expect(200);
 
     await http()
-      .put(`/vendor/${vendorId}/service-area`)
+      .put(`/branch/${branchId}/service-area`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         mode: ServiceAreaMode.RADIUS,
@@ -251,7 +251,7 @@ describe.skipIf(!dbUp)('payment recovery (e2e)', () => {
 
     const tomorrow = istDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
     await http()
-      .put(`/vendor/${vendorId}/slot-definitions`)
+      .put(`/branch/${branchId}/slot-definitions`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         dayOfWeek: istDayOfWeek(tomorrow),
@@ -317,7 +317,7 @@ describe.skipIf(!dbUp)('payment recovery (e2e)', () => {
       await new Promise((resolve) => setTimeout(resolve, 900));
 
       const messages = await http()
-        .get(`/vendor/${vendorId}/messages`)
+        .get(`/branch/${branchId}/messages`)
         .set('Authorization', `Bearer ${adminToken}`)
         .query({ limit: 100 })
         .expect(200);
@@ -603,7 +603,7 @@ describe.skipIf(!dbUp)('payment recovery (e2e)', () => {
       await recovery.cancelExpired();
 
       const stock = await http()
-        .get(`/vendor/${vendorId}/offers/${offerId}`)
+        .get(`/branch/${branchId}/offers/${offerId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 

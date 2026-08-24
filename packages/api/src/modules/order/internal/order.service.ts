@@ -33,7 +33,7 @@ export interface CreateOrderLineInput {
 
 export interface CreateOrderInput {
   accountId: string;
-  vendorId: string;
+  branchId: string;
   cartId: string;
   paymentMethod: PaymentMethod;
   substitutionPreference: string;
@@ -108,7 +108,7 @@ export class OrderService {
       .values({
         orderNumber,
         accountId: input.accountId,
-        vendorId: input.vendorId,
+        branchId: input.branchId,
         cartId: input.cartId,
 
         /*
@@ -200,10 +200,10 @@ export class OrderService {
   /**
    * One order, unscoped, with its lines.
    *
-   * Unscoped, so **not** for a customer- or vendor-facing route — those must go
+   * Unscoped, so **not** for a customer- or branch-facing route — those must go
    * through `findForAccount` or `listForVendor`, which cannot see somebody
    * else's order. This exists for workflows that already know which order they
-   * are acting on, such as the WhatsApp vendor flow.
+   * are acting on, such as the WhatsApp branch flow.
    */
   async findById(orderId: string) {
     const rows = await this.db.select().from(order).where(eq(order.id, orderId)).limit(1);
@@ -340,12 +340,12 @@ export class OrderService {
     );
   }
 
-  /** The store's queue. Vendor-facing routes scope this by `:vendorId` (§3.2). */
+  /** The store's queue. Branch-facing routes scope this by `:branchId` (§3.2). */
   async listForVendor(
-    vendorId: string,
+    branchId: string,
     options: { status?: string; limit?: number } = {},
   ) {
-    const filters = [eq(order.vendorId, vendorId)];
+    const filters = [eq(order.branchId, branchId)];
     if (options.status) filters.push(eq(order.status, options.status));
 
     const rows = await this.db

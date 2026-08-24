@@ -23,7 +23,7 @@ import { createDatabase } from '../../../db';
 import { createTestCustomer } from '../../../testing/customer';
 import { requireDatabase } from '../../../testing/database';
 import type { SlotView } from '../../serviceability/contracts';
-import { VendorOrderFlowService } from './vendor-order-flow.service';
+import { BranchOrderFlowService } from './branch-order-flow.service';
 
 loadEnv();
 
@@ -48,13 +48,13 @@ interface MessageRow {
 
 describe.skipIf(!dbUp)('vendor WhatsApp flow (e2e)', () => {
   let app: INestApplication;
-  let flow: VendorOrderFlowService;
+  let flow: BranchOrderFlowService;
 
   let adminToken: string;
   let customerToken: string;
 
-  let vendorId: string;
-  let vendorPhone: string;
+  let branchId: string;
+  let branchPhone: string;
   let addressId: string;
   let offerId: string;
   let categoryId: string;
@@ -95,7 +95,7 @@ describe.skipIf(!dbUp)('vendor WhatsApp flow (e2e)', () => {
       .expect(201);
 
     const slots = await http()
-      .get(`/serviceability/stores/${vendorId}/slots`)
+      .get(`/serviceability/stores/${branchId}/slots`)
       .query({ days: 3 })
       .expect(200);
     const slot = (slots.body as SlotView[]).find((s) => s.isBookable);
@@ -110,7 +110,7 @@ describe.skipIf(!dbUp)('vendor WhatsApp flow (e2e)', () => {
 
   /** What the store was sent about this order, newest first. */
   async function messagesFor(orderId: string): Promise<MessageRow[]> {
-    const res = await as(adminToken)(http().get(`/vendor/${vendorId}/messages`))
+    const res = await as(adminToken)(http().get(`/branch/${branchId}/messages`))
       .query({ limit: 100 })
       .expect(200);
 
@@ -123,7 +123,7 @@ describe.skipIf(!dbUp)('vendor WhatsApp flow (e2e)', () => {
       .post('/webhooks/whatsapp')
       .send({
         messageId,
-        from: vendorPhone,
+        from: branchPhone,
         reply,
         ...(inReplyTo ? { inReplyTo } : {}),
       });
@@ -146,7 +146,7 @@ describe.skipIf(!dbUp)('vendor WhatsApp flow (e2e)', () => {
     );
     await app.init();
 
-    flow = app.get(VendorOrderFlowService);
+    flow = app.get(BranchOrderFlowService);
 
     const admin = await http()
       .post('/dev/login-as')
@@ -167,34 +167,34 @@ describe.skipIf(!dbUp)('vendor WhatsApp flow (e2e)', () => {
       .expect(201);
     categoryId = (category.body as { id: string }).id;
 
-    vendorPhone = `+9198${Math.floor(Math.random() * 1e8)
+    branchPhone = `+9198${Math.floor(Math.random() * 1e8)
       .toString()
       .padStart(8, '0')}`;
 
     const vendor = await http()
-      .post('/admin/vendors')
+      .post('/admin/branches')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         slug: `store-${unique()}`,
         legalName: 'WhatsApp Flow Traders',
         displayName: 'WhatsApp Flow Store',
-        phone: vendorPhone,
+        phone: branchPhone,
         addressLine: '1 Market Road',
         city: 'Bengaluru',
         pincode: '560001',
         fssaiLicenceNo: `1${Math.floor(Math.random() * 1e13)}`,
       })
       .expect(201);
-    vendorId = (vendor.body as { id: string }).id;
+    branchId = (vendor.body as { id: string }).id;
 
     await http()
-      .patch(`/admin/vendors/${vendorId}`)
+      .patch(`/admin/branches/${branchId}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ status: 'ACTIVE' })
       .expect(200);
 
     await http()
-      .put(`/vendor/${vendorId}/service-area`)
+      .put(`/branch/${branchId}/service-area`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         mode: ServiceAreaMode.RADIUS,
@@ -206,7 +206,7 @@ describe.skipIf(!dbUp)('vendor WhatsApp flow (e2e)', () => {
 
     const tomorrow = istDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
     await http()
-      .put(`/vendor/${vendorId}/slot-definitions`)
+      .put(`/branch/${branchId}/slot-definitions`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         dayOfWeek: istDayOfWeek(tomorrow),
@@ -238,7 +238,7 @@ describe.skipIf(!dbUp)('vendor WhatsApp flow (e2e)', () => {
       .expect(201);
 
     const offer = await http()
-      .post(`/vendor/${vendorId}/offers`)
+      .post(`/branch/${branchId}/offers`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         masterProductId: (product.body as { id: string }).id,
@@ -285,7 +285,7 @@ describe.skipIf(!dbUp)('vendor WhatsApp flow (e2e)', () => {
 
     it('sends ORDER_NEW to the store, not to a dashboard', async () => {
       expect(sent).toBeDefined();
-      expect(sent.toPhone).toBe(vendorPhone);
+      expect(sent.toPhone).toBe(branchPhone);
       expect(sent.status).toBe(MessageStatus.SENT);
     });
 
@@ -371,7 +371,7 @@ describe.skipIf(!dbUp)('vendor WhatsApp flow (e2e)', () => {
       // transition — and it must not read as an error to them.
       const res = await http()
         .post('/webhooks/whatsapp')
-        .send({ messageId: randomUUID(), from: vendorPhone, reply: 'haan bhej do' })
+        .send({ messageId: randomUUID(), from: branchPhone, reply: 'haan bhej do' })
         .expect(201);
 
       expect((res.body as { reason: string }).reason).toBe('NOT_A_QUICK_REPLY');
@@ -434,7 +434,7 @@ describe.skipIf(!dbUp)('vendor WhatsApp flow (e2e)', () => {
         (m) => m.template === NotificationTemplate.ORDER_REMINDER,
       );
       expect(reminders).toHaveLength(1);
-      expect(reminders[0]?.toPhone).toBe(vendorPhone);
+      expect(reminders[0]?.toPhone).toBe(branchPhone);
     });
 
     it('does not nag: a second sweep sends nothing more', async () => {
@@ -458,7 +458,7 @@ describe.skipIf(!dbUp)('vendor WhatsApp flow (e2e)', () => {
       expect(await statusOf(order.id)).toBe(OrderStatus.CANCELLED);
 
       // The audit trail distinguishes "the store ignored us" from "the customer
-      // changed their mind" — which is what §6.4 vendor scoring reads.
+      // changed their mind" — which is what §6.4 branch scoring reads.
       const res = await as(customerToken)(http().get(`/me/orders/${order.id}`)).expect(
         200,
       );
@@ -486,9 +486,9 @@ describe.skipIf(!dbUp)('vendor WhatsApp flow (e2e)', () => {
     });
 
     it('is reachable by ops, and closed to everyone else', async () => {
-      await as(adminToken)(http().post('/internal/vendor-sla/sweep')).expect(201);
-      await as(customerToken)(http().post('/internal/vendor-sla/sweep')).expect(403);
-      await http().post('/internal/vendor-sla/sweep').expect(401);
+      await as(adminToken)(http().post('/internal/branch-sla/sweep')).expect(201);
+      await as(customerToken)(http().post('/internal/branch-sla/sweep')).expect(403);
+      await http().post('/internal/branch-sla/sweep').expect(401);
     });
   });
 
@@ -500,7 +500,7 @@ describe.skipIf(!dbUp)('vendor WhatsApp flow (e2e)', () => {
       const insert = () => `
         insert into notification.inbound_message
           (channel, provider_message_id, from_phone, reply)
-        values ('WHATSAPP', '${providerMessageId}', '${vendorPhone}', 'ACCEPT')
+        values ('WHATSAPP', '${providerMessageId}', '${branchPhone}', 'ACCEPT')
       `;
 
       await db.execute(insert());

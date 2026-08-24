@@ -22,15 +22,15 @@ import {
 export const offerSchema = pgSchema('offer');
 
 /**
- * One vendor's price and stock for one master product (spec §2.4.1, decision D1).
+ * One branch's price and stock for one master product (spec §2.4.1, decision D1).
  *
  * The master product says *what* the thing is; the offer says *who sells it, at
  * what price, and whether they have any*. Search ranks master products and
  * resolves offers at render time, which is what keeps one atta one search result.
  *
- * ## Why there are no foreign keys to catalog or vendor
+ * ## Why there are no foreign keys to catalog or branch
  *
- * `masterProductId` and `vendorId` are plain UUIDs, not FK references. A
+ * `masterProductId` and `branchId` are plain UUIDs, not FK references. A
  * cross-schema foreign key would couple this module's tables to another
  * module's internals — exactly what §2.1.1 forbids, and what would make the
  * §2.1.2 extraction triggers expensive to act on later.
@@ -47,8 +47,8 @@ export const vendorOffer = offerSchema.table(
       .primaryKey()
       .default(sql`gen_random_uuid()`),
 
-    /** Owned by the vendor module. Validated via its contracts, never joined. */
-    vendorId: uuid('vendor_id').notNull(),
+    /** Owned by the branch module. Validated via its contracts, never joined. */
+    branchId: uuid('branch_id').notNull(),
     /** Owned by the catalog module. Validated via its contracts, never joined. */
     masterProductId: uuid('master_product_id').notNull(),
 
@@ -87,15 +87,15 @@ export const vendorOffer = offerSchema.table(
       .default(sql`now()`),
   },
   (table) => [
-    // One offer per vendor per product: two would make "the price" ambiguous.
-    uniqueIndex('vendor_offer_unique').on(table.vendorId, table.masterProductId),
+    // One offer per branch per product: two would make "the price" ambiguous.
+    uniqueIndex('vendor_offer_unique').on(table.branchId, table.masterProductId),
 
-    // Search resolving offers for a product across serviceable vendors.
+    // Search resolving offers for a product across serviceable branches.
     index('vendor_offer_product_idx').on(table.masterProductId, table.status),
-    index('vendor_offer_vendor_idx').on(table.vendorId, table.status),
-    // The vendor dashboard's low-stock list (§1.5.2).
+    index('vendor_offer_branch_idx').on(table.branchId, table.status),
+    // The branch dashboard's low-stock list (§1.5.2).
     index('vendor_offer_low_stock_idx')
-      .on(table.vendorId)
+      .on(table.branchId)
       .where(sql`${table.stockOnHand} <= ${table.lowStockThreshold}`),
     // FEFO picking and expiry sweeps (§1.7.3).
     index('vendor_offer_expiry_idx')
@@ -107,7 +107,7 @@ export const vendorOffer = offerSchema.table(
 
     /**
      * Selling above MRP is illegal in India, not merely undesirable, so it is a
-     * constraint rather than a validation. A vendor mistyping a price cannot
+     * constraint rather than a validation. A branch mistyping a price cannot
      * put an unlawful listing on sale.
      */
     check(

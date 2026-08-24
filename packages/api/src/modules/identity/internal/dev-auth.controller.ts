@@ -8,10 +8,10 @@ export class DevLoginDto {
   @IsIn(ROLES)
   role!: Role;
 
-  /** Vendor to scope a VENDOR_OWNER/VENDOR_STAFF login to. Defaults to seed vendor A. */
+  /** Branch to scope a VENDOR_OWNER/VENDOR_STAFF login to. Defaults to seed branch A. */
   @IsOptional()
   @IsString()
-  vendorId?: string;
+  branchId?: string;
 
   /**
    * Ask for a distinct account rather than the shared seeded one.
@@ -51,6 +51,6 @@ export class DevAuthController {
   @Public()
   @Post('login-as')
   async loginAs(@Body() dto: DevLoginDto) {
-    return this.devAuth.loginAs(dto.role, dto.vendorId, dto.phone);
+    return this.devAuth.loginAs(dto.role, dto.branchId, dto.phone);
   }
 }

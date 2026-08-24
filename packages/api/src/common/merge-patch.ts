@@ -7,7 +7,7 @@
  * ES2022 class fields — which this codebase targets — a declaration like
  *
  * ```ts
- * class UpdateVendorDto {
+ * class UpdateBranchDto {
  *   @IsOptional() fssaiLicenceNo?: string;
  * }
  * ```
@@ -18,8 +18,8 @@
  * `undefined`.
  *
  * The write itself was never affected — Drizzle skips undefined in `.set()` —
- * but the **validation** ran against the wiped object, so a rule like "a vendor
- * cannot be ACTIVE without an FSSAI licence" rejected vendors that had one.
+ * but the **validation** ran against the wiped object, so a rule like "a branch
+ * cannot be ACTIVE without an FSSAI licence" rejected branches that had one.
  * `PATCH { status: 'ACTIVE' }` was unsatisfiable: the one field you did not
  * send was the one being checked.
  *

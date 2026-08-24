@@ -2,10 +2,10 @@ import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/co
 import { Role } from '@freshkirana/contracts';
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
-import { Public, Roles, VendorScopeGuard } from '../../identity/contracts';
+import { Public, Roles, BranchScopeGuard } from '../../identity/contracts';
 import { NotificationService } from '../../notification/contracts';
 import { InboundReplyService } from './inbound-reply.service';
-import { VendorOrderFlowService } from './vendor-order-flow.service';
+import { BranchOrderFlowService } from './branch-order-flow.service';
 
 export class OutboxQueryDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit?: number;
@@ -21,7 +21,7 @@ export class OutboxQueryDto {
  */
 @Controller('webhooks/whatsapp')
 export class WhatsAppWebhookController {
-  // The router, not the vendor flow: stores and customers both tap buttons on
+  // The router, not the branch flow: stores and customers both tap buttons on
   // this one webhook, and which vocabulary arrived decides what happens next.
   constructor(private readonly inbound: InboundReplyService) {}
 
@@ -47,9 +47,9 @@ export class WhatsAppWebhookController {
  * idempotent, because a scheduler that fires twice is normal.
  */
 @Roles(Role.ADMIN, Role.OPS)
-@Controller('internal/vendor-sla')
+@Controller('internal/branch-sla')
 export class VendorSlaController {
-  constructor(private readonly flow: VendorOrderFlowService) {}
+  constructor(private readonly flow: BranchOrderFlowService) {}
 
   @Post('sweep')
   sweep() {
@@ -66,13 +66,13 @@ export class VendorSlaController {
  * the §2.12 delivery-receipt log.
  */
 @Roles(Role.VENDOR_OWNER, Role.VENDOR_STAFF, Role.ADMIN, Role.OPS)
-@UseGuards(VendorScopeGuard)
-@Controller('vendor/:vendorId/messages')
+@UseGuards(BranchScopeGuard)
+@Controller('branch/:branchId/messages')
 export class VendorMessagesController {
   constructor(private readonly notifications: NotificationService) {}
 
   @Get()
-  list(@Param('vendorId') vendorId: string, @Query() query: OutboxQueryDto) {
-    return this.notifications.messagesForVendor(vendorId, query.limit);
+  list(@Param('branchId') branchId: string, @Query() query: OutboxQueryDto) {
+    return this.notifications.messagesForVendor(branchId, query.limit);
   }
 }

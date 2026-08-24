@@ -68,7 +68,7 @@ export class SearchIndexService {
         minPricePaise,
         mrpPaise,
         bestOfferId: cheapest?.id ?? null,
-        bestVendorId: cheapest?.vendorId ?? null,
+        bestBranchId: cheapest?.branchId ?? null,
         isAvailable: purchasable.length > 0,
         offerCount: offers.length,
         quantityModeOfferCount: purchasable.filter(
@@ -92,7 +92,7 @@ export class SearchIndexService {
           minPricePaise,
           mrpPaise,
           bestOfferId: cheapest?.id ?? null,
-          bestVendorId: cheapest?.vendorId ?? null,
+          bestBranchId: cheapest?.branchId ?? null,
           isAvailable: purchasable.length > 0,
           offerCount: offers.length,
           quantityModeOfferCount: purchasable.filter(

@@ -75,13 +75,13 @@ export class SubstitutionService {
   async raise(input: {
     orderId: string;
     orderLineId: string;
-    vendorId: string;
+    branchId: string;
   }): Promise<RaisedSubstitution> {
     const order = await this.orders.findById(input.orderId);
     if (!order) throw new NotFoundException('No such order');
 
-    if (order.vendorId !== input.vendorId) {
-      // Scoped like every other vendor route (§3.2).
+    if (order.branchId !== input.branchId) {
+      // Scoped like every other branch route (§3.2).
       throw new NotFoundException('No such order');
     }
 
@@ -125,7 +125,7 @@ export class SubstitutionService {
         ? []
         : await this.ranker.rank({
             masterProductId: line.masterProductId,
-            vendorId: order.vendorId,
+            branchId: order.branchId,
             quantity: line.quantity,
           });
 
@@ -305,7 +305,7 @@ export class SubstitutionService {
     order: {
       id: string;
       accountId: string;
-      vendorId: string;
+      branchId: string;
       orderNumber: string;
       recipientPhone: string;
     },
@@ -334,7 +334,7 @@ export class SubstitutionService {
     order: {
       id: string;
       accountId: string;
-      vendorId: string;
+      branchId: string;
       orderNumber: string;
       recipientPhone: string;
     },
@@ -372,7 +372,7 @@ export class SubstitutionService {
         OrderStatus.SUBSTITUTION_PENDING,
         { accountId: null, role: Role.VENDOR_STAFF },
         {
-          vendorId: order.vendorId,
+          branchId: order.branchId,
           reason: `Waiting on the customer about ${line.name}`,
         },
       );
@@ -384,7 +384,7 @@ export class SubstitutionService {
       toPhone: order.recipientPhone,
       accountId: order.accountId,
       orderId: order.id,
-      vendorId: order.vendorId,
+      branchId: order.branchId,
       payload: {
         orderNumber: order.orderNumber,
         unavailable: line.name,
@@ -415,7 +415,7 @@ export class SubstitutionService {
     order: {
       id: string;
       accountId: string;
-      vendorId: string;
+      branchId: string;
       orderNumber: string;
       recipientPhone: string;
     },

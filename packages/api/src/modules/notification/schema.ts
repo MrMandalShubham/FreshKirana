@@ -24,7 +24,7 @@ export const notificationSchema = pgSchema('notification');
  * exactly what this is for. When a store says "I never got the order" the only
  * useful answer is a row showing what was sent, to which number, at what time,
  * and whether the provider reported it delivered or read. Without it the
- * argument is unwinnable and the vendor is right by default.
+ * argument is unwinnable and the branch is right by default.
  *
  * It is also the mock channel's outbox: in development the message is written
  * here and nowhere else, which is what makes the flow testable without a BSP.
@@ -44,7 +44,7 @@ export const message = notificationSchema.table(
 
     /** Who this was for. All optional — a message may concern none of them. */
     accountId: uuid('account_id'),
-    vendorId: uuid('vendor_id'),
+    branchId: uuid('branch_id'),
     orderId: uuid('order_id'),
 
     /** The template variables, as sent. Rendered text is derived, never stored twice. */
@@ -68,7 +68,7 @@ export const message = notificationSchema.table(
   },
   (table) => [
     index('message_order_idx').on(table.orderId, table.template),
-    index('message_vendor_idx').on(table.vendorId, table.createdAt),
+    index('message_branch_idx').on(table.branchId, table.createdAt),
     index('message_provider_idx').on(table.providerMessageId),
     // The in-app inbox reads by account, newest first.
     index('message_account_idx').on(table.accountId, table.createdAt),

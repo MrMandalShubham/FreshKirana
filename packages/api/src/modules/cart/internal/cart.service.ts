@@ -57,7 +57,7 @@ export interface CartLineView {
   priceChanged: boolean;
   addedAtPricePaise: number;
 
-  /** False when the vendor has since run out or paused the listing. */
+  /** False when the branch has since run out or paused the listing. */
   isAvailable: boolean;
 }
 
@@ -72,7 +72,7 @@ export interface SkippedItem {
 
 export interface CartView {
   id: string;
-  vendorId: string | null;
+  branchId: string | null;
   substitutionPreference: string;
   lines: CartLineView[];
   totals: CartTotals;
@@ -114,7 +114,7 @@ export class CartService {
     if (!existing) {
       return {
         id: '',
-        vendorId: null,
+        branchId: null,
         substitutionPreference: 'AUTO_SUBSTITUTE',
         lines: [],
         totals: calculateTotals([], this.pricing.getFees()),
@@ -127,8 +127,8 @@ export class CartService {
   /**
    * Adds an offer to the basket, or increases its quantity.
    *
-   * Enforces decision D2: the cart pins to a vendor on the first line, and a
-   * second vendor is refused with the information needed to resolve it, rather
+   * Enforces decision D2: the cart pins to a branch on the first line, and a
+   * second branch is refused with the information needed to resolve it, rather
    * than silently discarding either basket.
    */
   async addItem(
@@ -151,16 +151,16 @@ export class CartService {
 
     let current = await this.findActive(owner);
 
-    if (current && current.vendorId && current.vendorId !== offer.vendorId) {
-      // Deliberately a 409 carrying both vendor ids: the UI needs to offer
+    if (current && current.branchId && current.branchId !== offer.branchId) {
+      // Deliberately a 409 carrying both branch ids: the UI needs to offer
       // "switch shop and start again", and cannot without knowing what it is
       // switching between.
       throw new ConflictException({
         message:
           'Your basket is from another shop. One order is fulfilled by one store, so items from a second shop need a new basket.',
         code: 'CART_VENDOR_CONFLICT',
-        currentVendorId: current.vendorId,
-        requestedVendorId: offer.vendorId,
+        currentBranchId: current.branchId,
+        requestedBranchId: offer.branchId,
       });
     }
 
@@ -170,14 +170,14 @@ export class CartService {
         .values({
           accountId: owner.accountId ?? null,
           anonId: owner.anonId ?? null,
-          vendorId: offer.vendorId,
+          branchId: offer.branchId,
         })
         .returning();
       current = created[0]!;
-    } else if (!current.vendorId) {
+    } else if (!current.branchId) {
       const updated = await this.db
         .update(cart)
-        .set({ vendorId: offer.vendorId, updatedAt: new Date() })
+        .set({ branchId: offer.branchId, updatedAt: new Date() })
         .where(eq(cart.id, current.id))
         .returning();
       current = updated[0]!;
@@ -294,7 +294,7 @@ export class CartService {
     await this.db.delete(cartLine).where(eq(cartLine.cartId, current.id));
     await this.db
       .update(cart)
-      .set({ vendorId: null, updatedAt: new Date() })
+      .set({ branchId: null, updatedAt: new Date() })
       .where(eq(cart.id, current.id));
 
     return this.render(current.id);
@@ -319,7 +319,7 @@ export class CartService {
    *
    * If the account already has a basket, the anonymous one wins: it is what the
    * shopper was just looking at. Their older basket is abandoned rather than
-   * merged, because merging two single-vendor baskets from different shops has
+   * merged, because merging two single-branch baskets from different shops has
    * no correct answer (D2) and silently dropping half is worse than either.
    */
   async claim(anonId: string, accountId: string): Promise<CartView> {
@@ -368,12 +368,12 @@ export class CartService {
    * Builds the view, pricing every line from the **live** offer.
    *
    * The stored price is only ever used to tell the shopper it changed. Charging
-   * from a snapshot would either short the vendor or overcharge the customer,
+   * from a snapshot would either short the branch or overcharge the customer,
    * and grocery prices move daily.
    */
   private async render(cartId: string): Promise<CartView> {
     // Read the cart here rather than trusting the row a caller happens to hold:
-    // `removeItem` clears the vendor pin *after* it read the cart, and rendering
+    // `removeItem` clears the branch pin *after* it read the cart, and rendering
     // from that copy would tell the client the basket is still pinned to a shop
     // it is not — so the UI would keep refusing a second shop the server allows.
     const rows = await this.db.select().from(cart).where(eq(cart.id, cartId)).limit(1);
@@ -461,19 +461,19 @@ export class CartService {
 
     return {
       id: current.id,
-      vendorId: current.vendorId,
+      branchId: current.branchId,
       substitutionPreference: current.substitutionPreference,
       lines: views,
       totals: calculateTotals(
         billable,
-        this.pricing.getFees(current.vendorId ?? undefined),
+        this.pricing.getFees(current.branchId ?? undefined),
       ),
       unavailableLineIds,
     };
   }
 
   /**
-   * Rounds a requested quantity to something the vendor can actually weigh out.
+   * Rounds a requested quantity to something the branch can actually weigh out.
    *
    * A shopper asking for 300 g of a product that steps in 250 g gets 250 g, not
    * a picker guessing. Packs are already whole by construction.
@@ -497,7 +497,7 @@ export class CartService {
     return rounded;
   }
 
-  /** Clears the vendor pin once the basket empties, so any shop may be chosen next. */
+  /** Clears the branch pin once the basket empties, so any shop may be chosen next. */
   private async releaseVendorIfEmpty(cartId: string): Promise<void> {
     const remaining = await this.db
       .select({ id: cartLine.id })
@@ -506,7 +506,7 @@ export class CartService {
       .limit(1);
 
     if (remaining.length === 0) {
-      await this.db.update(cart).set({ vendorId: null }).where(eq(cart.id, cartId));
+      await this.db.update(cart).set({ branchId: null }).where(eq(cart.id, cartId));
     }
   }
 

@@ -14,8 +14,8 @@ import { LedgerService } from './internal/ledger.service';
  *
  * Imports nothing but identity. That is deliberate: the ledger records what
  * happened to money and must not depend on anything that could make it refuse
- * to record. Vendor and rider ids arrive as opaque scope strings, unvalidated
- * here on purpose — a payable that cannot be written because a vendor lookup
+ * to record. Branch and rider ids arrive as opaque scope strings, unvalidated
+ * here on purpose — a payable that cannot be written because a branch lookup
  * timed out is money lost from the books.
  */
 @Module({

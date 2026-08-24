@@ -29,7 +29,7 @@ interface IndexRow extends Record<string, unknown> {
   image_url: string | null;
   min_price_paise: number | null;
   best_offer_id: string | null;
-  best_vendor_id: string | null;
+  best_branch_id: string | null;
   mrp_paise: number | null;
   is_available: boolean;
   offer_count: number;
@@ -48,8 +48,8 @@ interface IndexRow extends Record<string, unknown> {
  *     stock.
  *  2. Substring containment before fuzzy score, so a shopper who types the
  *     product's actual name gets it top.
- *  3. Vendors keeping true stock counts (§1.9.2 QUANTITY mode) rank above
- *     those on a simple toggle — the incentive that migrates vendors upward.
+ *  3. Branches keeping true stock counts (§1.9.2 QUANTITY mode) rank above
+ *     those on a simple toggle — the incentive that migrates branches upward.
  *  4. Cheapest last, as the tie-break.
  */
 @Injectable()
@@ -99,7 +99,7 @@ export class SearchService {
       select
         pi.master_product_id, pi.slug, pi.name, pi.brand, pi.category_id,
         pi.net_quantity, pi.uom, pi.veg_mark, pi.image_url,
-        pi.min_price_paise, pi.mrp_paise, pi.best_offer_id, pi.best_vendor_id,
+        pi.min_price_paise, pi.mrp_paise, pi.best_offer_id, pi.best_branch_id,
         pi.is_available, pi.offer_count,
         (select max(similarity(pi.search_text, t)) from unnest(string_to_array(${termList}, ',')) as t) as score,
         (select bool_or(pi.search_text like '%' || t || '%') from unnest(string_to_array(${termList}, ',')) as t) as contains
@@ -160,7 +160,7 @@ export class SearchService {
       select
         pi.master_product_id, pi.slug, pi.name, pi.brand, pi.category_id,
         pi.net_quantity, pi.uom, pi.veg_mark, pi.image_url,
-        pi.min_price_paise, pi.mrp_paise, pi.best_offer_id, pi.best_vendor_id,
+        pi.min_price_paise, pi.mrp_paise, pi.best_offer_id, pi.best_branch_id,
         pi.is_available, pi.offer_count,
         0::float as score, false as contains
       from search.product_index pi
@@ -190,7 +190,7 @@ export class SearchService {
       select
         pi.master_product_id, pi.slug, pi.name, pi.brand, pi.category_id,
         pi.net_quantity, pi.uom, pi.veg_mark, pi.image_url,
-        pi.min_price_paise, pi.mrp_paise, pi.best_offer_id, pi.best_vendor_id,
+        pi.min_price_paise, pi.mrp_paise, pi.best_offer_id, pi.best_branch_id,
         pi.is_available, pi.offer_count,
         1::float as score, true as contains
       from search.product_index pi
@@ -257,7 +257,7 @@ export class SearchService {
       imageUrl: row.image_url,
       minPricePaise: row.min_price_paise,
       bestOfferId: row.best_offer_id,
-      bestVendorId: row.best_vendor_id,
+      bestBranchId: row.best_branch_id,
       mrpPaise: row.mrp_paise,
       isAvailable: row.is_available,
       offerCount: row.offer_count,

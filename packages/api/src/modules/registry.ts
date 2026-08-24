@@ -13,7 +13,7 @@
 export const MODULE_NAMES = [
   'identity',
   'user',
-  'vendor',
+  'branch',
   'catalog',
   'offer',
   'search',

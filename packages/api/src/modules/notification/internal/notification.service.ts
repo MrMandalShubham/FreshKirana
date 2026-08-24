@@ -32,7 +32,7 @@ export interface SendInput {
    */
   quickReplies?: readonly (VendorReply | CustomerReply)[];
   accountId?: string | null;
-  vendorId?: string | null;
+  branchId?: string | null;
   orderId?: string | null;
 }
 
@@ -68,7 +68,7 @@ export class NotificationService {
         toPhone: input.toPhone,
         payload: input.payload ?? {},
         accountId: input.accountId ?? null,
-        vendorId: input.vendorId ?? null,
+        branchId: input.branchId ?? null,
         orderId: input.orderId ?? null,
         status: MessageStatus.QUEUED,
       })
@@ -155,11 +155,11 @@ export class NotificationService {
   }
 
   /** Recent messages to a store, newest first. */
-  async messagesForVendor(vendorId: string, limit = 20) {
+  async messagesForVendor(branchId: string, limit = 20) {
     return this.db
       .select()
       .from(message)
-      .where(eq(message.vendorId, vendorId))
+      .where(eq(message.branchId, branchId))
       .orderBy(desc(message.createdAt))
       .limit(Math.min(limit, 100));
   }

@@ -114,12 +114,12 @@ export const productIndex = searchSchema.table(
      * with the one that produced the number on screen.
      */
     bestOfferId: uuid('best_offer_id'),
-    bestVendorId: uuid('best_vendor_id'),
+    bestBranchId: uuid('best_branch_id'),
     mrpPaise: integer('mrp_paise'),
     /** The §2.7.3 rule: an unavailable product never outranks an available one. */
     isAvailable: boolean('is_available').notNull().default(false),
     offerCount: integer('offer_count').notNull().default(0),
-    /** Vendors on QUANTITY mode get a ranking bonus — the §1.9.2 incentive. */
+    /** Branches on QUANTITY mode get a ranking bonus — the §1.9.2 incentive. */
     quantityModeOfferCount: integer('quantity_mode_offer_count').notNull().default(0),
 
     /**

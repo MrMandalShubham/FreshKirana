@@ -47,7 +47,7 @@ export const ROLE_SCOPE: Record<Role, ScopeType> = {
   SUPPORT: ScopeType.GLOBAL,
 };
 
-export function isVendorScoped(role: Role): boolean {
+export function isBranchScoped(role: Role): boolean {
   return ROLE_SCOPE[role] === ScopeType.VENDOR;
 }
 
@@ -86,19 +86,19 @@ export function hasRole(principal: Principal, ...roles: Role[]): boolean {
  */
 export function hasRoleAtVendor(
   principal: Principal,
-  vendorId: string,
+  branchId: string,
   ...roles: Role[]
 ): boolean {
   return principal.roles.some(
     (assignment) =>
       roles.includes(assignment.role) &&
       assignment.scopeType === ScopeType.VENDOR &&
-      assignment.scopeId === vendorId,
+      assignment.scopeId === branchId,
   );
 }
 
 /** Vendor ids this principal has any vendor-scoped role at. */
-export function vendorScopeIds(principal: Principal): string[] {
+export function branchScopeIds(principal: Principal): string[] {
   return principal.roles
     .filter((a) => a.scopeType === ScopeType.VENDOR && a.scopeId !== null)
     .map((a) => a.scopeId as string);

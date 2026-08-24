@@ -255,7 +255,7 @@ export class InventoryService {
     return { considered: expired.length, released, failed };
   }
 
-  /** What is held against an order. For support, and for the vendor's view. */
+  /** What is held against an order. For support, and for the branch's view. */
   async forOrder(orderId: string) {
     return this.db
       .select()

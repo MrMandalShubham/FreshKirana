@@ -10,7 +10,7 @@ import { PaymentService } from '../../payment/contracts';
 import { OrderStateService } from './order-state.service';
 import { OrderService } from './order.service';
 import { PaymentRecoveryService } from './payment-recovery.service';
-import { VendorOrderFlowService } from './vendor-order-flow.service';
+import { BranchOrderFlowService } from './branch-order-flow.service';
 
 export interface WebhookOutcome {
   handled: boolean;
@@ -45,7 +45,7 @@ export class PaymentFlowService {
     private readonly state: OrderStateService,
     private readonly inventory: InventoryService,
     private readonly recovery: PaymentRecoveryService,
-    private readonly vendorFlow: VendorOrderFlowService,
+    private readonly vendorFlow: BranchOrderFlowService,
   ) {}
 
   /**

@@ -60,7 +60,7 @@ describe.skipIf(!dbUp)('batches, shelf life and recall (e2e)', () => {
 
   let adminToken: string;
   let vendorToken: string;
-  let vendorId: string;
+  let branchId: string;
   let categoryId: string;
 
   const unique = () => randomUUID().slice(0, 8);
@@ -98,7 +98,7 @@ describe.skipIf(!dbUp)('batches, shelf life and recall (e2e)', () => {
     const productId = (product.body as { id: string }).id;
 
     const offer = await http()
-      .post(`/vendor/${vendorId}/offers`)
+      .post(`/branch/${branchId}/offers`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         masterProductId: productId,
@@ -120,7 +120,7 @@ describe.skipIf(!dbUp)('batches, shelf life and recall (e2e)', () => {
     quantity = 10,
   ) {
     return as(vendorToken)(
-      http().post(`/vendor/${vendorId}/offers/${offerId}/batches`),
+      http().post(`/branch/${branchId}/offers/${offerId}/batches`),
     ).send({
       batchNo,
       quantity,
@@ -131,7 +131,7 @@ describe.skipIf(!dbUp)('batches, shelf life and recall (e2e)', () => {
 
   async function listBatches(offerId: string): Promise<BatchView[]> {
     const res = await as(vendorToken)(
-      http().get(`/vendor/${vendorId}/offers/${offerId}/batches`),
+      http().get(`/branch/${branchId}/offers/${offerId}/batches`),
     ).expect(200);
     return res.body as BatchView[];
   }
@@ -149,7 +149,7 @@ describe.skipIf(!dbUp)('batches, shelf life and recall (e2e)', () => {
       .expect(201);
 
     const slots = await http()
-      .get(`/serviceability/stores/${vendorId}/slots`)
+      .get(`/serviceability/stores/${branchId}/slots`)
       .query({ days: 3 })
       .expect(200);
     const slot = (slots.body as SlotView[]).find((s) => s.isBookable)!;
@@ -179,7 +179,7 @@ describe.skipIf(!dbUp)('batches, shelf life and recall (e2e)', () => {
       OrderStatus.READY_FOR_PICKUP,
     ]) {
       await as(vendorToken)(
-        http().post(`/vendor/${vendorId}/orders/${order.id}/transitions`),
+        http().post(`/branch/${branchId}/orders/${order.id}/transitions`),
       )
         .send({ to })
         .expect(201);
@@ -227,7 +227,7 @@ describe.skipIf(!dbUp)('batches, shelf life and recall (e2e)', () => {
     adminToken = (admin.body as { token: string }).token;
 
     const vendor = await http()
-      .post('/admin/vendors')
+      .post('/admin/branches')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         slug: `store-${unique()}`,
@@ -242,16 +242,16 @@ describe.skipIf(!dbUp)('batches, shelf life and recall (e2e)', () => {
         fssaiLicenceNo: `1${Math.floor(Math.random() * 1e13)}`,
       })
       .expect(201);
-    vendorId = (vendor.body as { id: string }).id;
+    branchId = (vendor.body as { id: string }).id;
 
     await http()
-      .patch(`/admin/vendors/${vendorId}`)
+      .patch(`/admin/branches/${branchId}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ status: 'ACTIVE' })
       .expect(200);
 
     await http()
-      .put(`/vendor/${vendorId}/service-area`)
+      .put(`/branch/${branchId}/service-area`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         mode: ServiceAreaMode.RADIUS,
@@ -263,7 +263,7 @@ describe.skipIf(!dbUp)('batches, shelf life and recall (e2e)', () => {
 
     const tomorrow = istDateKey(new Date(Date.now() + DAY));
     await http()
-      .put(`/vendor/${vendorId}/slot-definitions`)
+      .put(`/branch/${branchId}/slot-definitions`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         dayOfWeek: istDayOfWeek(tomorrow),
@@ -283,7 +283,7 @@ describe.skipIf(!dbUp)('batches, shelf life and recall (e2e)', () => {
 
     const vendorLogin = await http()
       .post('/dev/login-as')
-      .send({ role: Role.VENDOR_STAFF, vendorId })
+      .send({ role: Role.VENDOR_STAFF, branchId })
       .expect(201);
     vendorToken = (vendorLogin.body as { token: string }).token;
   }, 240_000);
@@ -387,7 +387,7 @@ describe.skipIf(!dbUp)('batches, shelf life and recall (e2e)', () => {
       await batches.delistShortDated();
 
       const offer = await as(vendorToken)(
-        http().get(`/vendor/${vendorId}/offers/${offerId}`),
+        http().get(`/branch/${branchId}/offers/${offerId}`),
       ).expect(200);
 
       expect((offer.body as { isAvailable: boolean }).isAvailable).toBe(true);
@@ -400,7 +400,7 @@ describe.skipIf(!dbUp)('batches, shelf life and recall (e2e)', () => {
       await batches.delistShortDated();
 
       const offer = await as(vendorToken)(
-        http().get(`/vendor/${vendorId}/offers/${offerId}`),
+        http().get(`/branch/${branchId}/offers/${offerId}`),
       ).expect(200);
 
       expect((offer.body as { isAvailable: boolean }).isAvailable).toBe(false);
@@ -474,7 +474,7 @@ describe.skipIf(!dbUp)('batches, shelf life and recall (e2e)', () => {
       ).expect(201);
       await new Promise((resolve) => setTimeout(resolve, 900));
 
-      const messages = await as(adminToken)(http().get(`/vendor/${vendorId}/messages`))
+      const messages = await as(adminToken)(http().get(`/branch/${branchId}/messages`))
         .query({ limit: 100 })
         .expect(200);
 
@@ -511,7 +511,7 @@ describe.skipIf(!dbUp)('batches, shelf life and recall (e2e)', () => {
 
     it('does not touch a different lot of the same product', async () => {
       // Withdrawing every packet of a brand when one lot is bad is ruinous for
-      // the vendor and teaches customers to ignore the next recall.
+      // the branch and teaches customers to ignore the next recall.
       const { offerId, productId } = await makeOffer();
       await receive(offerId, 'BAD', 20).expect(201);
       await receive(offerId, 'GOOD', 25).expect(201);

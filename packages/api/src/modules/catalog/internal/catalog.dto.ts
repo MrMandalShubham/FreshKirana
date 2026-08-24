@@ -202,7 +202,7 @@ export class ApproveProductRequestDto {
 export class RejectProductRequestDto {
   @IsString() @MinLength(3) @MaxLength(1000) reviewerNotes!: string;
 
-  /** Set when rejecting as a duplicate, so the vendor is pointed at the real one. */
+  /** Set when rejecting as a duplicate, so the branch is pointed at the real one. */
   @IsOptional() @IsString() duplicateOfMasterProductId?: string;
 }
 

@@ -15,7 +15,7 @@ import { OfferService } from '../../offer/contracts';
  * other modules", §1.5.4).
  *
  * Approving a request has to create a master product *and* attach the
- * requesting vendor's offer. Catalog cannot do that: offer already depends on
+ * requesting branch's offer. Catalog cannot do that: offer already depends on
  * catalog, so catalog calling offer would close a dependency cycle that
  * dependency-cruiser rejects. Orchestration across modules is exactly what this
  * module is for.
@@ -40,10 +40,10 @@ export class AdminCatalogController {
   }
 
   /**
-   * Creates the master product and, where the vendor supplied a price, their
+   * Creates the master product and, where the branch supplied a price, their
    * offer for it in one step.
    *
-   * The offer is best-effort: if it fails (say the vendor was suspended while
+   * The offer is best-effort: if it fails (say the branch was suspended while
    * the request sat in the queue) the product still exists and the approval
    * stands. Losing the product because the offer failed would be the worse
    * outcome — the catalog work is the scarce part.
@@ -74,7 +74,7 @@ export class AdminCatalogController {
     }
 
     try {
-      const offer = await this.offers.create(request.vendorId, {
+      const offer = await this.offers.create(request.branchId, {
         masterProductId: product.id,
         mrpPaise: request.desiredMrpPaise,
         sellingPricePaise: request.desiredSellingPricePaise,

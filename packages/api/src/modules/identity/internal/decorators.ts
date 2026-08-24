@@ -17,7 +17,7 @@ export const Public = (): MethodDecorator & ClassDecorator =>
 /**
  * Requires the caller to hold at least one of these roles.
  *
- * Role alone is never sufficient for vendor-scoped resources — the handler must
+ * Role alone is never sufficient for branch-scoped resources — the handler must
  * still check the scope with `hasRoleAtVendor` (§3.2). This decorator is the
  * coarse filter, not the whole authorisation.
  */

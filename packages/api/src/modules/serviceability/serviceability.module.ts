@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { AnalyticsModule } from '../analytics/analytics.module';
 import { IdentityModule } from '../identity/identity.module';
-import { VendorModule } from '../vendor/vendor.module';
+import { BranchModule } from '../branch/branch.module';
 import { ServiceAreaService } from './internal/service-area.service';
 import { ServiceabilityController } from './internal/serviceability.controller';
 import { SlotService } from './internal/slot.service';
-import { VendorServiceabilityController } from './internal/vendor-serviceability.controller';
+import { BranchServiceabilityController } from './internal/branch-serviceability.controller';
 
 /**
  * Serviceability module — geofences, store resolution, slots and capacity
@@ -19,8 +19,8 @@ import { VendorServiceabilityController } from './internal/vendor-serviceability
  * this module's job ends at "one place taken, atomically".
  */
 @Module({
-  imports: [IdentityModule, VendorModule, AnalyticsModule],
-  controllers: [ServiceabilityController, VendorServiceabilityController],
+  imports: [IdentityModule, BranchModule, AnalyticsModule],
+  controllers: [ServiceabilityController, BranchServiceabilityController],
   providers: [ServiceAreaService, SlotService],
   exports: [ServiceAreaService, SlotService],
 })

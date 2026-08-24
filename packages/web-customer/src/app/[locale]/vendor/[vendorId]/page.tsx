@@ -38,14 +38,14 @@ const NEEDS_ACTION = [
 export default async function VendorQueuePage({
   params,
 }: {
-  params: Promise<{ locale: Locale; vendorId: string }>;
+  params: Promise<{ locale: Locale; branchId: string }>;
 }) {
-  const { locale, vendorId } = await params;
+  const { locale, branchId } = await params;
   const t = getDictionary(locale);
 
-  if (!(await isSignedIn())) redirect(`/${locale}/signin?vendor=${vendorId}`);
+  if (!(await isSignedIn())) redirect(`/${locale}/signin?vendor=${branchId}`);
 
-  const orders = await fetchVendorOrders(vendorId);
+  const orders = await fetchVendorOrders(branchId);
 
   // Oldest first: the one closest to breaching its §1.9.4 acceptance SLA is the
   // one somebody should pick up next.
@@ -64,7 +64,7 @@ export default async function VendorQueuePage({
         <ul className="order-lines">
           {queue.map((order) => (
             <li key={order.id} className="order-line">
-              <Link href={`/${locale}/vendor/${vendorId}/orders/${order.id}`}>
+              <Link href={`/${locale}/vendor/${branchId}/orders/${order.id}`}>
                 <strong>{order.orderNumber}</strong>
                 <span className="muted">
                   {' '}
