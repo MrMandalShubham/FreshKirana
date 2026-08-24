@@ -176,6 +176,13 @@
       "when": 1787349451265,
       "tag": "0024_new_shen",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1787506059597,
+      "tag": "0025_woozy_iron_patriot",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { PricingModule } from './modules/pricing/pricing.module';
 import { IdentityModule } from './modules/identity/identity.module';
+import { LedgerModule } from './modules/ledger/ledger.module';
 import { OfferModule } from './modules/offer/offer.module';
 import { SearchModule } from './modules/search/search.module';
 import { ServiceabilityModule } from './modules/serviceability/serviceability.module';
@@ -38,6 +39,7 @@ import { ObservabilityModule } from './observability/observability.module';
     UserModule,
     CatalogModule,
     VendorModule,
+    LedgerModule,
     OfferModule,
     SearchModule,
     ServiceabilityModule,

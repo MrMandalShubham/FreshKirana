@@ -7,6 +7,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+
+    // Loads .env before any spec, so a single e2e file run on its own still
+    // reaches the database instead of silently skipping. See testing/setup.ts.
+    setupFiles: ['src/testing/setup.ts'],
     include: ['src/**/*.spec.ts'],
     root: './',
 
