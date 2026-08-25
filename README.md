@@ -29,18 +29,50 @@ packages/
 ## Prerequisites
 
 - Node.js ≥ 22 (see `.nvmrc`)
-- Docker Desktop (PostgreSQL + PostGIS, Redis)
+- gcloud CLI, authenticated — `gcloud auth application-default login`
+- Docker Desktop — only for the local-container path below
 
 ## Getting started
 
+**Local work runs against the staging Cloud SQL database through the Cloud SQL
+Auth Proxy.** That is what `db_public_ip` exists for (`infra/terraform/variables.tf`),
+and what `DATABASE_URL` in your `.env` already points at — the proxy listens on
+`127.0.0.1:5432`, so the connection string looks local while the data is not.
+
 ```bash
-cp .env.example .env
+cp .env.example .env          # then set DATABASE_URL to the staging credential
 npm install
-npm run db:up
+cloud-sql-proxy freshkirana-staging-mm:asia-south1:freshkirana-staging-pg --port 5432
+```
+
+Leave that running, and in a second terminal:
+
+```bash
 npm run build
 npm run db:migrate
 npm run verify
 ```
+
+> **Nothing else may hold port 5432.** If a local Postgres container is running,
+> it answers instead of the proxy and every command quietly talks to the wrong
+> database — the symptom is an authentication failure, because the two have
+> different passwords. Run `npm run db:down` first.
+
+> **The suite needs a longer timeout over the proxy.** Every query makes a
+> round trip to Mumbai, so the full run takes roughly half an hour against
+> staging versus under a minute locally, and the slowest specs blow through
+> vitest's 60-second default. Use `npx vitest run --testTimeout=240000` when
+> running everything against staging. The default stays as it is because CI
+> runs against a local container, where 60 seconds is generous and raising it
+> would only hide a real regression.
+
+### The local-container path
+
+`npm run db:up` starts Postgres and Redis in Docker with the credentials in
+`docker-compose.yml`, which is what CI uses. It is fine for running the suite
+offline, and it is the only safe place for `npm run db:reset` — that command
+destroys volumes, and it is a Docker command, so it can never reach the cloud.
+Point `DATABASE_URL` at `freshkirana_local` when you use it.
 
 Run the API:
 
